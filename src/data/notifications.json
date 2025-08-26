@@ -1,0 +1,17 @@
+[
+    {
+        "icon": "PackageCheck",
+        "color": "text-blue-600",
+        "message": "Your order has been shipped"
+    },
+    {
+        "icon": "MessageCircle",
+        "color": "text-green-600",
+        "message": "New message from support"
+    },
+    {
+        "icon": "ShieldCheck",
+        "color": "text-purple-600",
+        "message": "Password changed successfully"
+    }
+]
