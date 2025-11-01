@@ -1,52 +1,71 @@
 import {createContext, useState, useContext, type ReactNode, useEffect} from "react";
+import type { LoginResponse } from '../libs/models/login';
+import { useNavigate } from "react-router-dom";
 
 interface AuthContextType {
-    token: string | null;
-    role: string | null;
-    login: (token: string, role: string) => void;
+    user: LoginResponse | null;
+    isAuthenticated: boolean;
     logout: () => void;
+    setAuth: (user: LoginResponse | null) => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isAuthenticated: false,
+  logout: () => {},
+  setAuth: () => {},
+});
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [token, setToken] = useState<string | null>(null);
-    const [role, setRole] = useState<string | null>(null);
+     const navigate = useNavigate();
+     const [user, setUser] = useState<LoginResponse | null>(() => {
+        const token = localStorage.getItem("jwtToken");
+        const role = localStorage.getItem("authorized_role");
+        const username = localStorage.getItem("authorized_username");
+        const adminInfo = localStorage.getItem("authorized_admin_info");
 
-    useEffect(() => {
-        const savedToken = localStorage.getItem("authToken");
-        const savedRole = localStorage.getItem("authRole");
-
-        if (savedToken && savedToken) {
-            setToken(savedToken);
-            setRole(savedRole);
+        if (!token || !role || !username || !adminInfo) return null;
+        
+        let parsedAdmin = {} as any;
+        try {
+            parsedAdmin = JSON.parse(adminInfo);
+        } catch {
+            parsedAdmin = { accountStatus: "UNKNOWN" };
         }
-    }, []);
+        return { jwtToken: token, role, username, userResponse: parsedAdmin };
+     });
 
-
-    const login = (newToken: string, newRole: string) => {
-        setToken(newToken);
-        setRole(newRole);
-        localStorage.setItem("authToken", newToken);
-        localStorage.setItem("authRole", newRole);
-    };
+     const setAuth = (userData: LoginResponse | null) => {
+        if (userData) {
+            localStorage.setItem("jwtToken", userData.jwtToken);
+            localStorage.setItem("authorized_role", userData.role);
+            localStorage.setItem("authorized_username", userData.username);
+            localStorage.setItem("authorized_admin_info", JSON.stringify(userData.userResponse));
+        } else {
+            localStorage.removeItem("jwtToken");
+            localStorage.removeItem("authorized_role");
+            localStorage.removeItem("authorized_username");
+            localStorage.removeItem("authorized_admin_info");
+        }
+        setUser(userData);
+     };
 
     const logout = () => {
-        setToken(null);
-        setRole(null);
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("authRole");
+            localStorage.removeItem("jwtToken");
+            localStorage.removeItem("authorized_role");
+            localStorage.removeItem("authorized_username");
+            localStorage.removeItem("authorized_admin_info");
+            setUser(null);
+            navigate("/login");
     };
 
     return (
-        <AuthContext.Provider value={{ token, role, login, logout }}>
-            {children}
+        <AuthContext.Provider value={{ user, isAuthenticated: !!user, logout, setAuth }}>
+        {children}
         </AuthContext.Provider>
     );
+
 };
 
-export const useAuth = () => {
-    const context = useContext(AuthContext);
-    if (!context) throw new Error("useAuth must be used within AuthProvider");
-    return context;
-};
+export const useAuth = () => useContext(AuthContext);
+

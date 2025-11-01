@@ -9,3 +9,22 @@ html, body, #root {
     margin: 0;
     padding: 0;
 }
+
+.swal-theme {
+    background-color: var(--card-color) !important;
+    color: var(--text-color) !important;
+    border-radius: 0.75rem;
+}
+
+.swal-confirm-button {
+    background-color: var(--button-color) !important;
+    color: white !important;
+    border-radius: 9999px;
+    padding: 0.5rem 1.25rem;
+}
+
+.swal-cancel-button {
+    background-color: #6b7280 !important;
+    color: white !important;
+    border-radius: 9999px;
+}
