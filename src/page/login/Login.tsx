@@ -1,6 +1,6 @@
 import React, { useState, type FormEvent } from 'react';
 import { Button } from 'flowbite-react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import ReCAPTCHA from 'react-google-recaptcha';
 import { login } from "../../libs/ApiGatewayDatasource.ts";
 import {useAuth} from "../../context/AuthContext.tsx";
