@@ -40,7 +40,7 @@ const Login: React.FC = () => {
       const response: LoginResponse = await login({ email, password });
       setAuth(response);
 
-      if (response.role !== 'ROLE_ADMIN') {
+      if (response.role !== 'ADMIN') {
         Swal.fire({
           icon: "error",
           title: "Access Denied",
