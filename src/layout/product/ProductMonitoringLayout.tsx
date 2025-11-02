@@ -15,44 +15,51 @@ import {
 
 interface Product {
   productCode: string;
-  productName: string;
-  productDescription: string;
-  stocks: number;
-  productSize: string;
-  productStatus: "In Stock" | "Low Stock" | "Out of Stock";
+  name: string;
+  description: string;
+  size: string;
+  stock: number;
+  status: "In Stock" | "Low Stock" | "Out of Stock";
   expiryDate: string;
-  productInDate: string;
-  productImgUrl: string;
+  imgUrl: string;
 }
 
 const initialProducts: Product[] = [
   {
-    productCode: "P001",
-    productName: "Milk",
-    productDescription: "Fresh cow milk",
-    stocks: 25,
-    productSize: "1L",
-    productStatus: "In Stock",
+    productCode: "PRD-001",
+    name: "Milk",
+    description: "Fresh whole milk",
+    size: "1L",
+    stock: 25,
+    status: "In Stock",
     expiryDate: "2025-12-01",
-    productInDate: "2024-11-01",
-    productImgUrl: "/images/milk.jpg",
+    imgUrl: "https://via.placeholder.com/60",
   },
   {
-    productCode: "P002",
-    productName: "Bread",
-    productDescription: "Wheat bread loaf",
-    stocks: 0,
-    productSize: "500g",
-    productStatus: "Out of Stock",
+    productCode: "PRD-002",
+    name: "Bread",
+    description: "Whole grain loaf",
+    size: "500g",
+    stock: 0,
+    status: "Out of Stock",
     expiryDate: "2024-07-10",
-    productInDate: "2024-06-10",
-    productImgUrl: "/images/bread.jpg",
+    imgUrl: "https://via.placeholder.com/60",
+  },
+  {
+    productCode: "PRD-003",
+    name: "Eggs",
+    description: "Free range dozen",
+    size: "12 pcs",
+    stock: 100,
+    status: "In Stock",
+    expiryDate: "2024-09-15",
+    imgUrl: "https://via.placeholder.com/60",
   },
 ];
 
 export default function ProductInventoryTable() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"" | Product["productStatus"]>("");
+  const [statusFilter, setStatusFilter] = useState<"" | Product["status"]>("");
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -60,26 +67,24 @@ export default function ProductInventoryTable() {
 
   const [newProduct, setNewProduct] = useState<Product>({
     productCode: "",
-    productName: "",
-    productDescription: "",
-    stocks: 0,
-    productSize: "",
-    productStatus: "In Stock",
+    name: "",
+    description: "",
+    size: "",
+    stock: 0,
+    status: "In Stock",
     expiryDate: "",
-    productInDate: "",
-    productImgUrl: "",
+    imgUrl: "",
   });
 
   const [editProduct, setEditProduct] = useState<Product>({
     productCode: "",
-    productName: "",
-    productDescription: "",
-    stocks: 0,
-    productSize: "",
-    productStatus: "In Stock",
+    name: "",
+    description: "",
+    size: "",
+    stock: 0,
+    status: "In Stock",
     expiryDate: "",
-    productInDate: "",
-    productImgUrl: "",
+    imgUrl: "",
   });
 
   const [currentPage, setCurrentPage] = useState(1);
@@ -89,14 +94,13 @@ export default function ProductInventoryTable() {
     setProducts([...products, newProduct]);
     setNewProduct({
       productCode: "",
-      productName: "",
-      productDescription: "",
-      stocks: 0,
-      productSize: "",
-      productStatus: "In Stock",
+      name: "",
+      description: "",
+      size: "",
+      stock: 0,
+      status: "In Stock",
       expiryDate: "",
-      productInDate: "",
-      productImgUrl: "",
+      imgUrl: "",
     });
     setIsModalOpen(false);
   };
@@ -110,7 +114,7 @@ export default function ProductInventoryTable() {
     }
   };
 
-  const getStatusStyle = (status: Product["productStatus"]) => {
+  const getStatusStyle = (status: Product["status"]) => {
     switch (status) {
       case "In Stock":
         return "bg-green-100 text-green-700";
@@ -124,11 +128,9 @@ export default function ProductInventoryTable() {
   };
 
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
-      const matchesSearch =
-        p.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.productCode.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = statusFilter === "" || p.productStatus === statusFilter;
+    return products.filter((product) => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === "" || product.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [searchTerm, statusFilter, products]);
@@ -143,9 +145,7 @@ export default function ProductInventoryTable() {
   return (
     <div className="p-6 bg-white rounded-lg shadow-md overflow-x-auto">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-4">
-        <h2 className="text-xl font-semibold text-gray-700">
-          Product Inventory Monitoring
-        </h2>
+        <h2 className="text-xl font-semibold text-gray-700">Product Inventory Monitoring</h2>
         <div className="flex flex-wrap gap-2 sm:items-center">
           <input
             type="text"
@@ -163,83 +163,82 @@ export default function ProductInventoryTable() {
             className="bg-white border border-gray-600 shadow-md text-sm"
           >
             <DropdownItem onClick={() => setStatusFilter("")}>All</DropdownItem>
-            <DropdownItem onClick={() => setStatusFilter("In Stock")}>
-              In Stock
-            </DropdownItem>
-            <DropdownItem onClick={() => setStatusFilter("Low Stock")}>
-              Low Stock
-            </DropdownItem>
-            <DropdownItem onClick={() => setStatusFilter("Out of Stock")}>
-              Out of Stock
-            </DropdownItem>
+            <DropdownItem onClick={() => setStatusFilter("In Stock")}>In Stock</DropdownItem>
+            <DropdownItem onClick={() => setStatusFilter("Low Stock")}>Low Stock</DropdownItem>
+            <DropdownItem onClick={() => setStatusFilter("Out of Stock")}>Out of Stock</DropdownItem>
           </Dropdown>
         </div>
       </div>
 
+      {/* Table */}
       <table className="min-w-full border border-gray-300 text-sm text-left text-gray-700">
         <thead className="bg-emerald-600 text-gray-100">
           <tr>
-            <th className="p-3 border">Code</th>
-            <th className="p-3 border">Name</th>
-            <th className="p-3 border">Description</th>
-            <th className="p-3 border">Size</th>
-            <th className="p-3 border">Stocks</th>
-            <th className="p-3 border">Status</th>
-            <th className="p-3 border">Expiry</th>
-            <th className="p-3 border">Date In</th>
-            <th className="p-3 border">Image</th>
-            <th className="p-3 border">Actions</th>
+            <th className="p-3 border border-gray-300 font-medium">Image</th>
+            <th className="p-3 border border-gray-300 font-medium">Code</th>
+            <th className="p-3 border border-gray-300 font-medium">Product</th>
+            <th className="p-3 border border-gray-300 font-medium">Description</th>
+            <th className="p-3 border border-gray-300 font-medium">Size</th>
+            <th className="p-3 border border-gray-300 font-medium">Stocks</th>
+            <th className="p-3 border border-gray-300 font-medium">Status</th>
+            <th className="p-3 border border-gray-300 font-medium">Expiry Date</th>
+            <th className="p-3 border border-gray-300 font-medium text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
           {paginatedProducts.length > 0 ? (
             paginatedProducts.map((product, idx) => (
-              <tr key={idx} className="hover:bg-gray-100">
-                <td className="p-3 border">{product.productCode}</td>
-                <td className="p-3 border font-medium">{product.productName}</td>
-                <td className="p-3 border">{product.productDescription}</td>
-                <td className="p-3 border">{product.productSize}</td>
-                <td className="p-3 border">{product.stocks}</td>
-                <td className="p-3 border">
-                  <span
-                    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusStyle(
-                      product.productStatus
-                    )}`}
-                  >
-                    {product.productStatus}
-                  </span>
-                </td>
-                <td className="p-3 border">{product.expiryDate}</td>
-                <td className="p-3 border">{product.productInDate}</td>
-                <td className="p-3 border">
+              <tr
+                key={idx}
+                className="hover:bg-gray-100 transition duration-150 ease-in-out"
+              >
+                <td className="p-3 border border-gray-300">
                   <img
-                    src={product.productImgUrl}
-                    alt={product.productName}
-                    className="w-10 h-10 object-cover rounded-md"
+                    src={product.imgUrl}
+                    alt={product.name}
+                    className="w-12 h-12 object-cover rounded-md"
                   />
                 </td>
-                <td className="p-3 border flex flex-wrap gap-2">
-                  <button
-                    className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
-                    onClick={() => {
-                      setSelectedProductIndex(
-                        (currentPage - 1) * itemsPerPage + idx
-                      );
-                      setEditProduct({ ...product });
-                      setIsEditModalOpen(true);
-                    }}
+                <td className="p-3 border border-gray-300">{product.productCode}</td>
+                <td className="p-3 border border-gray-300 font-medium">{product.name}</td>
+                <td className="p-3 border border-gray-300">{product.description}</td>
+                <td className="p-3 border border-gray-300">{product.size}</td>
+                <td className="p-3 border border-gray-300">{product.stock}</td>
+                <td className="p-3 border border-gray-300">
+                  <span
+                    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${getStatusStyle(
+                      product.status
+                    )}`}
                   >
-                    <Pencil className="w-4 h-4" /> Edit
-                  </button>
-                  <button className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-red-500 hover:bg-red-600 rounded-md">
-                    <XCircle className="w-4 h-4" /> Not Available
-                  </button>
+                    {product.status}
+                  </span>
+                </td>
+                <td className="p-3 border border-gray-300">{product.expiryDate}</td>
+                <td className="p-3 border border-gray-300 text-center">
+                  <div className="flex justify-center gap-2">
+                    <button
+                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
+                      onClick={() => {
+                        setSelectedProductIndex((currentPage - 1) * itemsPerPage + idx);
+                        setEditProduct({ ...product });
+                        setIsEditModalOpen(true);
+                      }}
+                    >
+                      <Pencil className="w-4 h-4" /> Update
+                    </button>
+                    <button className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-red-500 hover:bg-red-600 rounded-md">
+                      <XCircle className="w-4 h-4" /> Not Available
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))
           ) : (
             <tr>
-              <td colSpan={10} className="text-center py-4 text-gray-500 border">
+              <td
+                colSpan={9}
+                className="text-center py-4 text-gray-500 border border-gray-300"
+              >
                 No products found.
               </td>
             </tr>
@@ -247,7 +246,7 @@ export default function ProductInventoryTable() {
         </tbody>
       </table>
 
-      {/* Pagination */}
+      {/* Pagination + Add button */}
       <div className="mt-4 flex justify-between items-center">
         <div className="flex gap-2">
           <button
@@ -275,154 +274,6 @@ export default function ProductInventoryTable() {
           + Add Product
         </button>
       </div>
-
-      {/* Add Product Modal */}
-      <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <ModalHeader>Add New Product</ModalHeader>
-        <ModalBody>
-          <div className="space-y-4">
-            <Label htmlFor="productCode">Product Code</Label>
-            <TextInput
-              id="productCode"
-              value={newProduct.productCode}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, productCode: e.target.value })
-              }
-            />
-            <Label htmlFor="productName">Name</Label>
-            <TextInput
-              id="productName"
-              value={newProduct.productName}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, productName: e.target.value })
-              }
-            />
-            <Label htmlFor="productDescription">Description</Label>
-            <TextInput
-              id="productDescription"
-              value={newProduct.productDescription}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, productDescription: e.target.value })
-              }
-            />
-            <Label htmlFor="productSize">Size</Label>
-            <TextInput
-              id="productSize"
-              value={newProduct.productSize}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, productSize: e.target.value })
-              }
-            />
-            <Label htmlFor="stocks">Stocks</Label>
-            <TextInput
-              id="stocks"
-              type="number"
-              value={newProduct.stocks}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, stocks: parseInt(e.target.value) })
-              }
-            />
-            <Label htmlFor="productStatus">Status</Label>
-            <Select
-              id="productStatus"
-              value={newProduct.productStatus}
-              onChange={(e) =>
-                setNewProduct({
-                  ...newProduct,
-                  productStatus: e.target.value as Product["productStatus"],
-                })
-              }
-            >
-              <option value="In Stock">In Stock</option>
-              <option value="Low Stock">Low Stock</option>
-              <option value="Out of Stock">Out of Stock</option>
-            </Select>
-            <Label htmlFor="expiryDate">Expiry Date</Label>
-            <TextInput
-              id="expiryDate"
-              type="date"
-              value={newProduct.expiryDate}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, expiryDate: e.target.value })
-              }
-            />
-            <Label htmlFor="productInDate">Product In Date</Label>
-            <TextInput
-              id="productInDate"
-              type="date"
-              value={newProduct.productInDate}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, productInDate: e.target.value })
-              }
-            />
-            <Label htmlFor="productImgUrl">Image URL</Label>
-            <TextInput
-              id="productImgUrl"
-              value={newProduct.productImgUrl}
-              onChange={(e) =>
-                setNewProduct({ ...newProduct, productImgUrl: e.target.value })
-              }
-            />
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button onClick={handleAddProduct} className="bg-green-700 hover:bg-green-800">
-            Add Product
-          </Button>
-          <Button color="failure" onClick={() => setIsModalOpen(false)}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
-
-      {/* Edit Modal */}
-      <Modal show={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
-        <ModalHeader>Edit Product</ModalHeader>
-        <ModalBody>
-          <div className="space-y-4">
-            <Label htmlFor="editProductName">Name</Label>
-            <TextInput
-              id="editProductName"
-              value={editProduct.productName}
-              onChange={(e) =>
-                setEditProduct({ ...editProduct, productName: e.target.value })
-              }
-            />
-            <Label htmlFor="editStocks">Stocks</Label>
-            <TextInput
-              id="editStocks"
-              type="number"
-              value={editProduct.stocks}
-              onChange={(e) =>
-                setEditProduct({ ...editProduct, stocks: parseInt(e.target.value) })
-              }
-            />
-            <Label htmlFor="editStatus">Status</Label>
-            <Select
-              id="editStatus"
-              value={editProduct.productStatus}
-              onChange={(e) =>
-                setEditProduct({
-                  ...editProduct,
-                  productStatus: e.target.value as Product["productStatus"],
-                })
-              }
-            >
-              <option value="In Stock">In Stock</option>
-              <option value="Low Stock">Low Stock</option>
-              <option value="Out of Stock">Out of Stock</option>
-            </Select>
-          </div>
-        </ModalBody>
-        <ModalFooter>
-          <Button onClick={handleUpdateProduct} className="bg-yellow-600 hover:bg-yellow-700">
-            Update Product
-          </Button>
-          <Button color="gray" onClick={() => setIsEditModalOpen(false)}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
     </div>
   );
 }
