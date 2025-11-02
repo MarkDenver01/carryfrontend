@@ -1,4 +1,4 @@
-import {createContext, useState, useContext, type ReactNode, useEffect} from "react";
+import {createContext, useState, useContext, type ReactNode} from "react";
 import type { LoginResponse } from '../libs/models/login';
 import { useNavigate } from "react-router-dom";
 
