@@ -10,11 +10,15 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
+  Select,
 } from "flowbite-react";
 import Swal from "sweetalert2";
-import { getAllProductsWithRecommendations } from "../../libs/ApiGatewayDatasource";
-import type { ProductDTO } from "../../libs/models/product/ProductDTO";
-import type { ProductRecommendedDTO } from "../../libs/models/product/ProductRecommendedDTO";
+import {
+  getAllProductsWithRecommendations,
+  addProduct,
+  updateProduct,
+} from "../../libs/ApiGatewayDatasource";
+import type { ProductDTO, ProductRecommendedDTO, ProductRequest } from "../../libs/models/product/Product";
 
 /* Frontend-friendly types */
 interface ProductRecommended {
@@ -29,6 +33,7 @@ interface ProductRecommended {
 }
 
 interface Product {
+  id?: number; // <-- keep productId for update
   image: string;
   code: string;
   name: string;
@@ -46,7 +51,7 @@ const formatDate = (d?: string | null) => {
   if (!d) return "";
   const parsed = new Date(d);
   if (isNaN(parsed.getTime())) return d; // fallback to raw string
-  return parsed.toLocaleDateString();
+  return parsed.toISOString().split("T")[0]; // use YYYY-MM-DD for date inputs and display
 };
 
 export default function ProductInventoryTable() {
@@ -62,6 +67,7 @@ export default function ProductInventoryTable() {
   const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
   const [selectedRecommendations, setSelectedRecommendations] = useState<ProductRecommended[]>([]);
 
+  // New product form state
   const [newProduct, setNewProduct] = useState<Product>({
     image: "",
     code: "",
@@ -74,19 +80,31 @@ export default function ProductInventoryTable() {
     status: "Available",
   });
 
-  const [editProduct, setEditProduct] = useState<Product>({ ...newProduct });
+  // Edit product state including id
+  const [editProduct, setEditProduct] = useState<Product>({
+    image: "",
+    code: "",
+    name: "",
+    description: "",
+    size: "",
+    stock: 0,
+    expiryDate: "",
+    inDate: "",
+    status: "Available",
+  });
+  const [editProductId, setEditProductId] = useState<number | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  // Fetch products on mount
   useEffect(() => {
     let mounted = true;
     const fetchProducts = async () => {
       try {
         const data: ProductDTO[] = await getAllProductsWithRecommendations();
-
-        // map backend DTO to frontend-friendly Product
         const mapped: Product[] = data.map((p) => ({
+          id: p.productId as number,
           image: p.productImgUrl ?? "",
           code: p.productCode ?? "",
           name: p.productName ?? "",
@@ -107,7 +125,6 @@ export default function ProductInventoryTable() {
             createdDate: r.createdDate ? formatDate(r.createdDate) : "",
           })),
         }));
-
         if (!mounted) return;
         setProducts(mapped);
       } catch (err: any) {
@@ -116,37 +133,152 @@ export default function ProductInventoryTable() {
         if (mounted) setLoading(false);
       }
     };
-
     fetchProducts();
     return () => {
       mounted = false;
     };
   }, []);
 
-  const handleAddProduct = () => {
-    setProducts((prev) => [...prev, newProduct]);
-    setNewProduct({
-      image: "",
-      code: "",
-      name: "",
-      description: "",
-      size: "",
-      stock: 0,
-      expiryDate: "",
-      inDate: "",
-      status: "Available",
-    });
-    setIsModalOpen(false);
+  /* --- API helpers: assemble ProductRequest from frontend Product --- */
+  const toProductRequest = (p: Product): ProductRequest => ({
+    productCode: p.code,
+    productName: p.name,
+    productDescription: p.description,
+    stocks: Number(p.stock ?? 0),
+    productSize: p.size,
+    productStatus: p.status,
+    productImgUrl: p.image,
+    expiryDate: p.expiryDate ? new Date(p.expiryDate).toISOString() : null,
+    productInDate: p.inDate ? new Date(p.inDate).toISOString() : null,
+  });
+
+  /* ---- Add product (calls backend) ---- */
+  const handleAddProduct = async () => {
+    try {
+      // basic validation
+      if (!newProduct.code || !newProduct.name) {
+        Swal.fire("Validation", "Product code and name are required.", "warning");
+        return;
+      }
+      const payload = toProductRequest(newProduct);
+      const added = await addProduct(payload); // returns ProductDTO
+
+      // map returned DTO to frontend Product and insert into state (prepend)
+      const mapped: Product = {
+        id: added.productId as number,
+        image: added.productImgUrl ?? "",
+        code: added.productCode ?? "",
+        name: added.productName ?? "",
+        description: added.productDescription ?? "",
+        size: added.productSize ?? "",
+        stock: added.stocks ?? 0,
+        expiryDate: added.expiryDate ? formatDate(added.expiryDate) : "",
+        inDate: added.productInDate ? formatDate(added.productInDate) : "",
+        status: (added.productStatus ?? "").toLowerCase() === "available" ? "Available" : "Not Available",
+        recommendations: added.recommendations?.map((r) => ({
+          productRecommendedId: r.productRecommendedId,
+          productCode: r.productCode,
+          productName: r.productName,
+          productDescription: r.productDescription,
+          productSize: r.productSize,
+          productImgUrl: r.productImgUrl,
+          expiryDate: r.expiryDate ? formatDate(r.expiryDate) : "",
+          createdDate: r.createdDate ? formatDate(r.createdDate) : "",
+        })) ?? [],
+      };
+
+      setProducts((prev) => [mapped, ...prev]);
+      setIsModalOpen(false);
+      // reset form
+      setNewProduct({
+        image: "",
+        code: "",
+        name: "",
+        description: "",
+        size: "",
+        stock: 0,
+        expiryDate: "",
+        inDate: "",
+        status: "Available",
+      });
+      Swal.fire("Success", "Product added successfully", "success");
+    } catch (err: any) {
+      Swal.fire("Error", err?.message || "Failed to add product", "error");
+    }
   };
 
-  const handleUpdateProduct = () => {
-    if (selectedProductIndex !== null) {
+  /* ---- Open edit modal (prefill) ---- */
+  const openEditModal = (realIndex: number) => {
+    const p = products[realIndex];
+    if (!p) return;
+    setEditProduct({
+      id: p.id,
+      image: p.image,
+      code: p.code,
+      name: p.name,
+      description: p.description,
+      size: p.size,
+      stock: p.stock,
+      expiryDate: p.expiryDate ?? "",
+      inDate: p.inDate ?? "",
+      status: p.status,
+      recommendations: p.recommendations,
+    });
+    setEditProductId(p.id ?? null);
+    setSelectedProductIndex(realIndex);
+    setIsEditModalOpen(true);
+  };
+
+  /* ---- Update product (calls backend) ---- */
+  const handleUpdateProduct = async () => {
+    try {
+      if (!editProductId) {
+        Swal.fire("Error", "No product selected to update.", "error");
+        return;
+      }
+      const payload = toProductRequest(editProduct);
+      const updatedDto = await updateProduct(editProductId, payload);
+
+      const updatedMapped: Product = {
+        id: updatedDto.productId as number,
+        image: updatedDto.productImgUrl ?? "",
+        code: updatedDto.productCode ?? "",
+        name: updatedDto.productName ?? "",
+        description: updatedDto.productDescription ?? "",
+        size: updatedDto.productSize ?? "",
+        stock: updatedDto.stocks ?? 0,
+        expiryDate: updatedDto.expiryDate ? formatDate(updatedDto.expiryDate) : "",
+        inDate: updatedDto.productInDate ? formatDate(updatedDto.productInDate) : "",
+        status: (updatedDto.productStatus ?? "").toLowerCase() === "available" ? "Available" : "Not Available",
+        recommendations: updatedDto.recommendations?.map((r) => ({
+          productRecommendedId: r.productRecommendedId,
+          productCode: r.productCode,
+          productName: r.productName,
+          productDescription: r.productDescription,
+          productSize: r.productSize,
+          productImgUrl: r.productImgUrl,
+          expiryDate: r.expiryDate ? formatDate(r.expiryDate) : "",
+          createdDate: r.createdDate ? formatDate(r.createdDate) : "",
+        })) ?? [],
+      };
+
+      // update in state
       setProducts((prev) => {
         const copy = [...prev];
-        copy[selectedProductIndex] = editProduct;
+        if (selectedProductIndex !== null) {
+          copy[selectedProductIndex] = updatedMapped;
+        } else {
+          // fallback: find by id
+          const idx = copy.findIndex((x) => x.id === updatedMapped.id);
+          if (idx >= 0) copy[idx] = updatedMapped;
+        }
         return copy;
       });
+
       setIsEditModalOpen(false);
+      Swal.fire("Success", "Product updated successfully", "success");
+    } catch (err: any) {
+      Swal.fire("Error", err?.message || "Failed to update product", "error");
     }
   };
 
@@ -198,11 +330,7 @@ export default function ProductInventoryTable() {
             }}
             className="px-3 py-2 text-sm border border-gray-600 rounded-md focus:outline-none focus:ring focus:ring-blue-300"
           />
-          <Dropdown
-            label={statusFilter || "Filter by Status"}
-            color="light"
-            className="bg-white border border-gray-600 shadow-md text-sm"
-          >
+          <Dropdown label={statusFilter || "Filter by Status"} color="light" className="bg-white border border-gray-600 shadow-md text-sm">
             <DropdownItem onClick={() => setStatusFilter("")}>All</DropdownItem>
             <DropdownItem onClick={() => setStatusFilter("Available")}>Available</DropdownItem>
             <DropdownItem onClick={() => setStatusFilter("Not Available")}>Not Available</DropdownItem>
@@ -243,33 +371,25 @@ export default function ProductInventoryTable() {
                 <td className={`p-3 border border-gray-300 align-middle font-semibold ${product.status === "Available" ? "text-green-600" : "text-red-600"}`}>{product.status}</td>
                 <td className="p-3 border border-gray-300 align-middle">
                   <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                    <button
-                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
+                    <button className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
                       onClick={() => {
                         const realIndex = (currentPage - 1) * itemsPerPage + idx;
-                        setSelectedProductIndex(realIndex);
-                        setEditProduct({ ...product });
-                        setIsEditModalOpen(true);
-                      }}
-                    >
+                        openEditModal(realIndex);
+                      }}>
                       <Pencil className="w-4 h-4" /> Update
                     </button>
 
-                    <button
-                      className={`flex items-center gap-1 px-3 py-1 text-xs text-white rounded-md ${product.status === "Available" ? "bg-red-500 hover:bg-red-600" : "bg-green-600 hover:bg-green-700"}`}
-                      onClick={() => toggleAvailability((currentPage - 1) * itemsPerPage + idx)}
-                    >
+                    <button className={`flex items-center gap-1 px-3 py-1 text-xs text-white rounded-md ${product.status === "Available" ? "bg-red-500 hover:bg-red-600" : "bg-green-600 hover:bg-green-700"}`}
+                      onClick={() => toggleAvailability((currentPage - 1) * itemsPerPage + idx)}>
                       {product.status === "Available" ? (<><XCircle className="w-4 h-4" /> Not Available</>) : (<><CheckCircle className="w-4 h-4" /> Available</>)}
                     </button>
 
-                    <button
-                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                    <button className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
                       onClick={() => {
                         const target = paginatedProducts[idx];
                         setSelectedRecommendations(target.recommendations ?? []);
                         setIsViewModalOpen(true);
-                      }}
-                    >
+                      }}>
                       <Eye className="w-4 h-4" /> View Recommended
                     </button>
                   </div>
@@ -293,6 +413,110 @@ export default function ProductInventoryTable() {
         </div>
         <Button onClick={() => setIsModalOpen(true)} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md transition">+ Add Product</Button>
       </div>
+
+      {/* Add Product Modal */}
+      <Modal show={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <ModalHeader>Add New Product</ModalHeader>
+        <ModalBody>
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <Label htmlFor="image">Image URL</Label>
+              <TextInput id="image" value={newProduct.image} onChange={(e) => setNewProduct({ ...newProduct, image: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="code">Product Code</Label>
+              <TextInput id="code" value={newProduct.code} onChange={(e) => setNewProduct({ ...newProduct, code: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="name">Product Name</Label>
+              <TextInput id="name" value={newProduct.name} onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="desc">Description</Label>
+              <TextInput id="desc" value={newProduct.description} onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="size">Size</Label>
+              <TextInput id="size" value={newProduct.size} onChange={(e) => setNewProduct({ ...newProduct, size: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="stock">Stocks</Label>
+              <TextInput id="stock" type="number" value={newProduct.stock} onChange={(e) => setNewProduct({ ...newProduct, stock: parseInt(e.target.value || "0") })} />
+            </div>
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select id="status" value={newProduct.status} onChange={(e) => setNewProduct({ ...newProduct, status: e.target.value as Product["status"] })}>
+                <option>Available</option>
+                <option>Not Available</option>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="expiry">Expiry Date</Label>
+              <TextInput id="expiry" type="date" value={newProduct.expiryDate ?? ""} onChange={(e) => setNewProduct({ ...newProduct, expiryDate: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="inDate">In Date</Label>
+              <TextInput id="inDate" type="date" value={newProduct.inDate ?? ""} onChange={(e) => setNewProduct({ ...newProduct, inDate: e.target.value })} />
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="success" onClick={handleAddProduct}>Add Product</Button>
+          <Button color="gray" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
+
+      {/* Edit Product Modal */}
+      <Modal show={isEditModalOpen} onClose={() => setIsEditModalOpen(false)}>
+        <ModalHeader>Update Product</ModalHeader>
+        <ModalBody>
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <Label htmlFor="editImage">Image URL</Label>
+              <TextInput id="editImage" value={editProduct.image} onChange={(e) => setEditProduct({ ...editProduct, image: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="editCode">Product Code</Label>
+              <TextInput id="editCode" value={editProduct.code} onChange={(e) => setEditProduct({ ...editProduct, code: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="editName">Product Name</Label>
+              <TextInput id="editName" value={editProduct.name} onChange={(e) => setEditProduct({ ...editProduct, name: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="editDesc">Description</Label>
+              <TextInput id="editDesc" value={editProduct.description} onChange={(e) => setEditProduct({ ...editProduct, description: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="editSize">Size</Label>
+              <TextInput id="editSize" value={editProduct.size} onChange={(e) => setEditProduct({ ...editProduct, size: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="editStock">Stocks</Label>
+              <TextInput id="editStock" type="number" value={editProduct.stock} onChange={(e) => setEditProduct({ ...editProduct, stock: parseInt(e.target.value || "0") })} />
+            </div>
+            <div>
+              <Label htmlFor="editStatus">Status</Label>
+              <Select id="editStatus" value={editProduct.status} onChange={(e) => setEditProduct({ ...editProduct, status: e.target.value as Product["status"] })}>
+                <option>Available</option>
+                <option>Not Available</option>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="editExpiry">Expiry Date</Label>
+              <TextInput id="editExpiry" type="date" value={editProduct.expiryDate ?? ""} onChange={(e) => setEditProduct({ ...editProduct, expiryDate: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor="editInDate">In Date</Label>
+              <TextInput id="editInDate" type="date" value={editProduct.inDate ?? ""} onChange={(e) => setEditProduct({ ...editProduct, inDate: e.target.value })} />
+            </div>
+          </div>
+        </ModalBody>
+        <ModalFooter>
+          <Button color="warning" onClick={handleUpdateProduct}>Update</Button>
+          <Button color="gray" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+        </ModalFooter>
+      </Modal>
 
       {/* View Recommended Modal */}
       <Modal show={isViewModalOpen} onClose={() => setIsViewModalOpen(false)}>
