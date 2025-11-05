@@ -17,6 +17,7 @@ import {
   getAllProductsWithRecommendations,
   addProduct,
   updateProduct,
+  deleteProduct
 } from "../../libs/ApiGatewayDatasource";
 import type { ProductDTO, ProductRecommendedDTO, ProductRequest } from "../../libs/models/product/Product";
 
@@ -293,6 +294,30 @@ export default function ProductInventoryTable() {
     });
   };
 
+  /* ---- Delete product (calls backend) ---- */
+const handleDeleteProduct = async (productId: number) => {
+  const result = await Swal.fire({
+    title: "Are you sure?",
+    text: "This action cannot be undone!",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, delete it!",
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    await deleteProduct(productId);
+    setProducts((prev) => prev.filter((p) => p.id !== productId));
+    Swal.fire("Deleted!", "Product has been deleted.", "success");
+  } catch (err: any) {
+    Swal.fire("Error", err?.message || "Failed to delete product", "error");
+  }
+};
+
+
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
       const matchesSearch =
@@ -391,6 +416,15 @@ export default function ProductInventoryTable() {
                         setIsViewModalOpen(true);
                       }}>
                       <Eye className="w-4 h-4" /> View Recommended
+                    </button>
+                    <button
+                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md"
+                      onClick={() => {
+                        const productId = product.id;
+                        if (productId) handleDeleteProduct(productId);
+                        }}
+                        >
+                          <XCircle className="w-4 h-4" /> Delete
                     </button>
                   </div>
                 </td>
