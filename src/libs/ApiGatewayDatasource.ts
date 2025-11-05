@@ -19,7 +19,7 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
  */
 export async function getAllProductsWithRecommendations(): Promise<ProductDTO[]> {
   try {
-    const response = await api.get('/api/product/product/get_recommendations');
+    const response = await api.get('/api/product/get_recommendations');
     return response.data?.data ?? response.data;
   } catch (error: any) {
     console.error('Fetch products error:', error);
@@ -32,7 +32,7 @@ export async function getAllProductsWithRecommendations(): Promise<ProductDTO[]>
  */
 export async function addProduct(request: ProductRequest): Promise<ProductDTO> {
   try {
-    const response = await api.post('/api/product/product/add', request);
+    const response = await api.post('/api/product/add', request);
     // backend returns { success, message, data } so unwrap if needed
     return response.data?.data ?? response.data;
   } catch (error: any) {
@@ -46,10 +46,23 @@ export async function addProduct(request: ProductRequest): Promise<ProductDTO> {
  */
 export async function updateProduct(productId: number | string, request: ProductRequest): Promise<ProductDTO> {
   try {
-    const response = await api.put(`/api/product/product/${productId}/update`, request);
+    const response = await api.put(`/api/product/${productId}/update`, request);
     return response.data?.data ?? response.data;
   } catch (error: any) {
     console.error('Update product error:', error);
     throw error.response?.data || { message: 'Failed to update product' };
+  }
+}
+
+/**
+ * Delete product
+ * @param productId product id
+ */
+export async function deleteProduct(productId: number): Promise<void> {
+  try {
+    await api.delete(`/api/product/${productId}/delete`);
+  } catch (error: any) {
+    console.error("Delete product error:", error);
+    throw error.response?.data || { message: "Failed to delete product" };
   }
 }
