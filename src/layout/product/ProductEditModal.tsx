@@ -1,27 +1,46 @@
 import { useState, useEffect } from "react";
-import { Modal, ModalHeader, ModalBody, ModalFooter, Button, Label, TextInput, Select } from "flowbite-react";
+import {
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  Label,
+  TextInput,
+  Select,
+} from "flowbite-react";
+import Swal from "sweetalert2";
 import type { Product } from "../../types/types";
 
 interface ProductEditModalProps {
   show: boolean;
   onClose: () => void;
   product: Product | null;
-  onSubmit: (p: Product) => void;
+  onSubmit: (p: Product) => Promise<void>; // make async
 }
 
-export default function ProductEditModal({ show, onClose, product, onSubmit }: ProductEditModalProps) {
+export default function ProductEditModal({
+  show,
+  onClose,
+  product,
+  onSubmit,
+}: ProductEditModalProps) {
   const [editable, setEditable] = useState<Product | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (product) {
       setEditable({ ...product });
       setPreview(typeof product.image === "string" ? product.image : null);
+      setImageFile(null);
     }
   }, [product]);
 
   if (!editable) return null;
 
+  // 🧾 Field handler
   const handleChange = (field: keyof Product, value: string | number) => {
     setEditable((prev) =>
       prev
@@ -33,11 +52,61 @@ export default function ProductEditModal({ show, onClose, product, onSubmit }: P
     );
   };
 
+  // 🖼️ Handle new image upload
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setEditable((prev) => (prev ? { ...prev, image: file as any } : prev));
+      setImageFile(file);
       setPreview(URL.createObjectURL(file));
+    }
+  };
+
+  // 🔼 Upload image to backend
+  const uploadImage = async (): Promise<string> => {
+    if (!imageFile) return editable?.image ?? "";
+    const formData = new FormData();
+    formData.append("file", imageFile);
+
+    try {
+      const res = await fetch("https://carrybackend-dfyh.onrender.com/upload/product", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.url) {
+        return data.url;
+      } else {
+        Swal.fire("Error", "Image upload failed.", "error");
+        return editable?.image ?? "";
+      }
+    } catch (err) {
+      Swal.fire("Error", "Unable to upload image.", "error");
+      return editable?.image ?? "";
+    }
+  };
+
+  // ✅ Handle update
+  const handleUpdate = async () => {
+    if (!editable) return;
+
+    try {
+      setLoading(true);
+      const imageUrl = await uploadImage();
+
+      const updatedProduct: Product = {
+        ...editable,
+        image: imageUrl,
+      };
+
+      await onSubmit(updatedProduct);
+
+      Swal.fire("Success", "Product updated successfully!", "success");
+      setImageFile(null);
+      onClose();
+    } catch (err) {
+      Swal.fire("Error", "Failed to update product.", "error");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,8 +115,7 @@ export default function ProductEditModal({ show, onClose, product, onSubmit }: P
       <ModalHeader>Update Product</ModalHeader>
       <ModalBody>
         <div className="grid grid-cols-1 gap-3">
-
-          {/* ✅ File Upload Field */}
+          {/* 🖼️ Image Upload */}
           <div>
             <Label htmlFor="image">Product Image</Label>
             <input
@@ -66,7 +134,7 @@ export default function ProductEditModal({ show, onClose, product, onSubmit }: P
             )}
           </div>
 
-          {/* Other fields */}
+          {/* 🧾 Text Fields */}
           {["code", "name", "description", "size"].map((f) => (
             <div key={f}>
               <Label htmlFor={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</Label>
@@ -123,8 +191,8 @@ export default function ProductEditModal({ show, onClose, product, onSubmit }: P
       </ModalBody>
 
       <ModalFooter>
-        <Button color="warning" onClick={() => onSubmit(editable)}>
-          Update
+        <Button color="warning" onClick={handleUpdate} disabled={loading}>
+          {loading ? "Updating..." : "Update"}
         </Button>
         <Button color="gray" onClick={onClose}>
           Cancel

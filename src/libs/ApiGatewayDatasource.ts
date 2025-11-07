@@ -97,8 +97,8 @@ export async function uploadProductImage(file: File): Promise<string> {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
-    // Return URL string from backend response
-    return response.data?.data ?? response.data;
+    // return imageUrl from response
+    return response.data.imageUrl;
   } catch (error: any) {
     console.error("Image upload error:", error);
     throw error.response?.data || { message: "Failed to upload image" };

@@ -144,7 +144,7 @@ export default function ProductInventoryTable() {
         show={showEdit}
         product={editTarget}
         onClose={() => setShowEdit(false)}
-        onSubmit={update}
+        onSubmit={update} // must return Promise<void>
       />
       <ProductRecommendationsModal
         show={showRecs}
