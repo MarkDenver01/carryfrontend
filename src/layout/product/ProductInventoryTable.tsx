@@ -86,7 +86,7 @@ export default function ProductInventoryTable() {
     <div className="p-6 bg-white rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Product Inventory Monitoring</h2>
-        <Button onClick={() => setShowAdd(true)}>+ Add Product</Button>
+        <Button color="success" onClick={() => setShowAdd(true)}>+ Add Product</Button>
       </div>
 
       {/* 🔍 Search and Filter */}
