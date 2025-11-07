@@ -5,6 +5,7 @@ import {
   addProduct,
   updateProduct,
   deleteProduct,
+  updateProductStatus
 } from "../../src/libs/ApiGatewayDatasource";
 import { mapProductDTO, toProductRequest } from "../types/productHelpers";
 import type { Product } from "./types";
@@ -50,5 +51,12 @@ export function useProducts() {
     setProducts((prev) => prev.filter((x) => x.id !== id));
   };
 
-  return { products, setProducts, loading, add, update, remove };
+  const updateStatus = async (productId: number, newStatus: string) => {
+    const updated = await updateProductStatus(productId, newStatus);
+    setProducts((prev) =>
+      prev.map((x) => (x.id === productId ? mapProductDTO(updated) : x))
+    );
+  };
+
+  return { products, setProducts, loading, add, update, remove, updateStatus };
 }

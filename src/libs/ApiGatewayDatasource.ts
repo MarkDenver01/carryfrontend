@@ -66,3 +66,22 @@ export async function deleteProduct(productId: number): Promise<void> {
     throw error.response?.data || { message: "Failed to delete product" };
   }
 }
+
+/**
+ * Update product status only
+ */
+export async function updateProductStatus(
+  productId: number | string,
+  newStatus: string
+): Promise<ProductDTO> {
+  try {
+    const response = await api.patch(`/api/product/${productId}/update_status`, {
+      productStatus: newStatus,
+    });
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Update product status error:", error);
+    throw error.response?.data || { message: "Failed to update product status" };
+  }
+}
+

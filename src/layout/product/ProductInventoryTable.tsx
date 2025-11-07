@@ -9,7 +9,7 @@ import ProductRecommendationsModal from "../product/ProductRecommendationsModal"
 import Swal from "sweetalert2";
 
 export default function ProductInventoryTable() {
-  const { products, add, update, remove } = useProducts();
+  const { products, add, update, remove, updateStatus } = useProducts();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | Product["status"]>("");
@@ -66,15 +66,21 @@ export default function ProductInventoryTable() {
     }
   };
 
-  // 🔁 Toggle availability
-  const toggleAvailability = (index: number) => {
-    const updated = [...filtered];
-    const product = updated[index];
-    if (!product) return;
+// 🔁 Toggle availability
+  const toggleAvailability = async (index: number) => {
+    const product = filtered[index];
+    if (!product || !product.id) return;
 
-    product.status = product.status === "Available" ? "Not Available" : "Available";
-    update(product);
-  };
+    const newStatus = product.status === "Available" ? "Not Available" : "Available";
+
+    try {
+      await updateStatus(product.id, newStatus);
+      Swal.fire("Success", "Product status updated successfully", "success");
+    } catch (err: any) {
+      Swal.fire("Error", err?.message || "Failed to update product status", "error");
+   }
+};
+
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
