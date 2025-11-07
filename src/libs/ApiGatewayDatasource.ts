@@ -85,3 +85,24 @@ export async function updateProductStatus(
   }
 }
 
+/**
+ * Upload image file for product
+ */
+export async function uploadProductImage(file: File): Promise<string> {
+  try {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await api.post("/api/file/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    // Return URL string from backend response
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Image upload error:", error);
+    throw error.response?.data || { message: "Failed to upload image" };
+  }
+}
+
+

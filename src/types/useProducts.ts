@@ -5,7 +5,8 @@ import {
   addProduct,
   updateProduct,
   deleteProduct,
-  updateProductStatus
+  updateProductStatus,
+  uploadProductImage
 } from "../../src/libs/ApiGatewayDatasource";
 import { mapProductDTO, toProductRequest } from "../types/productHelpers";
 import type { Product } from "./types";
@@ -34,14 +35,27 @@ export function useProducts() {
   }, []);
 
   const add = async (p: Product) => {
-    const payload = toProductRequest(p);
+    let imageUrl = p.image;
+
+    // If "image" is a File instead of string, upload it first
+    if (p.image && typeof p.image !== "string") {
+      imageUrl = await uploadProductImage(p.image as File);
+    }
+
+    const payload = toProductRequest({ ...p, image: imageUrl });
     const added = await addProduct(payload);
     setProducts((prev) => [mapProductDTO(added), ...prev]);
   };
 
   const update = async (p: Product) => {
     if (!p.id) return;
-    const payload = toProductRequest(p);
+    let imageUrl = p.image;
+
+    if (p.image && typeof p.image !== "string") {
+      imageUrl = await uploadProductImage(p.image as File);
+    }
+
+    const payload = toProductRequest({ ...p, image: imageUrl });
     const updated = await updateProduct(p.id, payload);
     setProducts((prev) => prev.map((x) => (x.id === p.id ? mapProductDTO(updated) : x)));
   };

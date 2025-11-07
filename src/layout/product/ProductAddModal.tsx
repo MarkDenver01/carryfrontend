@@ -22,10 +22,20 @@ export default function ProductAddModal({ show, onClose, onSubmit }: ProductAddM
   };
 
   const [newProduct, setNewProduct] = useState<Product>(emptyProduct);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setNewProduct({ ...newProduct, image: file as any }); // store file object
+      setPreview(URL.createObjectURL(file)); // temporary preview
+    }
+  };
 
   const handleSubmit = () => {
     onSubmit(newProduct);
     setNewProduct(emptyProduct);
+    setPreview(null);
     onClose();
   };
 
@@ -34,8 +44,28 @@ export default function ProductAddModal({ show, onClose, onSubmit }: ProductAddM
       <ModalHeader>Add New Product</ModalHeader>
       <ModalBody>
         <div className="grid grid-cols-1 gap-3">
+
+          {/* ✅ Replace text input with file input */}
+          <div>
+            <Label htmlFor="image">Product Image</Label>
+            <input
+              id="image"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50"
+            />
+            {preview && (
+              <img
+                src={preview}
+                alt="Preview"
+                className="w-24 h-24 mt-2 object-cover rounded"
+              />
+            )}
+          </div>
+
+          {/* Other fields remain the same */}
           {[
-            { id: "image", label: "Image URL", type: "text" },
             { id: "code", label: "Product Code", type: "text" },
             { id: "name", label: "Product Name", type: "text" },
             { id: "description", label: "Description", type: "text" },
@@ -57,17 +87,21 @@ export default function ProductAddModal({ show, onClose, onSubmit }: ProductAddM
               />
             </div>
           ))}
+
           <div>
             <Label htmlFor="status">Status</Label>
             <Select
               id="status"
               value={newProduct.status}
-              onChange={(e) => setNewProduct({ ...newProduct, status: e.target.value as Product["status"] })}
+              onChange={(e) =>
+                setNewProduct({ ...newProduct, status: e.target.value as Product["status"] })
+              }
             >
               <option>Available</option>
               <option>Not Available</option>
             </Select>
           </div>
+
           <div>
             <Label htmlFor="expiryDate">Expiry Date</Label>
             <TextInput
@@ -77,6 +111,7 @@ export default function ProductAddModal({ show, onClose, onSubmit }: ProductAddM
               onChange={(e) => setNewProduct({ ...newProduct, expiryDate: e.target.value })}
             />
           </div>
+
           <div>
             <Label htmlFor="inDate">In Date</Label>
             <TextInput
