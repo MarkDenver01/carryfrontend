@@ -55,7 +55,7 @@ const formatDate = (d?: string | null) => {
   return parsed.toISOString().split("T")[0]; // use YYYY-MM-DD for date inputs and display
 };
 
-export default function ProductInventoryTable() {
+export default function old() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"" | Product["status"]>("");
   const [products, setProducts] = useState<Product[]>([]);
