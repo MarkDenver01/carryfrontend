@@ -9,7 +9,7 @@ import ProductRecommendationsModal from "../product/ProductRecommendationsModal"
 import Swal from "sweetalert2";
 
 export default function ProductInventoryTable() {
-  const { products, loading, add, update, remove, setProducts } = useProducts();
+  const { products, add, update, remove } = useProducts();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | Product["status"]>("");
