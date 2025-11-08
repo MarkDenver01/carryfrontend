@@ -3,6 +3,7 @@ export interface UserResponse {
     userName: string;
     email: string;
     createdAt: string;
+    profileUrl: string;
     accountStatus: string;
 }
 
