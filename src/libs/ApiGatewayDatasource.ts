@@ -19,7 +19,7 @@ export async function login(request: LoginRequest): Promise<LoginResponse> {
  */
 export async function getAllProductsWithRecommendations(): Promise<ProductDTO[]> {
   try {
-    const response = await api.get('/api/product/get_recommendations');
+    const response = await api.get('/admin/api/product/get_recommendations');
     return response.data?.data ?? response.data;
   } catch (error: any) {
     console.error('Fetch products error:', error);
@@ -32,7 +32,7 @@ export async function getAllProductsWithRecommendations(): Promise<ProductDTO[]>
  */
 export async function addProduct(request: ProductRequest): Promise<ProductDTO> {
   try {
-    const response = await api.post('/api/product/add', request);
+    const response = await api.post('/admin/api/product/add', request);
     // backend returns { success, message, data } so unwrap if needed
     return response.data?.data ?? response.data;
   } catch (error: any) {
@@ -46,7 +46,7 @@ export async function addProduct(request: ProductRequest): Promise<ProductDTO> {
  */
 export async function updateProduct(productId: number | string, request: ProductRequest): Promise<ProductDTO> {
   try {
-    const response = await api.put(`/api/product/${productId}/update`, request);
+    const response = await api.put(`/admin/api/product/${productId}/update`, request);
     return response.data?.data ?? response.data;
   } catch (error: any) {
     console.error('Update product error:', error);
@@ -60,7 +60,7 @@ export async function updateProduct(productId: number | string, request: Product
  */
 export async function deleteProduct(productId: number): Promise<void> {
   try {
-    await api.delete(`/api/product/${productId}/delete`);
+    await api.delete(`/admin/api/product/${productId}/delete`);
   } catch (error: any) {
     console.error("Delete product error:", error);
     throw error.response?.data || { message: "Failed to delete product" };
@@ -75,7 +75,7 @@ export async function updateProductStatus(
   newStatus: string
 ): Promise<ProductDTO> {
   try {
-    const response = await api.patch(`/api/product/${productId}/update_status`, {
+    const response = await api.patch(`/admin/api/product/${productId}/update_status`, {
       productStatus: newStatus,
     });
     return response.data?.data ?? response.data;
@@ -93,7 +93,7 @@ export async function uploadProductImage(file: File): Promise<string> {
     const formData = new FormData();
     formData.append("file", file);
 
-    const response = await api.post("/api/file/upload", formData, {
+    const response = await api.post("/admin/api/file/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
 
