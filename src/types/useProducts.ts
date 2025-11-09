@@ -18,7 +18,7 @@ export function validateProduct(p: Product): string | null {
     return "Stocks must be 0 or greater.";
   if (!p.size?.trim()) return "Product size is required.";
   if (!p.status?.trim()) return "Product status is required.";
-  if (!p.image && !p.image) return "Product image is required.";
+  if (!p.imageUrl.trim()) return "Product image is required.";
   return null;
 }
 

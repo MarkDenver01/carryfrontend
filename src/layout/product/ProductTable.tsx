@@ -45,7 +45,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
             <tr key={product.id ?? idx} className="hover:bg-gray-100">
               <td className="p-3 border border-gray-300 align-middle">
                 <img
-                  src={product.image || "/placeholder.png"}
+                  src={product.imageUrl || "/placeholder.png"}
                   alt={product.name}
                   className="w-12 h-12 rounded-md object-cover"
                 />

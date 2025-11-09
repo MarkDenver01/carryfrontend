@@ -30,7 +30,7 @@ export const mapRecommendationDTO = (
 /** Maps a ProductDTO → Product (frontend type) */
 export const mapProductDTO = (p: ProductDTO): Product => ({
   id: p.productId as number,
-  image: p.productImgUrl ?? "",
+  imageUrl: p.productImgUrl ?? "",
   code: p.productCode ?? "",
   name: p.productName ?? "",
   description: p.productDescription ?? "",
@@ -66,7 +66,7 @@ export const toProductRequest = (p: Product): ProductRequest => ({
   stocks: Number(p.stock ?? 0),
   productSize: clean(p.size),
   productStatus: clean(p.status),
-  productImgUrl: clean(typeof p.image === "string" ? p.image : ""),
+  productImgUrl: clean(typeof p.imageUrl === "string" ? p.imageUrl : ""),
   expiryDate: formatDateForBackend(p.expiryDate),
   productInDate: formatDateForBackend(p.inDate),
 });
@@ -83,7 +83,7 @@ export const toProductFormData = (p: Product, imageFile?: File): FormData => {
     stocks: Number(p.stock ?? 0),
     productSize: p.size?.trim() ?? "",
     productStatus: p.status?.trim() ?? "",
-    productImgUrl: typeof p.image === "string" ? p.image : "",
+    productImgUrl: typeof p.imageUrl === "string" ? p.imageUrl : "",
     expiryDate: p.expiryDate ? `${p.expiryDate}T00:00:00` : null,
     productInDate: p.inDate ? `${p.inDate}T00:00:00` : null,
   };

@@ -11,7 +11,7 @@ export interface ProductRecommended {
 
 export interface Product {
   id?: number;
-  image: string;
+  imageUrl: string;
   code: string;
   name: string;
   description: string;

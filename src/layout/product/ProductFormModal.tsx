@@ -27,7 +27,7 @@ export default function ProductFormModal({
   const { add, update } = useProducts();
 
   const emptyProduct: Product = {
-    image: "",
+    imageUrl: "",
     code: "",
     name: "",
     description: "",
@@ -49,7 +49,7 @@ export default function ProductFormModal({
   useEffect(() => {
     if (product) {
       setForm({ ...product });
-      setPreview(product.image ?? null);
+      setPreview(product.imageUrl ?? null);
       setImageFile(null);
     } else if (show) {
       setForm(emptyProduct);
