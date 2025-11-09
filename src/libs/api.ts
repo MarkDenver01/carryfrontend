@@ -23,7 +23,7 @@ api.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("jwtToken");
     const isPublic =
-      config.url?.includes("/user/public") || config.url?.includes("/auth/");
+      config.url?.includes("/user/public");
 
     if (!isPublic && token) {
       config.headers.set("Authorization", `Bearer ${token}`);
