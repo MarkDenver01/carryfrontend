@@ -13,7 +13,7 @@ import type { Product } from "./types";
 import type { ProductDTO } from "../../src/libs/models/product/Product";
 
 // 🧩 Helper: Client-side product validation
-function validateProduct(p: Product): string | null {
+export function validateProduct(p: Product): string | null {
   if (!p.code?.trim()) return "Product code is required.";
   if (!p.name?.trim()) return "Product name is required.";
   if (!p.description?.trim()) return "Description is required.";
@@ -56,20 +56,14 @@ export function useProducts() {
       return;
     }
 
-    try {
-      let imageUrl = p.image;
-      if (p.image && typeof p.image !== "string") {
-        imageUrl = await uploadProductImage(p.image as File);
-      }
-
-      const payload = toProductRequest({ ...p, image: imageUrl });
-      const added = await addProduct(payload);
-      setProducts((prev) => [mapProductDTO(added), ...prev]);
-
-      Swal.fire("Success", "Product added successfully", "success");
-    } catch (err: any) {
-      Swal.fire("Error", err?.message || "Failed to add product", "error");
+    let imageUrl = p.image;
+    if (p.image && typeof p.image !== "string") {
+      imageUrl = await uploadProductImage(p.image as File);
     }
+
+    const payload = toProductRequest({ ...p, image: imageUrl });
+    const added = await addProduct(payload);
+    setProducts((prev) => [mapProductDTO(added), ...prev]);
   };
 
   // ✏️ Update product

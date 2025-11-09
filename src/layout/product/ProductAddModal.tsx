@@ -1,5 +1,6 @@
 import { Modal, ModalHeader, ModalBody, ModalFooter, Button, Label, TextInput, Select } from "flowbite-react";
 import type { Product } from "../../types/types";
+import { validateProduct } from "../../types/useProducts";
 import { useState, useEffect } from "react";
 import Swal from "sweetalert2";
 import { uploadProductImage } from "../../../src/libs/ApiGatewayDatasource";
@@ -47,37 +48,50 @@ export default function ProductAddModal({ show, onClose, onSubmit }: ProductAddM
     }
   };
 
-  // ✅ Submit handler
-  const handleSubmit = async () => {
-    try {
-      setUploading(true);
-      let imageUrl = newProduct.image;
+const handleSubmit = async () => {
+  try {
+    setUploading(true);
 
-      if (imageFile) {
-        try {
-          imageUrl = await uploadProductImage(imageFile);
-        } catch (err: any) {
-          Swal.fire("Error", err?.message || "Image upload failed.", "error");
-          return;
-        }
-      }
-
-      const productToSave = { ...newProduct, image: imageUrl };
-      await onSubmit(productToSave);
-
-      Swal.fire("Success!", "Product added successfully!", "success");
-
-      // 🧹 Reset form after success
-      setNewProduct(emptyProduct);
-      setPreview(null);
-      setImageFile(null);
-      onClose();
-    } catch {
-      Swal.fire("Error", "Failed to add product.", "error");
-    } finally {
-      setUploading(false);
+    if (!newProduct.image && !imageFile) {
+      Swal.fire("Validation Error", "Product image is required", "warning");
+      return;
     }
-  };
+
+    let imageUrl = newProduct.image;
+
+    if (imageFile) {
+      try {
+        imageUrl = await uploadProductImage(imageFile);
+      } catch (err: any) {
+        Swal.fire("Error", err?.message || "Image upload failed.", "error");
+        return;
+      }
+    }
+
+    const productToSave = { ...newProduct, image: imageUrl };
+
+    // ✅ ensure all required fields are non-empty
+    const validationError = validateProduct(productToSave);
+    if (validationError) {
+      Swal.fire("Validation Error", validationError, "warning");
+      return;
+    }
+
+    // send to backend
+    await onSubmit(productToSave);
+
+    Swal.fire("Success!", "Product added successfully!", "success");
+
+    setNewProduct(emptyProduct);
+    setPreview(null);
+    setImageFile(null);
+    onClose();
+  } catch (err: any) {
+    Swal.fire("Error", err?.message || "Failed to add product.", "error");
+  } finally {
+    setUploading(false);
+  }
+};
 
   return (
     <Modal show={show} onClose={onClose}>

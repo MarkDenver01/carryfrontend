@@ -40,6 +40,12 @@ export const mapProductDTO = (p: ProductDTO): Product => ({
 export const toProductRequest = (p: Product): ProductRequest => {
   const clean = (val?: string | null) => (val && val.trim().length > 0 ? val.trim() : "");
 
+  const formatDateForBackend = (d?: string | null) => {
+    if (!d) return null;
+    // append T00:00:00 to avoid timezone issues
+    return d.includes("T") ? d : `${d}T00:00:00`;
+  };
+
   return {
     productCode: clean(p.code),
     productName: clean(p.name),
@@ -47,9 +53,9 @@ export const toProductRequest = (p: Product): ProductRequest => {
     stocks: Number(p.stock ?? 0),
     productSize: clean(p.size),
     productStatus: clean(p.status),
-    productImgUrl: clean(typeof p.image === "string" ? p.image : ""), // must be string
-    expiryDate: p.expiryDate ? new Date(p.expiryDate).toISOString() : null,
-    productInDate: p.inDate ? new Date(p.inDate).toISOString() : null,
+    productImgUrl: clean(typeof p.image === "string" ? p.image : ""),
+    expiryDate: formatDateForBackend(p.expiryDate),
+    productInDate: formatDateForBackend(p.inDate),
   };
 };
 
