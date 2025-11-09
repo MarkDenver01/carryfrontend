@@ -63,13 +63,13 @@ export const toProductRequest = (p: Product): ProductRequest => ({
   stocks: Number(p.stock ?? 0),
   productSize: clean(p.size),
   productStatus: clean(p.status),
-  productImgFile: undefined,
+  productImgFile: p.imageFile,
   expiryDate: formatDateForBackend(p.expiryDate),
   productInDate: formatDateForBackend(p.inDate),
 });
 
 /**
- * Converts Product + optional imageFile → FormData (for backend with multipart)
+ * Converts Product + optional imageFile → FormData (for backend multipart/form-data)
  */
 export const toProductFormData = (p: Product, imageFile?: File): FormData => {
   const formData = new FormData();
@@ -82,16 +82,19 @@ export const toProductFormData = (p: Product, imageFile?: File): FormData => {
     stocks: Number(p.stock ?? 0),
     productSize: clean(p.size),
     productStatus: clean(p.status),
-    productImgUrl: p.imageUrl ?? "",
+    productImgUrl: p.imageUrl ?? "", // fallback if no file uploaded
     expiryDate: p.expiryDate ? formatDateForBackend(p.expiryDate) : "",
     productInDate: p.inDate ? formatDateForBackend(p.inDate) : "",
   };
 
-  formData.append("product", new Blob([JSON.stringify(productJson)], { type: "application/json" }));
+  formData.append(
+    "product",
+    new Blob([JSON.stringify(productJson)], { type: "application/json" })
+  );
 
-  // File part
-  if (imageFile) formData.append("file", imageFile);
-  else if (p.imageFile) formData.append("file", p.imageFile);
+  // File part (priority: imageFile argument > p.imageFile)
+  const fileToUpload = imageFile ?? p.imageFile;
+  if (fileToUpload) formData.append("file", fileToUpload);
 
   return formData;
 };

@@ -7,7 +7,7 @@ import {
   deleteProduct,
   updateProductStatus,
 } from "../../src/libs/ApiGatewayDatasource";
-import { mapProductDTO } from "./productHelpers";
+import { mapProductDTO, toProductFormData } from "./productHelpers";
 
 /** Product hooks */
 export const useProducts = () => {
@@ -29,7 +29,6 @@ export const useProducts = () => {
   /** Add new product */
   const add = async (product: Product) => {
     try {
-      // Use the helper to prepare FormData (handles imageFile if exists)
       const preparedFormData = toProductFormData(product, product.imageFile);
       const saved = await addProductFormData(preparedFormData);
       const mapped = mapProductDTO(saved);
@@ -45,17 +44,10 @@ export const useProducts = () => {
   const update = async (product: Product) => {
     if (!product.id) throw new Error("Product ID is required for update");
     try {
-      const formData = new FormData();
-
-      // Use the helper to prepare FormData (handles imageFile if exists)
       const preparedFormData = toProductFormData(product, product.imageFile);
-
       const updated = await updateProductFormData(product.id, preparedFormData);
       const mapped = mapProductDTO(updated);
-
-      setProducts((prev) =>
-        prev.map((p) => (p.id === mapped.id ? mapped : p))
-      );
+      setProducts((prev) => prev.map((p) => (p.id === mapped.id ? mapped : p)));
       return mapped;
     } catch (err: any) {
       console.error("Failed to update product", err);
@@ -79,9 +71,7 @@ export const useProducts = () => {
     try {
       const updated = await updateProductStatus(productId, status);
       const mapped = mapProductDTO(updated);
-      setProducts((prev) =>
-        prev.map((p) => (p.id === mapped.id ? mapped : p))
-      );
+      setProducts((prev) => prev.map((p) => (p.id === mapped.id ? mapped : p)));
       return mapped;
     } catch (err: any) {
       console.error("Failed to update product status", err);
@@ -101,18 +91,29 @@ export const useProducts = () => {
 };
 
 /** Validation helper */
+/** Validation helper matching backend ProductRequest constraints */
 export const validateProduct = (p: Product): string | null => {
-  if (!p.code) return "Product code is required";
-  if (!p.name) return "Product name is required";
-  if (!p.description) return "Product description is required";
-  if (!p.size) return "Product size is required";
+  if (!p.code?.trim()) return "Product code is required (max 50 characters)";
+  if (p.code.length > 50) return "Product code cannot exceed 50 characters";
+
+  if (!p.name?.trim()) return "Product name is required (max 255 characters)";
+  if (p.name.length > 255) return "Product name cannot exceed 255 characters";
+
+  if (!p.description?.trim()) return "Product description is required (max 255 characters)";
+  if (p.description.length > 255) return "Product description cannot exceed 255 characters";
+
+  if (!p.size?.trim()) return "Product size is required (max 50 characters)";
+  if (p.size.length > 50) return "Product size cannot exceed 50 characters";
+
   if (p.stock == null || p.stock < 0) return "Stock must be 0 or greater";
-  if (!p.status) return "Status is required";
-  if (!p.expiryDate) return "Expiry date is required";
-  if (!p.inDate) return "In date is required";
-  if (!p.imageFile && !p.imageUrl) return "Product image is required";
+
+  if (!p.status?.trim()) return "Product status is required";
+
+  if (!p.expiryDate?.trim()) return "Expiry date is required";
+  if (!p.inDate?.trim()) return "In date is required";
+
+  if (!p.imageFile && !p.imageUrl?.trim()) return "Product image is required";
+
   return null;
 };
 
-/** FormData helper (import from productHelpers) */
-import { toProductFormData } from "./productHelpers";

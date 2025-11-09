@@ -66,15 +66,16 @@ export default function ProductFormModal({
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      setPreview(URL.createObjectURL(file));
-    }
+    const file = e.target.files?.[0] ?? null;
+    setImageFile(file);
+    setPreview(file ? URL.createObjectURL(file) : form.imageUrl ?? null);
   };
 
   const handleSubmit = async () => {
-    const validationError = validateProduct({ ...form, imageFile: imageFile ?? form.imageFile });
+    const productToSubmit: Product = { ...form, imageFile: imageFile ?? form.imageFile };
+
+    // Validate
+    const validationError = validateProduct(productToSubmit);
     if (validationError) {
       Swal.fire("Validation Error", validationError, "warning");
       return;
@@ -83,12 +84,10 @@ export default function ProductFormModal({
     setLoading(true);
     try {
       if (isEdit) {
-        form.imageFile = imageFile ?? undefined;
-        await update(form);
+        await update(productToSubmit);
         Swal.fire("Success", "Product updated successfully!", "success");
       } else {
-        form.imageFile = imageFile ?? undefined;
-        await add(form);
+        await add(productToSubmit);
         Swal.fire("Success", "Product added successfully!", "success");
       }
       onClose();
@@ -133,6 +132,7 @@ export default function ProductFormModal({
                 id={field}
                 value={(form as any)[field] ?? ""}
                 onChange={(e) => handleChange(field as keyof Product, e.target.value)}
+                maxLength={field === "code" ? 50 : field === "size" ? 50 : 255}
               />
             </div>
           ))}
