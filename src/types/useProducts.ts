@@ -1,110 +1,118 @@
-import { useState, useEffect } from "react";
-import Swal from "sweetalert2";
+import { useState } from "react";
+import type { Product } from "./types";
 import {
   getAllProductsWithRecommendations,
   addProductFormData,
   updateProductFormData,
   deleteProduct,
-  updateProductStatus
+  updateProductStatus,
 } from "../../src/libs/ApiGatewayDatasource";
-import { mapProductDTO, toProductRequest } from "../types/productHelpers";
-import type { Product } from "./types";
+import { mapProductDTO } from "./productHelpers";
 
-export function validateProduct(p: Product): string | null {
-  if (!p.code?.trim()) return "Product code is required.";
-  if (!p.name?.trim()) return "Product name is required.";
-  if (!p.description?.trim()) return "Description is required.";
-  if (p.stock == null || isNaN(Number(p.stock)) || Number(p.stock) < 0)
-    return "Stocks must be 0 or greater.";
-  if (!p.size?.trim()) return "Product size is required.";
-  if (!p.status?.trim()) return "Product status is required.";
-  if (!p.imageUrl.trim()) return "Product image is required.";
-  return null;
-}
-
-export function useProducts() {
+/** Product hooks */
+export const useProducts = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const data = await getAllProductsWithRecommendations();
-        if (!mounted) return;
-        setProducts(data.map(mapProductDTO));
-      } catch (err: any) {
-        Swal.fire("Error", err?.message || "Failed to load products", "error");
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
-
-  const add = async (p: Product, imageFile?: File) => {
-    const validationError = validateProduct(p);
-    if (validationError) {
-      Swal.fire("Validation Error", validationError, "warning");
-      return;
-    }
-
-    const formData = new FormData();
-    const payload = toProductRequest(p);
-    Object.entries(payload).forEach(([key, value]) => {
-      if (value != null) formData.append(key, value as string);
-    });
-    if (imageFile) formData.append("productImgFile", imageFile);
-
-    const added = await addProductFormData(formData);
-    setProducts(prev => [mapProductDTO(added), ...prev]);
-  };
-
-  const update = async (p: Product, imageFile?: File) => {
-    if (!p.id) return;
-    const validationError = validateProduct(p);
-    if (validationError) {
-      Swal.fire("Validation Error", validationError, "warning");
-      return;
-    }
-
-    const formData = new FormData();
-    const payload = toProductRequest(p);
-    Object.entries(payload).forEach(([key, value]) => {
-      if (value != null) formData.append(key, value as string);
-    });
-    if (imageFile) formData.append("productImgFile", imageFile);
-
-    const updated = await updateProductFormData(p.id, formData);
-    setProducts(prev =>
-      prev.map(x => (x.id === p.id ? mapProductDTO(updated) : x))
-    );
-    Swal.fire("Updated", "Product updated successfully", "success");
-  };
-
-  const remove = async (id: number) => {
-    const confirm = await Swal.fire({
-      title: "Are you sure?",
-      text: "This product will be permanently deleted.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
-    });
-    if (!confirm.isConfirmed) return;
-
-    await deleteProduct(id);
-    setProducts(prev => prev.filter(x => x.id !== id));
-    Swal.fire("Deleted", "Product deleted successfully", "success");
-  };
-
-  const updateStatus = async (productId: number, newStatus: string) => {
+  /** Load all products from backend */
+  const load = async () => {
     try {
-      const updated = await updateProductStatus(productId, newStatus);
-      setProducts(prev => prev.map(x => (x.id === productId ? mapProductDTO(updated) : x)));
+      const dtos = await getAllProductsWithRecommendations();
+      const mapped = dtos.map(mapProductDTO);
+      setProducts(mapped);
+      return mapped;
     } catch (err: any) {
-      Swal.fire("Error", err?.message || "Failed to update status", "error");
+      console.error("Failed to load products", err);
+      throw err;
     }
   };
 
-  return { products, setProducts, loading, add, update, remove, updateStatus };
-}
+  /** Add new product */
+  const add = async (product: Product) => {
+    try {
+      // Use the helper to prepare FormData (handles imageFile if exists)
+      const preparedFormData = toProductFormData(product, product.imageFile);
+      const saved = await addProductFormData(preparedFormData);
+      const mapped = mapProductDTO(saved);
+      setProducts((prev) => [...prev, mapped]);
+      return mapped;
+    } catch (err: any) {
+      console.error("Failed to add product", err);
+      throw err;
+    }
+  };
+
+  /** Update existing product */
+  const update = async (product: Product) => {
+    if (!product.id) throw new Error("Product ID is required for update");
+    try {
+      const formData = new FormData();
+
+      // Use the helper to prepare FormData (handles imageFile if exists)
+      const preparedFormData = toProductFormData(product, product.imageFile);
+
+      const updated = await updateProductFormData(product.id, preparedFormData);
+      const mapped = mapProductDTO(updated);
+
+      setProducts((prev) =>
+        prev.map((p) => (p.id === mapped.id ? mapped : p))
+      );
+      return mapped;
+    } catch (err: any) {
+      console.error("Failed to update product", err);
+      throw err;
+    }
+  };
+
+  /** Delete a product */
+  const remove = async (productId: number) => {
+    try {
+      await deleteProduct(productId);
+      setProducts((prev) => prev.filter((p) => p.id !== productId));
+    } catch (err: any) {
+      console.error("Failed to delete product", err);
+      throw err;
+    }
+  };
+
+  /** Update product status only */
+  const updateStatus = async (productId: number, status: string) => {
+    try {
+      const updated = await updateProductStatus(productId, status);
+      const mapped = mapProductDTO(updated);
+      setProducts((prev) =>
+        prev.map((p) => (p.id === mapped.id ? mapped : p))
+      );
+      return mapped;
+    } catch (err: any) {
+      console.error("Failed to update product status", err);
+      throw err;
+    }
+  };
+
+  return {
+    products,
+    setProducts,
+    load,
+    add,
+    update,
+    remove,
+    updateStatus,
+  };
+};
+
+/** Validation helper */
+export const validateProduct = (p: Product): string | null => {
+  if (!p.code) return "Product code is required";
+  if (!p.name) return "Product name is required";
+  if (!p.description) return "Product description is required";
+  if (!p.size) return "Product size is required";
+  if (p.stock == null || p.stock < 0) return "Stock must be 0 or greater";
+  if (!p.status) return "Status is required";
+  if (!p.expiryDate) return "Expiry date is required";
+  if (!p.inDate) return "In date is required";
+  if (!p.imageFile && !p.imageUrl) return "Product image is required";
+  return null;
+};
+
+/** FormData helper (import from productHelpers) */
+import { toProductFormData } from "./productHelpers";

@@ -1,4 +1,3 @@
-
 export interface ProductDTO {
   productId: number;
   productCode: string;
@@ -30,8 +29,8 @@ export interface ProductRequest {
   productDescription: string;
   stocks: number;
   productSize: string;
-  productStatus: string; // "Available" | "Not Available" or other statuses
-  productImgUrl: string;
-  expiryDate?: string | null;     // ISO string
-  productInDate?: string | null;  // ISO string
+  productStatus: string; // "Available" | "Not Available"
+  productImgFile?: File; // multipart upload
+  expiryDate: string;     // ISO string
+  productInDate: string;  // ISO string
 }

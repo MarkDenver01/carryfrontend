@@ -29,8 +29,9 @@ export const mapRecommendationDTO = (
 
 /** Maps a ProductDTO → Product (frontend type) */
 export const mapProductDTO = (p: ProductDTO): Product => ({
-  id: p.productId as number,
+  id: p.productId,
   imageUrl: p.productImgUrl ?? "",
+  imageFile: undefined,
   code: p.productCode ?? "",
   name: p.productName ?? "",
   description: p.productDescription ?? "",
@@ -38,26 +39,22 @@ export const mapProductDTO = (p: ProductDTO): Product => ({
   stock: p.stocks ?? 0,
   expiryDate: p.expiryDate ? formatDate(p.expiryDate) : "",
   inDate: p.productInDate ? formatDate(p.productInDate) : "",
-  status:
-    (p.productStatus ?? "").toLowerCase() === "available"
-      ? "Available"
-      : "Not Available",
+  status: (p.productStatus ?? "").toLowerCase() === "available" ? "Available" : "Not Available",
   recommendations: (p.recommendations ?? []).map(mapRecommendationDTO),
 });
 
 /** Clean up text fields */
-const clean = (val?: string | null) =>
-  val && val.trim().length > 0 ? val.trim() : "";
+const clean = (val?: string | null) => val?.trim() ?? "";
 
 /** Format date for backend (append T00:00:00 if not included) */
-const formatDateForBackend = (d?: string | null) => {
-  if (!d) return null;
+const formatDateForBackend = (d?: string | null): string => {
+  if (!d) return "";
   return d.includes("T") ? d : `${d}T00:00:00`;
 };
 
 /**
  * Converts Product → ProductRequest (JSON-friendly object)
- * Used for PUT / PATCH requests without file upload
+ * Used for PUT / PATCH without file upload
  */
 export const toProductRequest = (p: Product): ProductRequest => ({
   productCode: clean(p.code),
@@ -66,36 +63,35 @@ export const toProductRequest = (p: Product): ProductRequest => ({
   stocks: Number(p.stock ?? 0),
   productSize: clean(p.size),
   productStatus: clean(p.status),
-  productImgUrl: clean(typeof p.imageUrl === "string" ? p.imageUrl : ""),
+  productImgFile: undefined,
   expiryDate: formatDateForBackend(p.expiryDate),
   productInDate: formatDateForBackend(p.inDate),
 });
 
-/** Converts Product + optional imageFile → FormData (MATCHES BACKEND) */
+/**
+ * Converts Product + optional imageFile → FormData (for backend with multipart)
+ */
 export const toProductFormData = (p: Product, imageFile?: File): FormData => {
   const formData = new FormData();
 
-  // Product JSON
+  // JSON part
   const productJson = {
-    productCode: p.code?.trim() ?? "",
-    productName: p.name?.trim() ?? "",
-    productDescription: p.description?.trim() ?? "",
+    productCode: clean(p.code),
+    productName: clean(p.name),
+    productDescription: clean(p.description),
     stocks: Number(p.stock ?? 0),
-    productSize: p.size?.trim() ?? "",
-    productStatus: p.status?.trim() ?? "",
-    productImgUrl: typeof p.imageUrl === "string" ? p.imageUrl : "",
-    expiryDate: p.expiryDate ? `${p.expiryDate}T00:00:00` : null,
-    productInDate: p.inDate ? `${p.inDate}T00:00:00` : null,
+    productSize: clean(p.size),
+    productStatus: clean(p.status),
+    productImgUrl: p.imageUrl ?? "",
+    expiryDate: p.expiryDate ? formatDateForBackend(p.expiryDate) : "",
+    productInDate: p.inDate ? formatDateForBackend(p.inDate) : "",
   };
 
-  // ✅ Wrap JSON inside "product" part
   formData.append("product", new Blob([JSON.stringify(productJson)], { type: "application/json" }));
 
-  if (imageFile) {
-    // ✅ Matches backend @RequestPart(value="file")
-    formData.append("file", imageFile);
-  }
+  // File part
+  if (imageFile) formData.append("file", imageFile);
+  else if (p.imageFile) formData.append("file", p.imageFile);
 
   return formData;
 };
-

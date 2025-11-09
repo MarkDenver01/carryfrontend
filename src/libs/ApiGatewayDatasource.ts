@@ -1,6 +1,6 @@
 import api from './api';
 import type { LoginRequest, LoginResponse } from './models/login';
-import type { ProductDTO } from './models/product/Product';
+import type { ProductDTO, ProductRequest } from './models/product/Product';
 /**
  * Login.
  */

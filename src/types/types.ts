@@ -11,7 +11,8 @@ export interface ProductRecommended {
 
 export interface Product {
   id?: number;
-  imageUrl: string;
+  imageFile?: File;    // for uploading new image
+  imageUrl?: string;   // for display from backend
   code: string;
   name: string;
   description: string;

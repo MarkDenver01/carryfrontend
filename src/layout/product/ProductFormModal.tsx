@@ -45,7 +45,7 @@ export default function ProductFormModal({
 
   const isEdit = !!product?.id;
 
-  // Load product data when editing
+  // Load product data when editing or opening modal
   useEffect(() => {
     if (product) {
       setForm({ ...product });
@@ -74,7 +74,7 @@ export default function ProductFormModal({
   };
 
   const handleSubmit = async () => {
-    const validationError = validateProduct(form);
+    const validationError = validateProduct({ ...form, imageFile: imageFile ?? form.imageFile });
     if (validationError) {
       Swal.fire("Validation Error", validationError, "warning");
       return;
@@ -83,10 +83,12 @@ export default function ProductFormModal({
     setLoading(true);
     try {
       if (isEdit) {
-        await update(form, imageFile ?? undefined);
+        form.imageFile = imageFile ?? undefined;
+        await update(form);
         Swal.fire("Success", "Product updated successfully!", "success");
       } else {
-        await add(form, imageFile ?? undefined);
+        form.imageFile = imageFile ?? undefined;
+        await add(form);
         Swal.fire("Success", "Product added successfully!", "success");
       }
       onClose();
@@ -130,9 +132,7 @@ export default function ProductFormModal({
               <TextInput
                 id={field}
                 value={(form as any)[field] ?? ""}
-                onChange={(e) =>
-                  handleChange(field as keyof Product, e.target.value)
-                }
+                onChange={(e) => handleChange(field as keyof Product, e.target.value)}
               />
             </div>
           ))}
