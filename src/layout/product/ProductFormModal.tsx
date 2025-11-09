@@ -74,11 +74,11 @@ export default function ProductFormModal({
   };
 
   const handleSubmit = async () => {
-    const validationError = validateProduct(form);
-    if (validationError) {
-      Swal.fire("Validation Error", validationError, "warning");
-      return;
-    }
+    //const validationError = validateProduct(form);
+    //if (validationError) {
+    //  Swal.fire("Validation Error", validationError, "warning");
+    //  return;
+   // }
 
     setLoading(true);
     try {
