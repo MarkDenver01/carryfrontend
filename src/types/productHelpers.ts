@@ -5,6 +5,7 @@ import type {
   ProductRequest,
 } from "../../src/libs/models/product/Product";
 
+/** Format date as yyyy-MM-dd */
 export const formatDate = (d?: string | null) => {
   if (!d) return "";
   const parsed = new Date(d);
@@ -12,7 +13,10 @@ export const formatDate = (d?: string | null) => {
   return parsed.toISOString().split("T")[0];
 };
 
-export const mapRecommendationDTO = (r: ProductRecommendedDTO): ProductRecommended => ({
+/** Maps a ProductRecommendedDTO → ProductRecommended */
+export const mapRecommendationDTO = (
+  r: ProductRecommendedDTO
+): ProductRecommended => ({
   productRecommendedId: r.productRecommendedId,
   productCode: r.productCode,
   productName: r.productName,
@@ -23,6 +27,7 @@ export const mapRecommendationDTO = (r: ProductRecommendedDTO): ProductRecommend
   createdDate: r.createdDate ? formatDate(r.createdDate) : "",
 });
 
+/** Maps a ProductDTO → Product (frontend type) */
 export const mapProductDTO = (p: ProductDTO): Product => ({
   id: p.productId as number,
   image: p.productImgUrl ?? "",
@@ -33,29 +38,64 @@ export const mapProductDTO = (p: ProductDTO): Product => ({
   stock: p.stocks ?? 0,
   expiryDate: p.expiryDate ? formatDate(p.expiryDate) : "",
   inDate: p.productInDate ? formatDate(p.productInDate) : "",
-  status: (p.productStatus ?? "").toLowerCase() === "available" ? "Available" : "Not Available",
+  status:
+    (p.productStatus ?? "").toLowerCase() === "available"
+      ? "Available"
+      : "Not Available",
   recommendations: (p.recommendations ?? []).map(mapRecommendationDTO),
 });
 
-export const toProductRequest = (p: Product): ProductRequest => {
-  const clean = (val?: string | null) => (val && val.trim().length > 0 ? val.trim() : "");
+/** Clean up text fields */
+const clean = (val?: string | null) =>
+  val && val.trim().length > 0 ? val.trim() : "";
 
-  const formatDateForBackend = (d?: string | null) => {
-    if (!d) return null;
-    // append T00:00:00 to avoid timezone issues
-    return d.includes("T") ? d : `${d}T00:00:00`;
-  };
+/** Format date for backend (append T00:00:00 if not included) */
+const formatDateForBackend = (d?: string | null) => {
+  if (!d) return null;
+  return d.includes("T") ? d : `${d}T00:00:00`;
+};
 
-  return {
-    productCode: clean(p.code),
-    productName: clean(p.name),
-    productDescription: clean(p.description),
+/**
+ * Converts Product → ProductRequest (JSON-friendly object)
+ * Used for PUT / PATCH requests without file upload
+ */
+export const toProductRequest = (p: Product): ProductRequest => ({
+  productCode: clean(p.code),
+  productName: clean(p.name),
+  productDescription: clean(p.description),
+  stocks: Number(p.stock ?? 0),
+  productSize: clean(p.size),
+  productStatus: clean(p.status),
+  productImgUrl: clean(typeof p.image === "string" ? p.image : ""),
+  expiryDate: formatDateForBackend(p.expiryDate),
+  productInDate: formatDateForBackend(p.inDate),
+});
+
+/** Converts Product + optional imageFile → FormData (MATCHES BACKEND) */
+export const toProductFormData = (p: Product, imageFile?: File): FormData => {
+  const formData = new FormData();
+
+  // Product JSON
+  const productJson = {
+    productCode: p.code?.trim() ?? "",
+    productName: p.name?.trim() ?? "",
+    productDescription: p.description?.trim() ?? "",
     stocks: Number(p.stock ?? 0),
-    productSize: clean(p.size),
-    productStatus: clean(p.status),
-    productImgUrl: clean(typeof p.image === "string" ? p.image : ""),
-    expiryDate: formatDateForBackend(p.expiryDate),
-    productInDate: formatDateForBackend(p.inDate),
+    productSize: p.size?.trim() ?? "",
+    productStatus: p.status?.trim() ?? "",
+    productImgUrl: typeof p.image === "string" ? p.image : "",
+    expiryDate: p.expiryDate ? `${p.expiryDate}T00:00:00` : null,
+    productInDate: p.inDate ? `${p.inDate}T00:00:00` : null,
   };
+
+  // ✅ Wrap JSON inside "product" part
+  formData.append("product", new Blob([JSON.stringify(productJson)], { type: "application/json" }));
+
+  if (imageFile) {
+    // ✅ Matches backend @RequestPart(value="file")
+    formData.append("file", imageFile);
+  }
+
+  return formData;
 };
 

@@ -28,31 +28,35 @@ export async function getAllProductsWithRecommendations(): Promise<ProductDTO[]>
 }
 
 /**
- * Add new product
+ * Add product with FormData (supports image upload)
  */
-export async function addProduct(request: ProductRequest): Promise<ProductDTO> {
+export async function addProductFormData(formData: FormData): Promise<ProductDTO> {
   try {
-    const response = await api.post('/admin/api/product/add', request);
-    // backend returns { success, message, data } so unwrap if needed
+    const response = await api.post("/admin/api/product/add", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data?.data ?? response.data;
   } catch (error: any) {
-    console.error('Add product error:', error);
-    throw error.response?.data || { message: 'Failed to add product' };
+    console.error("Add product error:", error);
+    throw error.response?.data || { message: "Failed to add product" };
   }
 }
 
 /**
- * Update existing product
+ * Update product with FormData (supports image upload)
  */
-export async function updateProduct(productId: number | string, request: ProductRequest): Promise<ProductDTO> {
+export async function updateProductFormData(productId: number | string, formData: FormData): Promise<ProductDTO> {
   try {
-    const response = await api.put(`/admin/api/product/${productId}/update`, request);
+    const response = await api.put(`/admin/api/product/${productId}/update`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data?.data ?? response.data;
   } catch (error: any) {
-    console.error('Update product error:', error);
-    throw error.response?.data || { message: 'Failed to update product' };
+    console.error("Update product error:", error);
+    throw error.response?.data || { message: "Failed to update product" };
   }
 }
+
 
 /**
  * Delete product
@@ -84,25 +88,4 @@ export async function updateProductStatus(
     throw error.response?.data || { message: "Failed to update product status" };
   }
 }
-
-/**
- * Upload image file for product
- */
-export async function uploadProductImage(file: File): Promise<string> {
-  try {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    const response = await api.post("/user/public/file/upload", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    // return imageUrl from response
-    return response.data.imageUrl;
-  } catch (error: any) {
-    console.error("Image upload error:", error);
-    throw error.response?.data || { message: "Failed to upload image" };
-  }
-}
-
 

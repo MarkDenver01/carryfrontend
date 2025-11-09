@@ -11,55 +11,60 @@ import {
 } from "flowbite-react";
 import Swal from "sweetalert2";
 import type { Product } from "../../types/types";
-import { uploadProductImage } from "../../../src/libs/ApiGatewayDatasource";
+import { useProducts, validateProduct } from "../../types/useProducts";
 
-interface ProductEditModalProps {
+interface ProductFormModalProps {
   show: boolean;
   onClose: () => void;
-  product: Product | null;
-  onSubmit: (p: Product) => Promise<void>;
+  product?: Product | null;
 }
 
-export default function ProductEditModal({
+export default function ProductFormModal({
   show,
   onClose,
-  product,
-  onSubmit,
-}: ProductEditModalProps) {
-  const [editable, setEditable] = useState<Product | null>(null);
+  product = null,
+}: ProductFormModalProps) {
+  const { add, update } = useProducts();
+
+  const emptyProduct: Product = {
+    image: "",
+    code: "",
+    name: "",
+    description: "",
+    size: "",
+    stock: 0,
+    expiryDate: "",
+    inDate: "",
+    status: "Available",
+  };
+
+  const [form, setForm] = useState<Product>(emptyProduct);
   const [preview, setPreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // 🧹 Auto-reset when modal closes or product changes
+  const isEdit = !!product?.id;
+
+  // Load product data when editing
   useEffect(() => {
     if (product) {
-      setEditable({ ...product });
-      setPreview(typeof product.image === "string" ? product.image : null);
+      setForm({ ...product });
+      setPreview(product.image ?? null);
       setImageFile(null);
-    } else if (!show) {
-      setEditable(null);
+    } else if (show) {
+      setForm(emptyProduct);
       setPreview(null);
       setImageFile(null);
-      setLoading(false);
     }
   }, [product, show]);
 
-  if (!editable) return null;
-
-  // 🧾 Field handler
-  const handleChange = (field: keyof Product, value: string | number) => {
-    setEditable((prev) =>
-      prev
-        ? {
-            ...prev,
-            [field]: field === "stock" ? parseInt(value as string || "0") : value,
-          }
-        : prev
-    );
+  const handleChange = (field: keyof Product, value: any) => {
+    setForm((prev) => ({
+      ...prev,
+      [field]: field === "stock" ? Number(value) : value,
+    }));
   };
 
-  // 🖼️ Handle new image selection
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -68,39 +73,25 @@ export default function ProductEditModal({
     }
   };
 
-  // 🔼 Upload image to backend
-  const uploadImage = async (): Promise<string> => {
-    if (!imageFile) return editable?.image ?? "";
-    try {
-      return await uploadProductImage(imageFile);
-    } catch (err: any) {
-      Swal.fire("Error", err?.message || "Image upload failed", "error");
-      return editable?.image ?? "";
+  const handleSubmit = async () => {
+    const validationError = validateProduct(form);
+    if (validationError) {
+      Swal.fire("Validation Error", validationError, "warning");
+      return;
     }
-  };
 
-  // ✅ Handle update
-  const handleUpdate = async () => {
-    if (!editable) return;
-
+    setLoading(true);
     try {
-      setLoading(true);
-      const imageUrl = await uploadImage();
-
-      const updatedProduct: Product = {
-        ...editable,
-        image: imageUrl,
-      };
-
-      await onSubmit(updatedProduct);
-
-      Swal.fire("Success", "Product updated successfully!", "success");
-
-      // 🧹 Reset state after success
-      setImageFile(null);
+      if (isEdit) {
+        await update(form, imageFile ?? undefined);
+        Swal.fire("Success", "Product updated successfully!", "success");
+      } else {
+        await add(form, imageFile ?? undefined);
+        Swal.fire("Success", "Product added successfully!", "success");
+      }
       onClose();
-    } catch {
-      Swal.fire("Error", "Failed to update product.", "error");
+    } catch (err: any) {
+      Swal.fire("Error", err?.message || "Failed to save product", "error");
     } finally {
       setLoading(false);
     }
@@ -108,10 +99,10 @@ export default function ProductEditModal({
 
   return (
     <Modal show={show} onClose={onClose}>
-      <ModalHeader>Update Product</ModalHeader>
+      <ModalHeader>{isEdit ? "Edit Product" : "Add New Product"}</ModalHeader>
       <ModalBody>
         <div className="grid grid-cols-1 gap-3">
-          {/* 🖼️ Image Upload */}
+          {/* Image Upload */}
           <div>
             <Label htmlFor="image">Product Image</Label>
             <input
@@ -122,18 +113,26 @@ export default function ProductEditModal({
               className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50"
             />
             {preview && (
-              <img src={preview} alt="Preview" className="w-24 h-24 mt-2 object-cover rounded" />
+              <img
+                src={preview}
+                alt="Preview"
+                className="w-24 h-24 mt-2 object-cover rounded"
+              />
             )}
           </div>
 
-          {/* 🧾 Input Fields */}
-          {["code", "name", "description", "size"].map((f) => (
-            <div key={f}>
-              <Label htmlFor={f}>{f.charAt(0).toUpperCase() + f.slice(1)}</Label>
+          {/* Text Fields */}
+          {["code", "name", "description", "size"].map((field) => (
+            <div key={field}>
+              <Label htmlFor={field}>
+                {field.charAt(0).toUpperCase() + field.slice(1)}
+              </Label>
               <TextInput
-                id={f}
-                value={(editable as any)[f] ?? ""}
-                onChange={(e) => handleChange(f as keyof Product, e.target.value)}
+                id={field}
+                value={(form as any)[field] ?? ""}
+                onChange={(e) =>
+                  handleChange(field as keyof Product, e.target.value)
+                }
               />
             </div>
           ))}
@@ -143,7 +142,7 @@ export default function ProductEditModal({
             <TextInput
               id="stock"
               type="number"
-              value={editable.stock ?? 0}
+              value={form.stock ?? 0}
               onChange={(e) => handleChange("stock", e.target.value)}
             />
           </div>
@@ -152,7 +151,7 @@ export default function ProductEditModal({
             <Label htmlFor="status">Status</Label>
             <Select
               id="status"
-              value={editable.status}
+              value={form.status}
               onChange={(e) => handleChange("status", e.target.value)}
             >
               <option value="Available">Available</option>
@@ -165,7 +164,7 @@ export default function ProductEditModal({
             <TextInput
               id="expiryDate"
               type="date"
-              value={editable.expiryDate ?? ""}
+              value={form.expiryDate ?? ""}
               onChange={(e) => handleChange("expiryDate", e.target.value)}
             />
           </div>
@@ -175,7 +174,7 @@ export default function ProductEditModal({
             <TextInput
               id="inDate"
               type="date"
-              value={editable.inDate ?? ""}
+              value={form.inDate ?? ""}
               onChange={(e) => handleChange("inDate", e.target.value)}
             />
           </div>
@@ -183,8 +182,14 @@ export default function ProductEditModal({
       </ModalBody>
 
       <ModalFooter>
-        <Button color="warning" onClick={handleUpdate} disabled={loading}>
-          {loading ? "Updating..." : "Update"}
+        <Button color="success" onClick={handleSubmit} disabled={loading}>
+          {loading
+            ? isEdit
+              ? "Updating..."
+              : "Adding..."
+            : isEdit
+            ? "Update Product"
+            : "Add Product"}
         </Button>
         <Button color="gray" onClick={onClose}>
           Cancel

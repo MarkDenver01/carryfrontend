@@ -3,27 +3,24 @@ import { Button, TextInput, Select } from "flowbite-react";
 import { useProducts } from "../../types/useProducts";
 import type { Product, ProductRecommended } from "../../types/types";
 import ProductTable from "../product/ProductTable";
-import ProductAddModal from "../product/ProductAddModal";
-import ProductEditModal from "../product/ProductEditModal";
+import ProductFormModal from "../product/ProductFormModal";
 import ProductRecommendationsModal from "../product/ProductRecommendationsModal";
 import Swal from "sweetalert2";
 
 export default function ProductInventoryTable() {
-  const { products, add, update, remove, updateStatus } = useProducts();
+  const { products, remove, updateStatus } = useProducts();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | Product["status"]>("");
-  const [showAdd, setShowAdd] = useState(false);
-  const [showEdit, setShowEdit] = useState(false);
-  const [showRecs, setShowRecs] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<Product | null>(null);
+  const [showRecs, setShowRecs] = useState(false);
   const [recommendations, setRecommendations] = useState<ProductRecommended[]>([]);
 
-  // Pagination states
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // 🔍 Filtering logic
   const filtered = useMemo(() => {
     return products.filter(
       (p) =>
@@ -32,26 +29,27 @@ export default function ProductInventoryTable() {
     );
   }, [products, search, status]);
 
-  // 🔢 Paginated products
   const paginatedProducts = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filtered.slice(startIndex, startIndex + itemsPerPage);
   }, [filtered, currentPage]);
 
-  // 🧭 Pagination controls
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
-  // ✏️ Edit product
-  const openEditModal = (index: number) => {
-    const realProduct = filtered[index];
-    if (realProduct) {
-      setEditTarget(realProduct);
-      setShowEdit(true);
+  const handleEdit = (index: number) => {
+    const product = filtered[index];
+    if (product) {
+      setEditTarget(product);
+      setShowModal(true);
     }
   };
 
-  // 🗑️ Delete product
-  const handleDeleteProduct = async (id: number) => {
+  const handleAdd = () => {
+    setEditTarget(null);
+    setShowModal(true);
+  };
+
+  const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: "Delete Product?",
       text: "Are you sure you want to delete this product?",
@@ -59,37 +57,26 @@ export default function ProductInventoryTable() {
       showCancelButton: true,
       confirmButtonText: "Yes, delete it!",
     });
-
     if (result.isConfirmed) {
       await remove(id);
       Swal.fire("Deleted!", "Product has been removed.", "success");
     }
   };
 
-// 🔁 Toggle availability
   const toggleAvailability = async (index: number) => {
     const product = filtered[index];
     if (!product || !product.id) return;
-
     const newStatus = product.status === "Available" ? "Not Available" : "Available";
-
-    try {
-      await updateStatus(product.id, newStatus);
-      Swal.fire("Success", "Product status updated successfully", "success");
-    } catch (err: any) {
-      Swal.fire("Error", err?.message || "Failed to update product status", "error");
-   }
-};
-
+    await updateStatus(product.id, newStatus);
+  };
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Product Inventory Monitoring</h2>
-        <Button onClick={() => setShowAdd(true)} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md transition">+ Add Product</Button>
+        <Button onClick={handleAdd}>+ Add Product</Button>
       </div>
 
-      {/* 🔍 Search and Filter */}
       <div className="flex flex-wrap gap-3 mb-4">
         <TextInput
           placeholder="Search by name or code..."
@@ -103,19 +90,17 @@ export default function ProductInventoryTable() {
         </Select>
       </div>
 
-      {/* 🧮 Table */}
       <ProductTable
         paginatedProducts={paginatedProducts}
         currentPage={currentPage}
         itemsPerPage={itemsPerPage}
-        openEditModal={openEditModal}
+        openEditModal={handleEdit}
         toggleAvailability={toggleAvailability}
-        handleDeleteProduct={handleDeleteProduct}
+        handleDeleteProduct={handleDelete}
         setSelectedRecommendations={setRecommendations}
         setIsViewModalOpen={setShowRecs}
       />
 
-      {/* 📄 Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center mt-4 gap-2">
           <Button
@@ -138,14 +123,13 @@ export default function ProductInventoryTable() {
         </div>
       )}
 
-      {/* Modals */}
-      <ProductAddModal show={showAdd} onClose={() => setShowAdd(false)} onSubmit={add} />
-      <ProductEditModal
-        show={showEdit}
+      {/* Single Add/Edit Modal */}
+      <ProductFormModal
+        show={showModal}
+        onClose={() => setShowModal(false)}
         product={editTarget}
-        onClose={() => setShowEdit(false)}
-        onSubmit={update} // must return Promise<void>
       />
+
       <ProductRecommendationsModal
         show={showRecs}
         onClose={() => setShowRecs(false)}
