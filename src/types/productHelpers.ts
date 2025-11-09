@@ -37,14 +37,19 @@ export const mapProductDTO = (p: ProductDTO): Product => ({
   recommendations: (p.recommendations ?? []).map(mapRecommendationDTO),
 });
 
-export const toProductRequest = (p: Product): ProductRequest => ({
-  productCode: p.code,
-  productName: p.name,
-  productDescription: p.description,
-  stocks: Number(p.stock ?? 0),
-  productSize: p.size,
-  productStatus: p.status,
-  productImgUrl: p.image,
-  expiryDate: p.expiryDate ? new Date(p.expiryDate).toISOString() : null,
-  productInDate: p.inDate ? new Date(p.inDate).toISOString() : null,
-});
+export const toProductRequest = (p: Product): ProductRequest => {
+  const clean = (val?: string | null) => (val && val.trim().length > 0 ? val.trim() : "");
+
+  return {
+    productCode: clean(p.code),
+    productName: clean(p.name),
+    productDescription: clean(p.description),
+    stocks: Number(p.stock ?? 0),
+    productSize: clean(p.size),
+    productStatus: clean(p.status),
+    productImgUrl: clean(typeof p.image === "string" ? p.image : ""), // must be string
+    expiryDate: p.expiryDate ? new Date(p.expiryDate).toISOString() : null,
+    productInDate: p.inDate ? new Date(p.inDate).toISOString() : null,
+  };
+};
+
