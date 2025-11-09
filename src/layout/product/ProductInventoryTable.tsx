@@ -1,14 +1,18 @@
 import { useState, useMemo } from "react";
 import { Button, TextInput, Select } from "flowbite-react";
-import { useProducts } from "../../types/useProducts";
 import type { Product, ProductRecommended } from "../../types/types";
 import ProductTable from "../product/ProductTable";
 import ProductFormModal from "../product/ProductFormModal";
 import ProductRecommendationsModal from "../product/ProductRecommendationsModal";
 import Swal from "sweetalert2";
+import { useProductsContext } from "../../context/ProductsContext";
 
 export default function ProductInventoryTable() {
-  const { products, remove, updateStatus } = useProducts();
+  const {
+    products,
+    removeProduct,
+    updateProductStatusById,
+  } = useProductsContext();
 
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | Product["status"]>("");
@@ -17,7 +21,6 @@ export default function ProductInventoryTable() {
   const [showRecs, setShowRecs] = useState(false);
   const [recommendations, setRecommendations] = useState<ProductRecommended[]>([]);
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -58,7 +61,7 @@ export default function ProductInventoryTable() {
       confirmButtonText: "Yes, delete it!",
     });
     if (result.isConfirmed) {
-      await remove(id);
+      await removeProduct(id);
       Swal.fire("Deleted!", "Product has been removed.", "success");
     }
   };
@@ -67,14 +70,19 @@ export default function ProductInventoryTable() {
     const product = filtered[index];
     if (!product || !product.id) return;
     const newStatus = product.status === "Available" ? "Not Available" : "Available";
-    await updateStatus(product.id, newStatus);
+    await updateProductStatusById(product.id, newStatus);
   };
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Product Inventory Monitoring</h2>
-        <Button onClick={handleAdd}  className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md transition">+ Add Product</Button>
+        <Button
+          onClick={handleAdd}
+          className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md transition"
+        >
+          + Add Product
+        </Button>
       </div>
 
       <div className="flex flex-wrap gap-3 mb-4">
@@ -123,7 +131,6 @@ export default function ProductInventoryTable() {
         </div>
       )}
 
-      {/* Single Add/Edit Modal */}
       <ProductFormModal
         show={showModal}
         onClose={() => setShowModal(false)}
