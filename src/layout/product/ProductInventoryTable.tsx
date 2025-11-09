@@ -74,7 +74,7 @@ export default function ProductInventoryTable() {
     <div className="p-6 bg-white rounded-lg shadow-md">
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Product Inventory Monitoring</h2>
-        <Button onClick={handleAdd}>+ Add Product</Button>
+        <Button onClick={handleAdd}  className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-blue-600 hover:bg-blue-700 rounded-md transition">+ Add Product</Button>
       </div>
 
       <div className="flex flex-wrap gap-3 mb-4">
