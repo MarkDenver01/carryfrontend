@@ -11,7 +11,7 @@ import {
 } from "flowbite-react";
 import Swal from "sweetalert2";
 import type { Product } from "../../types/types";
-import { useProducts, validateProduct } from "../../types/useProducts";
+import { useProducts } from "../../types/useProducts";
 
 interface ProductFormModalProps {
   show: boolean;
