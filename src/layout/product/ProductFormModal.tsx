@@ -11,7 +11,7 @@ import {
 } from "flowbite-react";
 import Swal from "sweetalert2";
 import type { Product } from "../../types/types";
-import { useProducts } from "../../types/useProducts";
+import { useProducts, validateProduct } from "../../types/useProducts";
 
 interface ProductFormModalProps {
   show: boolean;
@@ -74,11 +74,11 @@ export default function ProductFormModal({
   };
 
   const handleSubmit = async () => {
-    //const validationError = validateProduct(form);
-    //if (validationError) {
-    //  Swal.fire("Validation Error", validationError, "warning");
-    //  return;
-   // }
+    const validationError = validateProduct(form);
+    if (validationError) {
+      Swal.fire("Validation Error", validationError, "warning");
+      return;
+    }
 
     setLoading(true);
     try {
