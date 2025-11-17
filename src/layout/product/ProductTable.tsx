@@ -32,7 +32,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
 }) => {
   return (
     <div className="overflow-x-auto w-full">
-      <table className="min-w-[1400px] border border-gray-200 text-sm text-left text-gray-700">
+      <table className="min-w-[1500px] border border-gray-200 text-sm text-left text-gray-700">
         <thead className="bg-emerald-700 text-white text-xs uppercase tracking-wide">
           <tr className="divide-x divide-emerald-600">
             <th className="p-3 font-semibold w-[80px]">Image</th>
@@ -42,7 +42,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
             <th className="p-3 font-semibold w-[200px] cursor-pointer" onClick={() => handleSort("name")}>
               Name {getSortIcon("name")}
             </th>
-            <th className="p-3 font-semibold w-[160px] cursor-pointer" onClick={() => handleSort("categoryName")}>
+            <th className="p-3 font-semibold w-[260px] cursor-pointer" onClick={() => handleSort("categoryName")}>
               Category {getSortIcon("categoryName")}
             </th>
             <th className="p-3 font-semibold w-[350px] cursor-pointer" onClick={() => handleSort("description")}>
@@ -84,7 +84,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </td>
 
                 {/* Category */}
-                <td className="p-2.5 w-[160px] align-middle">
+                <td className="p-2.5 w-[260px] align-middle">
                   <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
                     {product.categoryName ?? "—"}
                   </span>
