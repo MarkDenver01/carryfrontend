@@ -4,7 +4,7 @@ import { Modal,
     ModalFooter,
     Button
  } from "flowbite-react";
-import type { ProductRecommended } from "./../../types/types";
+import type { ProductRecommended } from "../../types/types";
 
 interface Props {
   show: boolean;

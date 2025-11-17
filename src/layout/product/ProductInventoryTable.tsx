@@ -5,8 +5,8 @@ import { Search, ChevronDown } from "lucide-react";
 import type { Product, ProductRecommended } from "../../types/types";
 
 import ProductTable from "../product/ProductTable";
-import ProductFormModal from "../product/ProductFormModal";
-import ProductRecommendationsModal from "../product/ProductRecommendationsModal";
+import ProductFormModal from "../../components/product/ProductFormModal";
+import ProductRecommendationsModal from "../../components/product/ProductRecommendationsModal";
 import Swal from "sweetalert2";
 import { useProductsContext } from "../../context/ProductsContext";
 
