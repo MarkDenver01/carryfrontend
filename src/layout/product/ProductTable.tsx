@@ -31,14 +31,11 @@ const ProductTable: React.FC<ProductTableProps> = ({
   setIsViewModalOpen,
 }) => {
   return (
-    <div className="w-full overflow-x-auto">
-      <table className="w-full border border-gray-300 text-sm text-left text-gray-700">
-        {/* HEADER */}
+    <div className="overflow-x-auto w-full">
+      <table className="min-w-[1400px] border border-gray-300 text-sm text-left text-gray-700">
         <thead className="bg-emerald-600 text-white">
           <tr>
-            <th className="p-3 border border-gray-300 font-medium whitespace-nowrap">
-              Image
-            </th>
+            <th className="p-3 border border-gray-300 font-medium">Image</th>
 
             {[
               ["code", "Code"],
@@ -53,7 +50,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
             ].map(([field, label]) => (
               <th
                 key={field}
-                className="p-3 border border-gray-300 font-medium cursor-pointer select-none whitespace-nowrap"
+                className="p-3 border border-gray-300 font-medium cursor-pointer select-none"
                 onClick={() => handleSort(field)}
               >
                 {label}{" "}
@@ -61,20 +58,16 @@ const ProductTable: React.FC<ProductTableProps> = ({
               </th>
             ))}
 
-            <th className="p-3 border border-gray-300 font-medium text-center whitespace-nowrap">
+            <th className="p-3 border border-gray-300 font-medium text-center">
               Actions
             </th>
           </tr>
         </thead>
 
-        {/* BODY */}
         <tbody className="bg-gray-50">
           {paginatedProducts.length > 0 ? (
             paginatedProducts.map((product, idx) => (
-              <tr
-                key={product.id ?? idx}
-                className="hover:bg-emerald-100 transition"
-              >
+              <tr key={product.id ?? idx} className="hover:bg-emerald-100">
                 {/* IMAGE */}
                 <td className="p-3 border border-gray-300 align-middle">
                   <img
@@ -84,38 +77,52 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   />
                 </td>
 
-                {/* PRODUCT FIELDS */}
-                <td className="p-3 border border-gray-300">{product.code}</td>
+                {/* CODE */}
+                <td className="p-3 border border-gray-300 align-middle">
+                  {product.code}
+                </td>
 
-                <td className="p-3 border border-gray-300 font-medium">
+                {/* NAME */}
+                <td className="p-3 border border-gray-300 align-middle font-medium">
                   {product.name}
                 </td>
 
-                <td className="p-3 border border-gray-300">
+                {/* CATEGORY */}
+                <td className="p-3 border border-gray-300 align-middle">
                   <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
                     {product.categoryName ?? "—"}
                   </span>
                 </td>
 
-                <td className="p-3 border border-gray-300 max-w-[300px] break-words">
+                {/* DESCRIPTION */}
+                <td className="p-3 border border-gray-300 align-middle">
                   {product.description}
                 </td>
 
-                <td className="p-3 border border-gray-300">{product.size}</td>
+                {/* SIZE */}
+                <td className="p-3 border border-gray-300 align-middle">
+                  {product.size}
+                </td>
 
-                <td className="p-3 border border-gray-300">{product.stock}</td>
+                {/* STOCK */}
+                <td className="p-3 border border-gray-300 align-middle">
+                  {product.stock}
+                </td>
 
-                <td className="p-3 border border-gray-300">
+                {/* EXPIRY */}
+                <td className="p-3 border border-gray-300 align-middle">
                   {product.expiryDate ?? "—"}
                 </td>
 
-                <td className="p-3 border border-gray-300">
+                {/* IN DATE */}
+                <td className="p-3 border border-gray-300 align-middle">
                   {product.inDate ?? "—"}
                 </td>
 
-                <td className="p-3 border border-gray-300">
+                {/* STATUS */}
+                <td className="p-3 border border-gray-300 align-middle">
                   <span
-                    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
+                    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
                       product.status === "Available"
                         ? "bg-green-100 text-green-700 border border-green-300"
                         : "bg-red-100 text-red-700 border border-red-300"
@@ -125,31 +132,30 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   </span>
                 </td>
 
-                {/* ACTIONS */}
+                {/* ACTION BUTTONS */}
                 <td className="p-3 border border-gray-300 align-middle">
-                  <div className="flex flex-wrap justify-center gap-2">
+                  <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+                    
                     {/* UPDATE */}
                     <button
-                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md whitespace-nowrap"
+                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
                       onClick={() => {
-                        const realIndex =
-                          (currentPage - 1) * pageSize + idx;
+                        const realIndex = (currentPage - 1) * pageSize + idx;
                         handleEditProduct(realIndex);
                       }}
                     >
                       <Pencil className="w-4 h-4" /> Update
                     </button>
 
-                    {/* TOGGLE STATUS */}
+                    {/* AVAILABILITY */}
                     <button
-                      className={`flex items-center gap-1 px-3 py-1 text-xs text-white rounded-md whitespace-nowrap ${
+                      className={`h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white rounded-md ${
                         product.status === "Available"
                           ? "bg-red-500 hover:bg-red-600"
                           : "bg-green-600 hover:bg-green-700"
                       }`}
                       onClick={() => {
-                        const realIndex =
-                          (currentPage - 1) * pageSize + idx;
+                        const realIndex = (currentPage - 1) * pageSize + idx;
                         toggleAvailability(realIndex);
                       }}
                     >
@@ -164,9 +170,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       )}
                     </button>
 
-                    {/* VIEW RECOMMENDED */}
+                    {/* RECOMMENDED */}
                     <button
-                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md whitespace-nowrap"
+                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
                       onClick={() => {
                         const target = paginatedProducts[idx];
                         setSelectedRecommendations(
@@ -180,13 +186,14 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
                     {/* DELETE */}
                     <button
-                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md whitespace-nowrap"
+                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md"
                       onClick={() => {
                         if (product.id) handleDeleteProduct(product.id);
                       }}
                     >
                       <XCircle className="w-4 h-4" /> Delete
                     </button>
+
                   </div>
                 </td>
               </tr>
