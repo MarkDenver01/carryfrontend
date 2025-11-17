@@ -8,6 +8,7 @@ import {
     ShoppingCart,
     Truck,
     UserCheck,
+    Currency,
 } from "lucide-react";
 import type { SidebarMenuSection } from "../types/sidebar.ts";
 
@@ -41,7 +42,7 @@ export const sidebarMenu: SidebarMenuSection[] = [
                     },
                     {
                         label: "Product Rates",
-                        icon: Star,
+                        icon: Currency,
                         path: "/dashboard/products/rates",
                     },
                 ],
