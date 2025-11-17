@@ -46,24 +46,16 @@ export async function addProductFormData(formData: FormData): Promise<ProductDTO
   }
 }
 
+
 /**
  * Update product with FormData (supports image upload)
  */
 export async function updateProductFormData(productId: number | string, formData: FormData): Promise<ProductDTO> {
   try {
-    // METHOD OVERRIDE
-    formData.append("_method", "PUT");
-
-    const response = await api.post(
-      `/admin/api/product/${productId}/update`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
-
+    const response = await api.put(`/admin/api/product/${productId}/update`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
     return response.data?.data ?? response.data;
-
   } catch (error: any) {
     console.error("Update product error:", error);
     throw error.response?.data || { message: "Failed to update product" };
