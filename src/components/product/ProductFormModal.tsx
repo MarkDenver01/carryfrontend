@@ -12,6 +12,7 @@ import {
 import Swal from "sweetalert2";
 import type { Product } from "../../types/types";
 import { useProducts, validateProduct } from "../../types/useProducts";
+import { useCategoryContext } from "../../context/CategoryContext";
 
 interface ProductFormModalProps {
   show: boolean;
@@ -42,6 +43,7 @@ export default function ProductFormModal({
   const [preview, setPreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const { categories } = useCategoryContext();
 
   const isEdit = !!product?.id;
 
@@ -136,6 +138,23 @@ export default function ProductFormModal({
               />
             </div>
           ))}
+
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Select
+              id="category"
+              value={form.categoryId ?? ""}
+              onChange={(e) => handleChange("categoryId", Number(e.target.value))}
+            >
+              <option value="">Select Category</option>
+              {categories.map((cat) => (
+                <option key={cat.categoryId} value={cat.categoryId}>
+                  {cat.categoryName}
+                </option>
+              ))}
+            </Select>
+          </div>
+
 
           <div>
             <Label htmlFor="stock">Stocks</Label>

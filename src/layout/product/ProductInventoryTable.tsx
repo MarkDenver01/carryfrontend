@@ -14,6 +14,7 @@ import { useProductsContext } from "../../context/ProductsContext";
 type ProductSortField =
   | "name"
   | "code"
+  | "categoryName" 
   | "description"
   | "size"
   | "stock"

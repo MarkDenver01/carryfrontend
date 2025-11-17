@@ -21,5 +21,9 @@ export interface Product {
   expiryDate?: string | null;
   inDate?: string | null;
   status: "Available" | "Not Available";
+
+  categoryId?: number | null;
+  categoryName?: string | null;
+
   recommendations?: ProductRecommended[];
 }
