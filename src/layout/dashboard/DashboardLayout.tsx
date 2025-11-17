@@ -58,7 +58,7 @@ export default function DashboardLayout() {
                                     <Route path="products/monitoring" element={<ProductMonitoring />} />
                                     <Route path="products/recommendation" element={<ProductRecommendation />} />
                                     <Route path="products/rates" element={<ProductPriceMonitoring />} />
-                                    <Route path="/dashboard/products/categories" element={<ProductCategoryManagement />}/>
+                                    <Route path="products/categories" element={<ProductCategoryManagement />}/>
 
                                     {/* Analytics */}
                                     <Route path="analytics" element={<AnalyticsPage />} />
