@@ -87,7 +87,7 @@ export const toProductFormData = (p: Product, imageFile?: File): FormData => {
     productImgUrl: p.imageUrl ?? "", // fallback if no file uploaded
     expiryDate: p.expiryDate ? formatDateForBackend(p.expiryDate) : "",
     productInDate: p.inDate ? formatDateForBackend(p.inDate) : "",
-    categoryId: p.categoryId ?? null,
+    categoryId: p.categoryId,
   };
 
   formData.append(
