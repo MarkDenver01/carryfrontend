@@ -90,9 +90,22 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   </span>
                 </td>
 
-                {/* Description (3 lines only) */}
-                <td className="p-2.5 w-[350px] align-middle">
-                  <p className="line-clamp-3">{product.description}</p>
+                {/* Description + Tooltip */}
+                <td className="p-2.5 w-[350px] align-middle relative group">
+                  <p className="line-clamp-3 cursor-pointer">
+                    {product.description}
+                  </p>
+
+                  <div
+                    className="
+                      hidden group-hover:block absolute z-50 left-0 top-full mt-1
+                      w-[380px] bg-white shadow-xl border border-gray-300
+                      rounded-md p-3 text-gray-700 text-sm leading-relaxed
+                      whitespace-normal
+                    "
+                  >
+                    {product.description}
+                  </div>
                 </td>
 
                 {/* Size */}
