@@ -32,100 +32,36 @@ const ProductTable: React.FC<ProductTableProps> = ({
 }) => {
   return (
     <div className="w-full overflow-x-auto">
-      <table className="min-w-[2100px] border border-gray-300 text-sm text-left text-gray-700">
+      <table className="w-full border border-gray-300 text-sm text-left text-gray-700">
         {/* HEADER */}
         <thead className="bg-emerald-600 text-white">
           <tr>
-            {/* IMAGE */}
-            <th className="p-3 border border-gray-300 font-medium w-[120px]">
+            <th className="p-3 border border-gray-300 font-medium whitespace-nowrap">
               Image
             </th>
 
-            {/* CODE */}
-            <th
-              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[110px]"
-              onClick={() => handleSort("code")}
-            >
-              Code{" "}
-              <span className="text-xs opacity-80">{getSortIcon("code")}</span>
-            </th>
+            {[
+              ["code", "Code"],
+              ["name", "Name"],
+              ["categoryName", "Category"],
+              ["description", "Description"],
+              ["size", "Size"],
+              ["stock", "Stocks"],
+              ["expiryDate", "Expiry Date"],
+              ["inDate", "In Date"],
+              ["status", "Status"],
+            ].map(([field, label]) => (
+              <th
+                key={field}
+                className="p-3 border border-gray-300 font-medium cursor-pointer select-none whitespace-nowrap"
+                onClick={() => handleSort(field)}
+              >
+                {label}{" "}
+                <span className="text-xs opacity-80">{getSortIcon(field)}</span>
+              </th>
+            ))}
 
-            {/* NAME */}
-            <th
-              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[250px]"
-              onClick={() => handleSort("name")}
-            >
-              Name{" "}
-              <span className="text-xs opacity-80">{getSortIcon("name")}</span>
-            </th>
-
-            {/* CATEGORY */}
-            <th
-              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[180px]"
-              onClick={() => handleSort("categoryName")}
-            >
-              Category{" "}
-              <span className="text-xs opacity-80">
-                {getSortIcon("categoryName")}
-              </span>
-            </th>
-
-            {/* DESCRIPTION — BIG PRIORITY */}
-            <th
-              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[900px]"
-              onClick={() => handleSort("description")}
-            >
-              Description{" "}
-              <span className="text-xs opacity-80">
-                {getSortIcon("description")}
-              </span>
-            </th>
-
-            {/* SIZE */}
-            <th
-              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[110px]"
-              onClick={() => handleSort("size")}
-            >
-              Size{" "}
-              <span className="text-xs opacity-80">{getSortIcon("size")}</span>
-            </th>
-
-            {/* STOCKS */}
-            <th
-              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[110px]"
-              onClick={() => handleSort("stock")}
-            >
-              Stocks{" "}
-              <span className="text-xs opacity-80">{getSortIcon("stock")}</span>
-            </th>
-
-            {/* EXPIRY */}
-            <th
-              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[150px]"
-              onClick={() => handleSort("expiryDate")}
-            >
-              Expiry Date{" "}
-              <span className="text-xs opacity-80">
-                {getSortIcon("expiryDate")}
-              </span>
-            </th>
-
-            {/* IN DATE */}
-            <th
-              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[150px]"
-              onClick={() => handleSort("inDate")}
-            >
-              In Date{" "}
-              <span className="text-xs opacity-80">{getSortIcon("inDate")}</span>
-            </th>
-
-            {/* STATUS */}
-            <th className="p-3 border border-gray-300 font-medium w-[120px]">
-              Status
-            </th>
-
-            {/* ACTIONS — BIG PRIORITY */}
-            <th className="p-3 border border-gray-300 font-medium text-center w-[400px]">
+            <th className="p-3 border border-gray-300 font-medium text-center whitespace-nowrap">
               Actions
             </th>
           </tr>
@@ -135,9 +71,12 @@ const ProductTable: React.FC<ProductTableProps> = ({
         <tbody className="bg-gray-50">
           {paginatedProducts.length > 0 ? (
             paginatedProducts.map((product, idx) => (
-              <tr key={product.id ?? idx} className="hover:bg-emerald-100">
+              <tr
+                key={product.id ?? idx}
+                className="hover:bg-emerald-100 transition"
+              >
                 {/* IMAGE */}
-                <td className="p-3 border border-gray-300 w-[120px]">
+                <td className="p-3 border border-gray-300 align-middle">
                   <img
                     src={product.imageUrl || "/placeholder.png"}
                     alt={product.name}
@@ -145,52 +84,38 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   />
                 </td>
 
-                {/* CODE */}
-                <td className="p-3 border border-gray-300 w-[110px]">
-                  {product.code}
-                </td>
+                {/* PRODUCT FIELDS */}
+                <td className="p-3 border border-gray-300">{product.code}</td>
 
-                {/* NAME */}
-                <td className="p-3 border border-gray-300 w-[250px] font-medium">
+                <td className="p-3 border border-gray-300 font-medium">
                   {product.name}
                 </td>
 
-                {/* CATEGORY */}
-                <td className="p-3 border border-gray-300 w-[180px]">
+                <td className="p-3 border border-gray-300">
                   <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
                     {product.categoryName ?? "—"}
                   </span>
                 </td>
 
-                {/* DESCRIPTION */}
-                <td className="p-3 border border-gray-300 w-[900px] whitespace-pre-wrap">
+                <td className="p-3 border border-gray-300 max-w-[300px] break-words">
                   {product.description}
                 </td>
 
-                {/* SIZE */}
-                <td className="p-3 border border-gray-300 w-[110px]">
-                  {product.size}
-                </td>
+                <td className="p-3 border border-gray-300">{product.size}</td>
 
-                {/* STOCK */}
-                <td className="p-3 border border-gray-300 w-[110px]">
-                  {product.stock}
-                </td>
+                <td className="p-3 border border-gray-300">{product.stock}</td>
 
-                {/* EXPIRY */}
-                <td className="p-3 border border-gray-300 w-[150px]">
+                <td className="p-3 border border-gray-300">
                   {product.expiryDate ?? "—"}
                 </td>
 
-                {/* IN DATE */}
-                <td className="p-3 border border-gray-300 w-[150px]">
+                <td className="p-3 border border-gray-300">
                   {product.inDate ?? "—"}
                 </td>
 
-                {/* STATUS */}
-                <td className="p-3 border border-gray-300 w-[120px]">
+                <td className="p-3 border border-gray-300">
                   <span
-                    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full whitespace-nowrap ${
                       product.status === "Available"
                         ? "bg-green-100 text-green-700 border border-green-300"
                         : "bg-red-100 text-red-700 border border-red-300"
@@ -200,13 +125,12 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   </span>
                 </td>
 
-                {/* ACTION BUTTONS */}
-                <td className="p-3 border border-gray-300 w-[400px]">
-                  <div className="flex items-center justify-center gap-2">
-
+                {/* ACTIONS */}
+                <td className="p-3 border border-gray-300 align-middle">
+                  <div className="flex flex-wrap justify-center gap-2">
                     {/* UPDATE */}
                     <button
-                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
+                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md whitespace-nowrap"
                       onClick={() => {
                         const realIndex =
                           (currentPage - 1) * pageSize + idx;
@@ -218,7 +142,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
                     {/* TOGGLE STATUS */}
                     <button
-                      className={`flex items-center gap-1 px-3 py-1 text-xs text-white rounded-md ${
+                      className={`flex items-center gap-1 px-3 py-1 text-xs text-white rounded-md whitespace-nowrap ${
                         product.status === "Available"
                           ? "bg-red-500 hover:bg-red-600"
                           : "bg-green-600 hover:bg-green-700"
@@ -240,9 +164,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       )}
                     </button>
 
-                    {/* RECOMMENDED */}
+                    {/* VIEW RECOMMENDED */}
                     <button
-                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md whitespace-nowrap"
                       onClick={() => {
                         const target = paginatedProducts[idx];
                         setSelectedRecommendations(
@@ -256,7 +180,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
                     {/* DELETE */}
                     <button
-                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md"
+                      className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md whitespace-nowrap"
                       onClick={() => {
                         if (product.id) handleDeleteProduct(product.id);
                       }}
