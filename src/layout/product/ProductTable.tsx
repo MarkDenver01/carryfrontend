@@ -4,9 +4,6 @@ import {
   Eye,
   XCircle,
   CheckCircle,
-  ArrowUp,
-  ArrowDown,
-  ArrowUpDown,
 } from "lucide-react";
 
 import type { Product, ProductRecommended } from "../../types/types";
@@ -31,7 +28,6 @@ interface ProductTableProps {
 }
 
 const ProductTable: React.FC<ProductTableProps> = ({
-  sortedProducts,
   paginatedProducts,
   currentPage,
   pageSize,
