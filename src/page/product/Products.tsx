@@ -12,6 +12,13 @@ export default function ProductsPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
+                    onClick={() => navigate('category')}
+                    className="flex items-center gap-2 bg-white shadow px-4 py-3 rounded hover:bg-emerald-100"
+                >
+                    <Star size={18} />
+                    Product Recommendation
+                </button>
+                <button
                     onClick={() => navigate('monitoring')}
                     className="flex items-center gap-2 bg-white shadow px-4 py-3 rounded hover:bg-emerald-100"
                 >

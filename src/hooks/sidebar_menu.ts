@@ -31,6 +31,11 @@ export const sidebarMenu: SidebarMenuSection[] = [
                 icon: Boxes,
                 children: [
                     {
+                        label: "Product Categories",
+                        icon: Boxes,    // or any icon you used
+                        path: "/dashboard/products/categories",
+                    },
+                    {
                         label: "Product Monitoring",
                         icon: Search,
                         path: "/dashboard/products/monitoring",

@@ -9,6 +9,7 @@ import ProductsPage from '../../page/product/Products.tsx';
 import ProductMonitoring from '../../page/product/sub/ProductMonitoring.tsx';
 import ProductRecommendation from '../../page/product/sub/ProductRecommendation.tsx';
 import ProductPriceMonitoring from '../../page/product/sub/ProductRates.tsx';
+import ProductCategoryManagement from "../../page/product/sub/ProductCategoryManagement.tsx";
 
 import AnalyticsPage from '../../page/analytics/Analytics.tsx';
 import CustomerReport from '../../page/analytics/sub/CustomerReport.tsx';
@@ -23,6 +24,7 @@ import RidersPage from '../../page/delivery/sub/Riders.tsx';
 
 import { ProductsProvider } from "../../context/ProductsContext";
 import { PricesProvider } from "../../context/PricesContext";
+import CategoryProvider from "../../context/CategoryContext";
 
 
 export default function DashboardLayout() {
@@ -45,33 +47,36 @@ export default function DashboardLayout() {
             <div className={`flex-1 flex flex-col transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-64'}`}>
                 <Topbar pageTitle={pageTitle} />
                 <main className="p-4 overflow-y-auto flex-1">
-                    <ProductsProvider>
-                        <PricesProvider>
-                            <Routes>
-                                <Route path="" element={<DashboardPage />} />
+                    <CategoryProvider>
+                        <ProductsProvider>
+                            <PricesProvider>
+                                <Routes>
+                                    <Route path="" element={<DashboardPage />} />
 
-                                {/* Product Management */}
-                                <Route path="products" element={<ProductsPage />} />
-                                <Route path="products/monitoring" element={<ProductMonitoring />} />
-                                <Route path="products/recommendation" element={<ProductRecommendation />} />
-                                <Route path="products/rates" element={<ProductPriceMonitoring />} />
+                                    {/* Product Management */}
+                                    <Route path="products" element={<ProductsPage />} />
+                                    <Route path="products/monitoring" element={<ProductMonitoring />} />
+                                    <Route path="products/recommendation" element={<ProductRecommendation />} />
+                                    <Route path="products/rates" element={<ProductPriceMonitoring />} />
+                                    <Route path="/dashboard/products/categories" element={<ProductCategoryManagement />}/>
 
-                                {/* Analytics */}
-                                <Route path="analytics" element={<AnalyticsPage />} />
-                                <Route path="analytics/customers" element={<CustomerReport />} />
-                                <Route path="analytics/sales" element={<SalesReport />} />
-                                <Route path="analytics/products" element={<ProductReport />} />
+                                    {/* Analytics */}
+                                    <Route path="analytics" element={<AnalyticsPage />} />
+                                    <Route path="analytics/customers" element={<CustomerReport />} />
+                                    <Route path="analytics/sales" element={<SalesReport />} />
+                                    <Route path="analytics/products" element={<ProductReport />} />
 
-                                {/* Customers */}
-                                <Route path="users" element={<UsersPage />} />
+                                    {/* Customers */}
+                                    <Route path="users" element={<UsersPage />} />
 
-                                {/* Delivery Management */}
-                                <Route path="delivery" element={<DeliveryPage />} />
-                                <Route path="delivery/orders" element={<OrdersPage />} />
-                                <Route path="delivery/riders" element={<RidersPage />} />
-                            </Routes>
-                        </PricesProvider>
-                    </ProductsProvider>
+                                    {/* Delivery Management */}
+                                    <Route path="delivery" element={<DeliveryPage />} />
+                                    <Route path="delivery/orders" element={<OrdersPage />} />
+                                    <Route path="delivery/riders" element={<RidersPage />} />
+                                </Routes>
+                            </PricesProvider>
+                        </ProductsProvider>
+                    </CategoryProvider>
                 </main>
             </div>
         </div>

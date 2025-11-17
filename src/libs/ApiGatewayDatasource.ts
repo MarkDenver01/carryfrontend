@@ -3,6 +3,8 @@ import type { LoginRequest, LoginResponse } from './models/login';
 import type { ProductDTO } from './models/product/Product';
 import type { ProductPriceDTO } from "../types/pricingTypes";
 import type { ProductPrice } from "../types/pricingTypes";
+import type { CategoryDTO } from './models/product/Category';
+
 /**
  * Login.
  */
@@ -149,3 +151,63 @@ export async function deletePriceById(priceId: number): Promise<void> {
     throw error.response?.data || { message: "Failed to delete price" };
   }
 }
+
+/**
+ * Fetch all categories
+ */
+export async function getAllCategories(): Promise<CategoryDTO[]> {
+  try {
+    const response = await api.get("/admin/api/product-categories");
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Fetch categories error:", error);
+    throw error.response?.data || { message: "Failed to fetch categories" };
+  }
+}
+
+/**
+ * Add category
+ */
+export async function addCategory(
+  category: Partial<CategoryDTO>
+): Promise<CategoryDTO> {
+  try {
+    const response = await api.post("/admin/api/product-categories", category);
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Add category error:", error);
+    throw error.response?.data || { message: "Failed to add category" };
+  }
+}
+
+/**
+ * Update category
+ */
+export async function updateCategory(
+  id: number,
+  category: Partial<CategoryDTO>
+): Promise<CategoryDTO> {
+  try {
+    const response = await api.put(
+      `/admin/api/product-categories/${id}`,
+      category
+    );
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Update category error:", error);
+    throw error.response?.data || { message: "Failed to update category" };
+  }
+}
+
+/**
+ * Delete category
+ */
+export async function deleteCategory(id: number): Promise<void> {
+  try {
+    await api.delete(`/admin/api/product-categories/${id}`);
+  } catch (error: any) {
+    console.error("Delete category error:", error);
+    throw error.response?.data || { message: "Failed to delete category" };
+  }
+}
+
