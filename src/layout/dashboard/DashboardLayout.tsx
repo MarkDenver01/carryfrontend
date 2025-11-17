@@ -8,6 +8,7 @@ import DashboardPage from '../../page/dashboard/Dashboard.tsx';
 import ProductsPage from '../../page/product/Products.tsx';
 import ProductMonitoring from '../../page/product/sub/ProductMonitoring.tsx';
 import ProductRecommendation from '../../page/product/sub/ProductRecommendation.tsx';
+import ProductPriceMonitoring from '../../page/product/sub/ProductRates.tsx';
 
 import AnalyticsPage from '../../page/analytics/Analytics.tsx';
 import CustomerReport from '../../page/analytics/sub/CustomerReport.tsx';
@@ -21,7 +22,8 @@ import OrdersPage from '../../page/delivery/sub/Orders.tsx';
 import RidersPage from '../../page/delivery/sub/Riders.tsx';
 
 import { ProductsProvider } from "../../context/ProductsContext";
-import ProductPriceMonitoring from '../../page/product/sub/ProductRates.tsx';
+import { PricesProvider } from "../../context/PricesContext";
+
 
 export default function DashboardLayout() {
     const [collapsed, setCollapsed] = useState(false);
@@ -44,29 +46,31 @@ export default function DashboardLayout() {
                 <Topbar pageTitle={pageTitle} />
                 <main className="p-4 overflow-y-auto flex-1">
                     <ProductsProvider>
-                        <Routes>
-                            <Route path="" element={<DashboardPage />} />
+                        <PricesProvider>
+                            <Routes>
+                                <Route path="" element={<DashboardPage />} />
 
-                            {/* Product Management */}
-                            <Route path="products" element={<ProductsPage />} />
-                            <Route path="products/monitoring" element={<ProductMonitoring />} />
-                            <Route path="products/recommendation" element={<ProductRecommendation />} />
-                            <Route path="products/rates" element={<ProductPriceMonitoring />} />
+                                {/* Product Management */}
+                                <Route path="products" element={<ProductsPage />} />
+                                <Route path="products/monitoring" element={<ProductMonitoring />} />
+                                <Route path="products/recommendation" element={<ProductRecommendation />} />
+                                <Route path="products/rates" element={<ProductPriceMonitoring />} />
 
-                            {/* Analytics */}
-                            <Route path="analytics" element={<AnalyticsPage />} />
-                            <Route path="analytics/customers" element={<CustomerReport />} />
-                            <Route path="analytics/sales" element={<SalesReport />} />
-                            <Route path="analytics/products" element={<ProductReport />} />
+                                {/* Analytics */}
+                                <Route path="analytics" element={<AnalyticsPage />} />
+                                <Route path="analytics/customers" element={<CustomerReport />} />
+                                <Route path="analytics/sales" element={<SalesReport />} />
+                                <Route path="analytics/products" element={<ProductReport />} />
 
-                            {/* Customers */}
-                            <Route path="users" element={<UsersPage />} />
+                                {/* Customers */}
+                                <Route path="users" element={<UsersPage />} />
 
-                            {/* Delivery Management */}
-                            <Route path="delivery" element={<DeliveryPage />} />
-                            <Route path="delivery/orders" element={<OrdersPage />} />
-                            <Route path="delivery/riders" element={<RidersPage />} />
-                        </Routes>
+                                {/* Delivery Management */}
+                                <Route path="delivery" element={<DeliveryPage />} />
+                                <Route path="delivery/orders" element={<OrdersPage />} />
+                                <Route path="delivery/riders" element={<RidersPage />} />
+                            </Routes>
+                        </PricesProvider>
                     </ProductsProvider>
                 </main>
             </div>
