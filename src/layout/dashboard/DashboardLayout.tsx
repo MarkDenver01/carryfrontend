@@ -8,7 +8,6 @@ import DashboardPage from '../../page/dashboard/Dashboard.tsx';
 import ProductsPage from '../../page/product/Products.tsx';
 import ProductMonitoring from '../../page/product/sub/ProductMonitoring.tsx';
 import ProductRecommendation from '../../page/product/sub/ProductRecommendation.tsx';
-import ProductRates from '../../page/product/sub/ProductRates.tsx';
 
 import AnalyticsPage from '../../page/analytics/Analytics.tsx';
 import CustomerReport from '../../page/analytics/sub/CustomerReport.tsx';
