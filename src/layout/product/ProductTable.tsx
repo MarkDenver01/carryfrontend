@@ -36,32 +36,96 @@ const ProductTable: React.FC<ProductTableProps> = ({
         {/* HEADER */}
         <thead className="bg-emerald-600 text-white">
           <tr>
+            {/* IMAGE */}
             <th className="p-3 border border-gray-300 font-medium w-[120px]">
               Image
             </th>
 
-            {[
-              ["code", "Code"],
-              ["name", "Name"],
-              ["categoryName", "Category"],
-              ["description", "Description"],
-              ["size", "Size"],
-              ["stock", "Stocks"],
-              ["expiryDate", "Expiry Date"],
-              ["inDate", "In Date"],
-              ["status", "Status"],
-            ].map(([field, label]) => (
-              <th
-                key={field}
-                className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[160px]"
-                onClick={() => handleSort(field)}
-              >
-                {label}{" "}
-                <span className="text-xs opacity-80">{getSortIcon(field)}</span>
-              </th>
-            ))}
+            {/* CODE */}
+            <th
+              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[110px]"
+              onClick={() => handleSort("code")}
+            >
+              Code{" "}
+              <span className="text-xs opacity-80">{getSortIcon("code")}</span>
+            </th>
 
-            <th className="p-3 border border-gray-300 font-medium text-center w-[220px]">
+            {/* NAME */}
+            <th
+              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[250px]"
+              onClick={() => handleSort("name")}
+            >
+              Name{" "}
+              <span className="text-xs opacity-80">{getSortIcon("name")}</span>
+            </th>
+
+            {/* CATEGORY */}
+            <th
+              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[180px]"
+              onClick={() => handleSort("categoryName")}
+            >
+              Category{" "}
+              <span className="text-xs opacity-80">
+                {getSortIcon("categoryName")}
+              </span>
+            </th>
+
+            {/* DESCRIPTION — BIG PRIORITY */}
+            <th
+              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[900px]"
+              onClick={() => handleSort("description")}
+            >
+              Description{" "}
+              <span className="text-xs opacity-80">
+                {getSortIcon("description")}
+              </span>
+            </th>
+
+            {/* SIZE */}
+            <th
+              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[110px]"
+              onClick={() => handleSort("size")}
+            >
+              Size{" "}
+              <span className="text-xs opacity-80">{getSortIcon("size")}</span>
+            </th>
+
+            {/* STOCKS */}
+            <th
+              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[110px]"
+              onClick={() => handleSort("stock")}
+            >
+              Stocks{" "}
+              <span className="text-xs opacity-80">{getSortIcon("stock")}</span>
+            </th>
+
+            {/* EXPIRY */}
+            <th
+              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[150px]"
+              onClick={() => handleSort("expiryDate")}
+            >
+              Expiry Date{" "}
+              <span className="text-xs opacity-80">
+                {getSortIcon("expiryDate")}
+              </span>
+            </th>
+
+            {/* IN DATE */}
+            <th
+              className="p-3 border border-gray-300 font-medium cursor-pointer select-none w-[150px]"
+              onClick={() => handleSort("inDate")}
+            >
+              In Date{" "}
+              <span className="text-xs opacity-80">{getSortIcon("inDate")}</span>
+            </th>
+
+            {/* STATUS */}
+            <th className="p-3 border border-gray-300 font-medium w-[120px]">
+              Status
+            </th>
+
+            {/* ACTIONS — BIG PRIORITY */}
+            <th className="p-3 border border-gray-300 font-medium text-center w-[400px]">
               Actions
             </th>
           </tr>
@@ -73,7 +137,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
             paginatedProducts.map((product, idx) => (
               <tr key={product.id ?? idx} className="hover:bg-emerald-100">
                 {/* IMAGE */}
-                <td className="p-3 border border-gray-300 align-middle w-[120px]">
+                <td className="p-3 border border-gray-300 w-[120px]">
                   <img
                     src={product.imageUrl || "/placeholder.png"}
                     alt={product.name}
@@ -81,35 +145,50 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   />
                 </td>
 
-                {/* TEXT FIELDS */}
-                <td className="p-3 border border-gray-300">{product.code}</td>
+                {/* CODE */}
+                <td className="p-3 border border-gray-300 w-[110px]">
+                  {product.code}
+                </td>
 
-                <td className="p-3 border border-gray-300 font-medium">
+                {/* NAME */}
+                <td className="p-3 border border-gray-300 w-[250px] font-medium">
                   {product.name}
                 </td>
 
-                <td className="p-3 border border-gray-300">
+                {/* CATEGORY */}
+                <td className="p-3 border border-gray-300 w-[180px]">
                   <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
                     {product.categoryName ?? "—"}
                   </span>
                 </td>
 
-                <td className="p-3 border border-gray-300">
+                {/* DESCRIPTION */}
+                <td className="p-3 border border-gray-300 w-[900px] whitespace-pre-wrap">
                   {product.description}
                 </td>
 
-                <td className="p-3 border border-gray-300">{product.size}</td>
-                <td className="p-3 border border-gray-300">{product.stock}</td>
+                {/* SIZE */}
+                <td className="p-3 border border-gray-300 w-[110px]">
+                  {product.size}
+                </td>
 
-                <td className="p-3 border border-gray-300">
+                {/* STOCK */}
+                <td className="p-3 border border-gray-300 w-[110px]">
+                  {product.stock}
+                </td>
+
+                {/* EXPIRY */}
+                <td className="p-3 border border-gray-300 w-[150px]">
                   {product.expiryDate ?? "—"}
                 </td>
 
-                <td className="p-3 border border-gray-300">
+                {/* IN DATE */}
+                <td className="p-3 border border-gray-300 w-[150px]">
                   {product.inDate ?? "—"}
                 </td>
 
-                <td className="p-3 border border-gray-300">
+                {/* STATUS */}
+                <td className="p-3 border border-gray-300 w-[120px]">
                   <span
                     className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
                       product.status === "Available"
@@ -122,8 +201,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </td>
 
                 {/* ACTION BUTTONS */}
-                <td className="p-3 border border-gray-300 align-middle">
-                  <div className="flex items-center justify-center gap-2 min-w-[200px]">
+                <td className="p-3 border border-gray-300 w-[400px]">
+                  <div className="flex items-center justify-center gap-2">
+
                     {/* UPDATE */}
                     <button
                       className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
