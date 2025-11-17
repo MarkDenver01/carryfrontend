@@ -9,6 +9,8 @@ export interface ProductDTO {
   productImgUrl: string;
   expiryDate?: string | null;
   productInDate?: string | null;
+  categoryId: number | null;
+  productCategory: string | null;
   recommendations: ProductRecommendedDTO[];
 }
 
@@ -33,4 +35,5 @@ export interface ProductRequest {
   productImgFile?: File; // multipart upload
   expiryDate: string;     // ISO string
   productInDate: string;  // ISO string
+  categoryId: number | null;
 }

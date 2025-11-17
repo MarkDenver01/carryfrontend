@@ -40,6 +40,7 @@ export const mapProductDTO = (p: ProductDTO): Product => ({
   expiryDate: p.expiryDate ? formatDate(p.expiryDate) : "",
   inDate: p.productInDate ? formatDate(p.productInDate) : "",
   status: (p.productStatus ?? "").toLowerCase() === "available" ? "Available" : "Not Available",
+  categoryId: p.categoryId ?? null, 
   recommendations: (p.recommendations ?? []).map(mapRecommendationDTO),
 });
 
@@ -66,6 +67,7 @@ export const toProductRequest = (p: Product): ProductRequest => ({
   productImgFile: p.imageFile,
   expiryDate: formatDateForBackend(p.expiryDate),
   productInDate: formatDateForBackend(p.inDate),
+  categoryId: p.categoryId ?? null,
 });
 
 /**
@@ -85,6 +87,7 @@ export const toProductFormData = (p: Product, imageFile?: File): FormData => {
     productImgUrl: p.imageUrl ?? "", // fallback if no file uploaded
     expiryDate: p.expiryDate ? formatDateForBackend(p.expiryDate) : "",
     productInDate: p.inDate ? formatDateForBackend(p.inDate) : "",
+    categoryId: p.categoryId ?? null,
   };
 
   formData.append(
