@@ -22,6 +22,7 @@ import OrdersPage from '../../page/delivery/sub/Orders.tsx';
 import RidersPage from '../../page/delivery/sub/Riders.tsx';
 
 import { ProductsProvider } from "../../context/ProductsContext";
+import ProductPriceMonitoring from '../../page/product/sub/ProductRates.tsx';
 
 export default function DashboardLayout() {
     const [collapsed, setCollapsed] = useState(false);
@@ -51,7 +52,7 @@ export default function DashboardLayout() {
                             <Route path="products" element={<ProductsPage />} />
                             <Route path="products/monitoring" element={<ProductMonitoring />} />
                             <Route path="products/recommendation" element={<ProductRecommendation />} />
-                            <Route path="products/rates" element={<ProductRates />} />
+                            <Route path="products/rates" element={<ProductPriceMonitoring />} />
 
                             {/* Analytics */}
                             <Route path="analytics" element={<AnalyticsPage />} />
