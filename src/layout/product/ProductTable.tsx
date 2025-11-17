@@ -32,100 +32,92 @@ const ProductTable: React.FC<ProductTableProps> = ({
 }) => {
   return (
     <div className="overflow-x-auto w-full">
-      <table className="min-w-[1400px] border border-gray-300 text-sm text-left text-gray-700">
-        <thead className="bg-emerald-600 text-white">
-          <tr>
-            <th className="p-3 border border-gray-300 font-medium">Image</th>
-
-            {[
-              ["code", "Code"],
-              ["name", "Name"],
-              ["categoryName", "Category"],
-              ["description", "Description"],
-              ["size", "Size"],
-              ["stock", "Stocks"],
-              ["expiryDate", "Expiry Date"],
-              ["inDate", "In Date"],
-              ["status", "Status"],
-            ].map(([field, label]) => (
-              <th
-                key={field}
-                className="p-3 border border-gray-300 font-medium cursor-pointer select-none"
-                onClick={() => handleSort(field)}
-              >
-                {label}{" "}
-                <span className="text-xs opacity-80">{getSortIcon(field)}</span>
-              </th>
-            ))}
-
-            <th className="p-3 border border-gray-300 font-medium text-center">
-              Actions
+      <table className="min-w-[1400px] border border-gray-200 text-sm text-left text-gray-700">
+        <thead className="bg-emerald-700 text-white text-xs uppercase tracking-wide">
+          <tr className="divide-x divide-emerald-600">
+            <th className="p-3 font-semibold w-[80px]">Image</th>
+            <th className="p-3 font-semibold w-[100px] cursor-pointer" onClick={() => handleSort("code")}>
+              Code {getSortIcon("code")}
             </th>
+            <th className="p-3 font-semibold w-[200px] cursor-pointer" onClick={() => handleSort("name")}>
+              Name {getSortIcon("name")}
+            </th>
+            <th className="p-3 font-semibold w-[160px] cursor-pointer" onClick={() => handleSort("categoryName")}>
+              Category {getSortIcon("categoryName")}
+            </th>
+            <th className="p-3 font-semibold w-[350px] cursor-pointer" onClick={() => handleSort("description")}>
+              Description {getSortIcon("description")}
+            </th>
+            <th className="p-3 font-semibold w-[80px]">Size</th>
+            <th className="p-3 font-semibold w-[80px] cursor-pointer" onClick={() => handleSort("stock")}>
+              Stocks {getSortIcon("stock")}
+            </th>
+            <th className="p-3 font-semibold w-[130px]">Expiry</th>
+            <th className="p-3 font-semibold w-[130px]">In Date</th>
+            <th className="p-3 font-semibold w-[120px]">Status</th>
+            <th className="p-3 font-semibold text-center w-[500px]">Actions</th>
           </tr>
         </thead>
 
-        <tbody className="bg-gray-50">
+        <tbody className="bg-white">
           {paginatedProducts.length > 0 ? (
             paginatedProducts.map((product, idx) => (
-              <tr key={product.id ?? idx} className="hover:bg-emerald-100">
-                {/* IMAGE */}
-                <td className="p-3 border border-gray-300 align-middle">
+              <tr
+                key={product.id ?? idx}
+                className="hover:bg-gray-50 border-t border-gray-200"
+              >
+                {/* Image */}
+                <td className="p-2.5 w-[80px] align-middle">
                   <img
                     src={product.imageUrl || "/placeholder.png"}
                     alt={product.name}
-                    className="w-12 h-12 rounded-md object-cover"
+                    className="w-12 h-12 rounded object-cover border border-gray-200"
                   />
                 </td>
 
-                {/* CODE */}
-                <td className="p-3 border border-gray-300 align-middle">
-                  {product.code}
-                </td>
+                {/* Code */}
+                <td className="p-2.5 w-[100px] align-middle">{product.code}</td>
 
-                {/* NAME */}
-                <td className="p-3 border border-gray-300 align-middle font-medium">
+                {/* Name */}
+                <td className="p-2.5 w-[200px] align-middle font-medium">
                   {product.name}
                 </td>
 
-                {/* CATEGORY */}
-                <td className="p-3 border border-gray-300 align-middle">
+                {/* Category */}
+                <td className="p-2.5 w-[160px] align-middle">
                   <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
                     {product.categoryName ?? "—"}
                   </span>
                 </td>
 
-                {/* DESCRIPTION */}
-                <td className="p-3 border border-gray-300 align-middle">
-                  {product.description}
+                {/* Description (3 lines only) */}
+                <td className="p-2.5 w-[350px] align-middle">
+                  <p className="line-clamp-3">{product.description}</p>
                 </td>
 
-                {/* SIZE */}
-                <td className="p-3 border border-gray-300 align-middle">
-                  {product.size}
-                </td>
+                {/* Size */}
+                <td className="p-2.5 w-[80px] align-middle">{product.size}</td>
 
-                {/* STOCK */}
-                <td className="p-3 border border-gray-300 align-middle">
-                  {product.stock}
-                </td>
+                {/* Stock */}
+                <td className="p-2.5 w-[80px] align-middle">{product.stock}</td>
 
-                {/* EXPIRY */}
-                <td className="p-3 border border-gray-300 align-middle">
+                {/* Expiry */}
+                <td className="p-2.5 w-[130px] align-middle">
                   {product.expiryDate ?? "—"}
                 </td>
 
-                {/* IN DATE */}
-                <td className="p-3 border border-gray-300 align-middle">
+                {/* In Date */}
+                <td className="p-2.5 w-[130px] align-middle">
                   {product.inDate ?? "—"}
                 </td>
 
-                {/* STATUS */}
-                <td className="p-3 border border-gray-300 align-middle">
+                {/* Status */}
+                <td className="p-2.5 w-[120px] align-middle">
                   <span
-                    className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                    className={`px-2 py-1 text-xs rounded-full border ${
                       product.status === "Available"
-                        ? "bg-green-100 text-green-700 border border-green-300"
-                        : "bg-red-100 text-red-700 border border-red-300"
+                        ? "bg-green-100 text-green-700 border-green-300"
+                        : "bg-red-100 text-red-700 border-red-300"
                     }`}
                   >
                     {product.status}
@@ -133,9 +125,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </td>
 
                 {/* ACTION BUTTONS */}
-                <td className="p-3 border border-gray-300 align-middle">
+                <td className="p-2.5 align-middle w-[500px]">
                   <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                    
+
                     {/* UPDATE */}
                     <button
                       className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
@@ -202,7 +194,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
             <tr>
               <td
                 colSpan={11}
-                className="text-center py-4 text-gray-500 border border-gray-300"
+                className="text-center py-4 text-gray-500 border-t border-gray-200"
               >
                 No products found.
               </td>
