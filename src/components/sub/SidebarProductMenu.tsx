@@ -53,6 +53,17 @@ export default function SidebarProductMenu({ collapsed }: Props) {
                         <Star size={14} />
                         Product Recommendation
                     </button>
+                    <button
+                        onClick={() => navigate('/dashboard/products/rates')}
+                        className={`flex items-center gap-1 px-2 py-1 rounded w-full text-left hover:bg-white/10 ${
+                            location.pathname === '/dashboard/products/rates'
+                                ? 'bg-white/10 text-white font-semibold'
+                                : ''
+                        }`}
+                    >
+                        <Star size={14} />
+                        Product Rates
+                    </button>
                 </div>
             )}
         </div>
