@@ -41,6 +41,7 @@ export const mapProductDTO = (p: ProductDTO): Product => ({
   inDate: p.productInDate ? formatDate(p.productInDate) : "",
   status: (p.productStatus ?? "").toLowerCase() === "available" ? "Available" : "Not Available",
   categoryId: p.categoryId ?? null, 
+  categoryName: p.productCategory ?? null,
   recommendations: (p.recommendations ?? []).map(mapRecommendationDTO),
 });
 
