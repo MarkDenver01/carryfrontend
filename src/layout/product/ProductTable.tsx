@@ -1,23 +1,43 @@
 import React from "react";
-import { Pencil, Eye, XCircle, CheckCircle } from "lucide-react";
+import {
+  Pencil,
+  Eye,
+  XCircle,
+  CheckCircle,
+  ArrowUp,
+  ArrowDown,
+  ArrowUpDown,
+} from "lucide-react";
+
 import type { Product, ProductRecommended } from "../../types/types";
 
 interface ProductTableProps {
+  sortedProducts: Product[];
   paginatedProducts: Product[];
   currentPage: number;
-  itemsPerPage: number;
-  openEditModal: (index: number) => void;
+  pageSize: number;
+
+  handleSort: (field: any) => void;
+  getSortIcon: (field: any) => string;
+
+  handleEditProduct: (index: number) => void;
   toggleAvailability: (index: number) => void;
   handleDeleteProduct: (id: number) => void;
-  setSelectedRecommendations: React.Dispatch<React.SetStateAction<ProductRecommended[]>>;
+
+  setSelectedRecommendations: React.Dispatch<
+    React.SetStateAction<ProductRecommended[]>
+  >;
   setIsViewModalOpen: (value: boolean) => void;
 }
 
 const ProductTable: React.FC<ProductTableProps> = ({
+  sortedProducts,
   paginatedProducts,
   currentPage,
-  itemsPerPage,
-  openEditModal,
+  pageSize,
+  handleSort,
+  getSortIcon,
+  handleEditProduct,
   toggleAvailability,
   handleDeleteProduct,
   setSelectedRecommendations,
@@ -25,24 +45,45 @@ const ProductTable: React.FC<ProductTableProps> = ({
 }) => {
   return (
     <table className="min-w-full border border-gray-300 text-sm text-left text-gray-700">
-      <thead className="bg-emerald-600 text-gray-100">
+      {/* HEADER */}
+      <thead className="bg-emerald-600 text-white">
         <tr>
+          {/* IMAGE */}
           <th className="p-3 border border-gray-300 font-medium">Image</th>
-          <th className="p-3 border border-gray-300 font-medium">Code</th>
-          <th className="p-3 border border-gray-300 font-medium">Name</th>
-          <th className="p-3 border border-gray-300 font-medium">Description</th>
-          <th className="p-3 border border-gray-300 font-medium">Size</th>
-          <th className="p-3 border border-gray-300 font-medium">Stocks</th>
-          <th className="p-3 border border-gray-300 font-medium">Expiry Date</th>
-          <th className="p-3 border border-gray-300 font-medium">In Date</th>
-          <th className="p-3 border border-gray-300 font-medium">Status</th>
-          <th className="p-3 border border-gray-300 font-medium">Actions</th>
+
+          {/* SORTABLE COLUMNS */}
+          {[
+            ["code", "Code"],
+            ["name", "Name"],
+            ["description", "Description"],
+            ["size", "Size"],
+            ["stock", "Stocks"],
+            ["expiryDate", "Expiry Date"],
+            ["inDate", "In Date"],
+            ["status", "Status"],
+          ].map(([field, label]) => (
+            <th
+              key={field}
+              className="p-3 border border-gray-300 font-medium cursor-pointer select-none"
+              onClick={() => handleSort(field)}
+            >
+              {label}{" "}
+              <span className="text-xs opacity-80">{getSortIcon(field)}</span>
+            </th>
+          ))}
+
+          <th className="p-3 border border-gray-300 font-medium text-center">
+            Actions
+          </th>
         </tr>
       </thead>
-      <tbody>
+
+      {/* BODY */}
+      <tbody className="bg-gray-50">
         {paginatedProducts.length > 0 ? (
           paginatedProducts.map((product, idx) => (
-            <tr key={product.id ?? idx} className="hover:bg-gray-100">
+            <tr key={product.id ?? idx} className="hover:bg-emerald-100">
+              {/* IMAGE */}
               <td className="p-3 border border-gray-300 align-middle">
                 <img
                   src={product.imageUrl || "/placeholder.png"}
@@ -50,47 +91,74 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   className="w-12 h-12 rounded-md object-cover"
                 />
               </td>
-              <td className="p-3 border border-gray-300 align-middle">{product.code}</td>
-              <td className="p-3 border border-gray-300 align-middle font-medium">{product.name}</td>
-              <td className="p-3 border border-gray-300 align-middle">{product.description}</td>
-              <td className="p-3 border border-gray-300 align-middle">{product.size}</td>
-              <td className="p-3 border border-gray-300 align-middle">{product.stock}</td>
+
+              {/* PRODUCT DATA */}
+              <td className="p-3 border border-gray-300 align-middle">
+                {product.code}
+              </td>
+
+              <td className="p-3 border border-gray-300 align-middle font-medium">
+                {product.name}
+              </td>
+
+              <td className="p-3 border border-gray-300 align-middle">
+                {product.description}
+              </td>
+
+              <td className="p-3 border border-gray-300 align-middle">
+                {product.size}
+              </td>
+
+              <td className="p-3 border border-gray-300 align-middle">
+                {product.stock}
+              </td>
+
               <td className="p-3 border border-gray-300 align-middle">
                 {product.expiryDate ?? "—"}
               </td>
+
               <td className="p-3 border border-gray-300 align-middle">
                 {product.inDate ?? "—"}
               </td>
-              <td
-                className={`p-3 border border-gray-300 align-middle font-semibold ${
-                  product.status === "Available" ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {product.status}
+
+              {/* STATUS BADGE */}
+              <td className="p-3 border border-gray-300 align-middle">
+                <span
+                  className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
+                    product.status === "Available"
+                      ? "bg-green-100 text-green-700 border border-green-300"
+                      : "bg-red-100 text-red-700 border border-red-300"
+                  }`}
+                >
+                  {product.status}
+                </span>
               </td>
+
+              {/* ACTION BUTTONS */}
               <td className="p-3 border border-gray-300 align-middle">
                 <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                  {/* ✏️ Edit */}
+                  {/* UPDATE */}
                   <button
                     className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
                     onClick={() => {
-                      const realIndex = (currentPage - 1) * itemsPerPage + idx;
-                      openEditModal(realIndex);
+                      const realIndex = (currentPage - 1) * pageSize + idx;
+                      handleEditProduct(realIndex);
                     }}
                   >
                     <Pencil className="w-4 h-4" /> Update
                   </button>
 
-                  {/* 🔁 Toggle Availability */}
+                  {/* TOGGLE STATUS */}
                   <button
                     className={`flex items-center gap-1 px-3 py-1 text-xs text-white rounded-md ${
                       product.status === "Available"
                         ? "bg-red-500 hover:bg-red-600"
                         : "bg-green-600 hover:bg-green-700"
                     }`}
-                    onClick={() =>
-                      toggleAvailability((currentPage - 1) * itemsPerPage + idx)
-                    }
+                    onClick={() => {
+                      const realIndex = (currentPage - 1) * pageSize + idx;
+                      toggleAvailability(realIndex);
+                    }}
                   >
                     {product.status === "Available" ? (
                       <>
@@ -103,7 +171,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     )}
                   </button>
 
-                  {/* 👁️ View Recommendations */}
+                  {/* VIEW RECOMMENDED */}
                   <button
                     className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
                     onClick={() => {
@@ -112,10 +180,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       setIsViewModalOpen(true);
                     }}
                   >
-                    <Eye className="w-4 h-4" /> View Recommended
+                    <Eye className="w-4 h-4" /> Recommended
                   </button>
 
-                  {/* ❌ Delete */}
+                  {/* DELETE */}
                   <button
                     className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md"
                     onClick={() => {
@@ -131,7 +199,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
         ) : (
           <tr>
             <td
-              colSpan={10}
+              colSpan={11}
               className="text-center py-4 text-gray-500 border border-gray-300"
             >
               No products found.
