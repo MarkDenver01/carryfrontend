@@ -1,5 +1,7 @@
 import { useState, useMemo } from "react";
-import { Button, TextInput, Select } from "flowbite-react";
+import { Button, Dropdown, DropdownItem } from "flowbite-react";
+import { Search, ChevronDown } from "lucide-react";
+
 import type { Product, ProductRecommended } from "../../types/types";
 
 import ProductTable from "../product/ProductTable";
@@ -123,8 +125,10 @@ export default function ProductInventoryTable() {
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Product Inventory Monitoring</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold text-gray-800">
+          Product Inventory Monitoring
+        </h2>
 
         <Button
           onClick={() => {
@@ -137,27 +141,48 @@ export default function ProductInventoryTable() {
         </Button>
       </div>
 
-      {/* FILTERS */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <TextInput
-          placeholder="Search name or code..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
-        />
+      {/* FILTERS — SAME STYLE AS MEMBERSHIP OVERVIEW */}
+      <div className="flex flex-wrap items-center gap-3 mb-6">
 
-        <Select
-          value={status}
-          onChange={(e) =>
-            setStatus(e.target.value as Product["status"])
-          }
+        {/* Search Input */}
+        <div className="relative w-full max-w-xs">
+          <input
+            type="text"
+            placeholder="Search name or code..."
+            className="w-full border border-emerald-300 rounded-full px-4 py-2 pl-10 shadow-sm 
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+          <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
+        </div>
+
+        {/* Status Dropdown */}
+        <Dropdown
+          dismissOnClick={true}
+          label=""
+          renderTrigger={() => (
+            <button
+              className="flex items-center gap-2 border border-emerald-500 bg-emerald-100 
+                         text-emerald-900 font-semibold text-sm px-4 py-1 rounded-full shadow 
+                         hover:shadow-md transition"
+            >
+              {`Filter: ${status === "" ? "All Status" : status}`}
+              <ChevronDown className="w-4 h-4 text-emerald-900" />
+            </button>
+          )}
         >
-          <option value="">All Status</option>
-          <option value="Available">Available</option>
-          <option value="Not Available">Not Available</option>
-        </Select>
+          <DropdownItem onClick={() => setStatus("")}>All Status</DropdownItem>
+          <DropdownItem onClick={() => setStatus("Available")}>
+            Available
+          </DropdownItem>
+          <DropdownItem onClick={() => setStatus("Not Available")}>
+            Not Available
+          </DropdownItem>
+        </Dropdown>
       </div>
 
       {/* TABLE */}
