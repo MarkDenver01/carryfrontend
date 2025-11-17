@@ -1,9 +1,10 @@
 import { useState, useMemo } from "react";
-import { Button, TextInput } from "flowbite-react";
+import { Pencil, XCircle } from "lucide-react";
 import Swal from "sweetalert2";
 import ProductPriceFormModal from "../../components/product/ProductPriceFormModal";
 import { usePricesContext } from "../../context/PricesContext";
 import type { ProductPrice } from "../../types/pricingTypes";
+import { Button, TextInput } from "flowbite-react";
 
 export default function ProductPriceTable() {
   const { prices, removePrice } = usePricesContext();
@@ -15,15 +16,17 @@ export default function ProductPriceTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  const filtered = useMemo(() => {
-    return prices.filter((p) =>
-      p.productName.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [prices, search]);
+  const filtered = useMemo(
+    () =>
+      prices.filter((p) =>
+        p.productName.toLowerCase().includes(search.toLowerCase())
+      ),
+    [prices, search]
+  );
 
   const paginated = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filtered.slice(startIndex, startIndex + itemsPerPage);
+    const start = (currentPage - 1) * itemsPerPage;
+    return filtered.slice(start, start + itemsPerPage);
   }, [filtered, currentPage]);
 
   const totalPages = Math.ceil(filtered.length / itemsPerPage);
@@ -43,7 +46,7 @@ export default function ProductPriceTable() {
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: "Delete Price Record?",
-      text: "This will remove the price associated with the product.",
+      text: "This action cannot be undone.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Yes, delete it!",
@@ -51,7 +54,7 @@ export default function ProductPriceTable() {
 
     if (result.isConfirmed) {
       await removePrice(id);
-      Swal.fire("Deleted!", "Price record has been removed.", "success");
+      Swal.fire("Deleted!", "Price record removed.", "success");
     }
   };
 
@@ -60,12 +63,12 @@ export default function ProductPriceTable() {
       {/* Header */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Product Price Monitoring</h2>
-        <Button
+        <button
           onClick={handleAdd}
-          className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700"
+          className="px-4 py-2 text-sm text-white bg-green-600 hover:bg-green-700 rounded-md"
         >
           + Set Product Price
-        </Button>
+        </button>
       </div>
 
       {/* Search */}
@@ -77,45 +80,78 @@ export default function ProductPriceTable() {
         />
       </div>
 
-      {/* Table */}
+      {/* TABLE */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm text-left text-gray-700 border">
-          <thead className="bg-gray-100 border-b">
+        <table className="min-w-full border border-gray-300 text-sm text-left text-gray-700">
+          <thead className="bg-emerald-600 text-gray-100">
             <tr>
-              <th className="p-3">Product</th>
-              <th className="p-3">Base Price</th>
-              <th className="p-3">Tax (%)</th>
-              <th className="p-3">Discount</th>
-              <th className="p-3">Effective Date</th>
-              <th className="p-3 text-center">Actions</th>
+              <th className="p-3 border border-gray-300 font-medium">Product</th>
+              <th className="p-3 border border-gray-300 font-medium">Base Price</th>
+              <th className="p-3 border border-gray-300 font-medium">Tax (%)</th>
+              <th className="p-3 border border-gray-300 font-medium">Discount</th>
+              <th className="p-3 border border-gray-300 font-medium">
+                Effective Date
+              </th>
+              <th className="p-3 border border-gray-300 font-medium text-center">
+                Actions
+              </th>
             </tr>
           </thead>
+
           <tbody>
-            {paginated.map((p, i) => (
-              <tr key={i} className="border-b hover:bg-gray-50">
-                <td className="p-3">{p.productName}</td>
-                <td className="p-3">₱{p.basePrice.toFixed(2)}</td>
-                <td className="p-3">{p.taxPercentage}%</td>
-                <td className="p-3">
-                  {p.discountCategory === "PROMO"
-                    ? `${p.discountPercentage}% Promo`
-                    : p.discountCategory}
-                </td>
-                <td className="p-3">{p.effectiveDate}</td>
-                <td className="p-3 text-center space-x-2">
-                  <Button size="xs" color="blue" onClick={() => handleEdit(i)}>
-                    Edit
-                  </Button>
-                  <Button
-                    size="xs"
-                    color="red"
-                    onClick={() => handleDelete(p.priceId)}
-                  >
-                    Delete
-                  </Button>
+            {paginated.length > 0 ? (
+              paginated.map((p, index) => (
+                <tr key={p.priceId ?? index} className="hover:bg-gray-100">
+                  <td className="p-3 border border-gray-300 align-middle">
+                    {p.productName}
+                  </td>
+                  <td className="p-3 border border-gray-300 align-middle">
+                    ₱{p.basePrice.toFixed(2)}
+                  </td>
+                  <td className="p-3 border border-gray-300 align-middle">
+                    {p.taxPercentage}%
+                  </td>
+                  <td className="p-3 border border-gray-300 align-middle">
+                    {p.discountCategory === "PROMO"
+                      ? `${p.discountPercentage}% Promo`
+                      : p.discountCategory}
+                  </td>
+                  <td className="p-3 border border-gray-300 align-middle">
+                    {p.effectiveDate}
+                  </td>
+
+                  {/* ACTION BUTTONS */}
+                  <td className="p-3 border border-gray-300 align-middle">
+                    <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+                      {/* ✏️ Edit */}
+                      <button
+                        className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
+                        onClick={() => handleEdit(index)}
+                      >
+                        <Pencil className="w-4 h-4" /> Update
+                      </button>
+
+                      {/* ❌ Delete */}
+                      <button
+                        className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md"
+                        onClick={() => handleDelete(p.priceId)}
+                      >
+                        <XCircle className="w-4 h-4" /> Delete
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="text-center py-4 text-gray-500 border border-gray-300"
+                >
+                  No product price records found.
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
 
@@ -143,7 +179,7 @@ export default function ProductPriceTable() {
         )}
       </div>
 
-      {/* Pricing Modal */}
+      {/* Modal */}
       <ProductPriceFormModal
         show={showModal}
         onClose={() => setShowModal(false)}
