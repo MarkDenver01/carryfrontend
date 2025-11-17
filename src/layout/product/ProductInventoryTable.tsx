@@ -109,15 +109,15 @@ export default function ProductInventoryTable() {
     }
   };
 
-  const toggleAvailability = async (index: number) => {
-    const product = sortedProducts[index];
+  const toggleAvailability = async (product: Product) => {
     if (!product?.id) return;
 
     const newStatus =
       product.status === "Available" ? "Not Available" : "Available";
 
     await updateProductStatusById(product.id, newStatus);
-  };
+};
+
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">

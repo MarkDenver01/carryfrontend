@@ -10,7 +10,7 @@ interface ProductTableProps {
   handleSort: (field: any) => void;
   getSortIcon: (field: any) => string;
   handleEditProduct: (index: number) => void;
-  toggleAvailability: (index: number) => void;
+ toggleAvailability: (product: Product) => void;
   handleDeleteProduct: (id: number) => void;
   setSelectedRecommendations: React.Dispatch<
     React.SetStateAction<ProductRecommended[]>
@@ -160,8 +160,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                           : "bg-green-600 hover:bg-green-700"
                       }`}
                       onClick={() => {
-                        const realIndex = (currentPage - 1) * pageSize + idx;
-                        toggleAvailability(realIndex);
+                        toggleAvailability(product);
                       }}
                     >
                       {product.status === "Available" ? (
