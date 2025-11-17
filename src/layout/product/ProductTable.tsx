@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Pencil,
-  Eye,
-  XCircle,
-  CheckCircle,
-} from "lucide-react";
-
+import { Pencil, Eye, XCircle, CheckCircle } from "lucide-react";
 import type { Product, ProductRecommended } from "../../types/types";
 
 interface ProductTableProps {
@@ -13,14 +7,11 @@ interface ProductTableProps {
   paginatedProducts: Product[];
   currentPage: number;
   pageSize: number;
-
   handleSort: (field: any) => void;
   getSortIcon: (field: any) => string;
-
   handleEditProduct: (index: number) => void;
   toggleAvailability: (index: number) => void;
   handleDeleteProduct: (id: number) => void;
-
   setSelectedRecommendations: React.Dispatch<
     React.SetStateAction<ProductRecommended[]>
   >;
@@ -40,14 +31,11 @@ const ProductTable: React.FC<ProductTableProps> = ({
   setIsViewModalOpen,
 }) => {
   return (
-    <table className="min-w-full border border-gray-300 text-sm text-left text-gray-700">
-      {/* HEADER */}
+    <table className="min-w-[1300px] border border-gray-300 text-sm text-left text-gray-700">
       <thead className="bg-emerald-600 text-white">
         <tr>
-          {/* IMAGE */}
           <th className="p-3 border border-gray-300 font-medium">Image</th>
 
-          {/* SORTABLE COLUMNS */}
           {[
             ["code", "Code"],
             ["name", "Name"],
@@ -74,12 +62,10 @@ const ProductTable: React.FC<ProductTableProps> = ({
         </tr>
       </thead>
 
-      {/* BODY */}
       <tbody className="bg-gray-50">
         {paginatedProducts.length > 0 ? (
           paginatedProducts.map((product, idx) => (
             <tr key={product.id ?? idx} className="hover:bg-emerald-100">
-              {/* IMAGE */}
               <td className="p-3 border border-gray-300 align-middle">
                 <img
                   src={product.imageUrl || "/placeholder.png"}
@@ -88,7 +74,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 />
               </td>
 
-              {/* PRODUCT DATA */}
               <td className="p-3 border border-gray-300 align-middle">
                 {product.code}
               </td>
@@ -117,7 +102,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 {product.inDate ?? "—"}
               </td>
 
-              {/* STATUS BADGE */}
               <td className="p-3 border border-gray-300 align-middle">
                 <span
                   className={`inline-block px-2 py-1 text-xs font-semibold rounded-full ${
@@ -130,10 +114,9 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </span>
               </td>
 
-              {/* ACTION BUTTONS */}
               <td className="p-3 border border-gray-300 align-middle">
                 <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                  {/* UPDATE */}
+                  
                   <button
                     className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
                     onClick={() => {
@@ -144,7 +127,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     <Pencil className="w-4 h-4" /> Update
                   </button>
 
-                  {/* TOGGLE STATUS */}
                   <button
                     className={`flex items-center gap-1 px-3 py-1 text-xs text-white rounded-md ${
                       product.status === "Available"
@@ -167,7 +149,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     )}
                   </button>
 
-                  {/* VIEW RECOMMENDED */}
                   <button
                     className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
                     onClick={() => {
@@ -179,7 +160,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     <Eye className="w-4 h-4" /> Recommended
                   </button>
 
-                  {/* DELETE */}
                   <button
                     className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md"
                     onClick={() => {
@@ -188,6 +168,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   >
                     <XCircle className="w-4 h-4" /> Delete
                   </button>
+
                 </div>
               </td>
             </tr>

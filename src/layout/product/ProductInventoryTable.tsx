@@ -10,7 +10,7 @@ import ProductRecommendationsModal from "../product/ProductRecommendationsModal"
 import Swal from "sweetalert2";
 import { useProductsContext } from "../../context/ProductsContext";
 
-// STRICT SORT KEYS (no more TS error)
+// STRICT SORT KEYS
 type ProductSortField =
   | "name"
   | "code"
@@ -25,10 +25,8 @@ export default function ProductInventoryTable() {
   const { products, removeProduct, updateProductStatusById } =
     useProductsContext();
 
-  // UI State
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | Product["status"]>("");
-
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<Product | null>(null);
 
@@ -37,11 +35,10 @@ export default function ProductInventoryTable() {
     ProductRecommended[]
   >([]);
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
-  // FILTERING
+  // FILTER
   const filtered = useMemo(() => {
     return products.filter(
       (p) =>
@@ -50,7 +47,7 @@ export default function ProductInventoryTable() {
     );
   }, [products, search, status]);
 
-  // SORTING
+  // SORT
   const [sortField, setSortField] = useState<ProductSortField>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
@@ -142,7 +139,6 @@ export default function ProductInventoryTable() {
 
       {/* FILTERS */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
-        {/* Search Input */}
         <div className="relative w-full max-w-xs">
           <input
             type="text"
@@ -158,7 +154,6 @@ export default function ProductInventoryTable() {
           <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
         </div>
 
-        {/* Status Dropdown */}
         <Dropdown
           dismissOnClick={true}
           label=""
@@ -183,26 +178,26 @@ export default function ProductInventoryTable() {
         </Dropdown>
       </div>
 
-      {/* TABLE */}
-      <ProductTable
-        sortedProducts={sortedProducts}
-        paginatedProducts={paginatedProducts}
-        currentPage={currentPage}
-        pageSize={pageSize}
-        handleSort={handleSort}
-        getSortIcon={getSortIcon}
-        handleEditProduct={handleEditProduct}
-        toggleAvailability={toggleAvailability}
-        handleDeleteProduct={handleDeleteProduct}
-        setSelectedRecommendations={setRecommendations}
-        setIsViewModalOpen={setShowRecs}
-      />
+      {/* TABLE WITH SCROLL LEFT-RIGHT */}
+      <div className="w-full overflow-x-auto pb-2">
+        <ProductTable
+          sortedProducts={sortedProducts}
+          paginatedProducts={paginatedProducts}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          handleSort={handleSort}
+          getSortIcon={getSortIcon}
+          handleEditProduct={handleEditProduct}
+          toggleAvailability={toggleAvailability}
+          handleDeleteProduct={handleDeleteProduct}
+          setSelectedRecommendations={setRecommendations}
+          setIsViewModalOpen={setShowRecs}
+        />
+      </div>
 
-      {/* PAGINATION — SAME STYLE AS CUSTOMER TABLE */}
+      {/* PAGINATION */}
       {totalPages > 1 && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
-
-          {/* Showing X to Y of Z */}
           <span>
             Showing{" "}
             <span className="font-semibold text-gray-800">
@@ -219,7 +214,6 @@ export default function ProductInventoryTable() {
             entries
           </span>
 
-          {/* Flowbite Pagination */}
           <div className="flex overflow-x-auto sm:justify-center">
             <Pagination
               currentPage={currentPage}
@@ -228,7 +222,6 @@ export default function ProductInventoryTable() {
               showIcons
             />
           </div>
-
         </div>
       )}
 
