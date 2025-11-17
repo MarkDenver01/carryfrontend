@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Button, Dropdown, DropdownItem } from "flowbite-react";
+import { Button, Dropdown, DropdownItem, Pagination } from "flowbite-react";
 import { Search, ChevronDown } from "lucide-react";
 
 import type { Product, ProductRecommended } from "../../types/types";
@@ -51,8 +51,7 @@ export default function ProductInventoryTable() {
   }, [products, search, status]);
 
   // SORTING
-  const [sortField, setSortField] =
-    useState<ProductSortField>("name");
+  const [sortField, setSortField] = useState<ProductSortField>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   const sortedProducts = useMemo(() => {
@@ -141,9 +140,8 @@ export default function ProductInventoryTable() {
         </Button>
       </div>
 
-      {/* FILTERS — SAME STYLE AS MEMBERSHIP OVERVIEW */}
+      {/* FILTERS */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
-
         {/* Search Input */}
         <div className="relative w-full max-w-xs">
           <input
@@ -200,32 +198,37 @@ export default function ProductInventoryTable() {
         setIsViewModalOpen={setShowRecs}
       />
 
-      {/* PAGINATION */}
+      {/* PAGINATION — SAME STYLE AS CUSTOMER TABLE */}
       {totalPages > 1 && (
-        <div className="flex justify-center mt-4 gap-2">
-          <Button
-            size="xs"
-            onClick={() =>
-              setCurrentPage((p) => Math.max(1, p - 1))
-            }
-            disabled={currentPage === 1}
-          >
-            Prev
-          </Button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
 
-          <span className="text-sm flex items-center">
-            Page {currentPage} of {totalPages}
+          {/* Showing X to Y of Z */}
+          <span>
+            Showing{" "}
+            <span className="font-semibold text-gray-800">
+              {(currentPage - 1) * pageSize + 1}
+            </span>{" "}
+            to{" "}
+            <span className="font-semibold text-gray-800">
+              {Math.min(currentPage * pageSize, sortedProducts.length)}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-gray-800">
+              {sortedProducts.length}
+            </span>{" "}
+            entries
           </span>
 
-          <Button
-            size="xs"
-            onClick={() =>
-              setCurrentPage((p) => Math.min(totalPages, p + 1))
-            }
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </Button>
+          {/* Flowbite Pagination */}
+          <div className="flex overflow-x-auto sm:justify-center">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              showIcons
+            />
+          </div>
+
         </div>
       )}
 
