@@ -10,8 +10,11 @@ import {
   Select,
 } from "flowbite-react";
 import Swal from "sweetalert2";
+
 import type { Product } from "../../types/types";
-import { useProducts, validateProduct } from "../../types/useProducts";
+import { validateProduct } from "../../types/useProducts";
+
+import { useProductsContext } from "../../context/ProductsContext";
 import { useCategoryContext } from "../../context/CategoryContext";
 
 interface ProductFormModalProps {
@@ -25,7 +28,15 @@ export default function ProductFormModal({
   onClose,
   product = null,
 }: ProductFormModalProps) {
-  const { add, update } = useProducts();
+
+  // ⬇️ Use global shared context (ALL FUNCTIONS AVAILABLE)
+  const {
+    addProduct,
+    updateProduct,
+    reloadProducts,
+  } = useProductsContext();
+
+  const { categories } = useCategoryContext();
 
   const emptyProduct: Product = {
     imageUrl: "",
@@ -37,17 +48,17 @@ export default function ProductFormModal({
     expiryDate: "",
     inDate: "",
     status: "Available",
+    categoryId: null,
   };
 
   const [form, setForm] = useState<Product>(emptyProduct);
   const [preview, setPreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
-  const { categories } = useCategoryContext();
 
   const isEdit = !!product?.id;
 
-  // Load product data when editing or opening modal
+  // Load data when editing or opening modal
   useEffect(() => {
     if (product) {
       setForm({ ...product });
@@ -61,7 +72,7 @@ export default function ProductFormModal({
   }, [product, show]);
 
   const handleChange = (field: keyof Product, value: any) => {
-    setForm((prev) => ({
+    setForm(prev => ({
       ...prev,
       [field]: field === "stock" ? Number(value) : value,
     }));
@@ -74,9 +85,12 @@ export default function ProductFormModal({
   };
 
   const handleSubmit = async () => {
-    const productToSubmit: Product = { ...form, imageFile: imageFile ?? form.imageFile };
+    const productToSubmit: Product = {
+      ...form,
+      imageFile: imageFile ?? form.imageFile,
+    };
 
-    // Validate
+    // Validate first
     const validationError = validateProduct(productToSubmit);
     if (validationError) {
       Swal.fire("Validation Error", validationError, "warning");
@@ -86,13 +100,18 @@ export default function ProductFormModal({
     setLoading(true);
     try {
       if (isEdit) {
-        await update(productToSubmit);
+        await updateProduct(productToSubmit);
         Swal.fire("Success", "Product updated successfully!", "success");
       } else {
-        await add(productToSubmit);
+        await addProduct(productToSubmit);
         Swal.fire("Success", "Product added successfully!", "success");
       }
+
+      // ⬇️ IMPORTANT: refresh global product list
+      await reloadProducts();
+
       onClose();
+
     } catch (err: any) {
       Swal.fire("Error", err?.message || "Failed to save product", "error");
     } finally {
@@ -105,7 +124,8 @@ export default function ProductFormModal({
       <ModalHeader>{isEdit ? "Edit Product" : "Add New Product"}</ModalHeader>
       <ModalBody>
         <div className="grid grid-cols-1 gap-3">
-          {/* Image Upload */}
+
+          {/* IMAGE UPLOAD */}
           <div>
             <Label htmlFor="image">Product Image</Label>
             <input
@@ -124,7 +144,7 @@ export default function ProductFormModal({
             )}
           </div>
 
-          {/* Text Fields */}
+          {/* TEXT FIELDS */}
           {["code", "name", "description", "size"].map((field) => (
             <div key={field}>
               <Label htmlFor={field}>
@@ -133,18 +153,22 @@ export default function ProductFormModal({
               <TextInput
                 id={field}
                 value={(form as any)[field] ?? ""}
-                onChange={(e) => handleChange(field as keyof Product, e.target.value)}
-                maxLength={field === "code" ? 50 : field === "size" ? 50 : 255}
+                onChange={(e) =>
+                  handleChange(field as keyof Product, e.target.value)
+                }
               />
             </div>
           ))}
 
+          {/* CATEGORY */}
           <div>
             <Label htmlFor="category">Category</Label>
             <Select
               id="category"
               value={form.categoryId ?? ""}
-              onChange={(e) => handleChange("categoryId", Number(e.target.value))}
+              onChange={(e) =>
+                handleChange("categoryId", Number(e.target.value))
+              }
             >
               <option value="">Select Category</option>
               {categories.map((cat) => (
@@ -155,7 +179,7 @@ export default function ProductFormModal({
             </Select>
           </div>
 
-
+          {/* STOCK */}
           <div>
             <Label htmlFor="stock">Stocks</Label>
             <TextInput
@@ -166,6 +190,7 @@ export default function ProductFormModal({
             />
           </div>
 
+          {/* STATUS */}
           <div>
             <Label htmlFor="status">Status</Label>
             <Select
@@ -178,6 +203,7 @@ export default function ProductFormModal({
             </Select>
           </div>
 
+          {/* EXPIRY DATE */}
           <div>
             <Label htmlFor="expiryDate">Expiry Date</Label>
             <TextInput
@@ -188,6 +214,7 @@ export default function ProductFormModal({
             />
           </div>
 
+          {/* IN DATE */}
           <div>
             <Label htmlFor="inDate">In Date</Label>
             <TextInput
@@ -197,6 +224,7 @@ export default function ProductFormModal({
               onChange={(e) => handleChange("inDate", e.target.value)}
             />
           </div>
+
         </div>
       </ModalBody>
 
@@ -210,6 +238,7 @@ export default function ProductFormModal({
             ? "Update Product"
             : "Add Product"}
         </Button>
+
         <Button color="gray" onClick={onClose}>
           Cancel
         </Button>
