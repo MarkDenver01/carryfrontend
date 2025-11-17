@@ -87,7 +87,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
                   {product.categoryName}
                 </span>
-              </td>
+          </td>
 
               <td className="p-3 border border-gray-300 align-middle">
                 {product.description}
