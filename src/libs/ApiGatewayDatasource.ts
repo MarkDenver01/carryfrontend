@@ -1,6 +1,8 @@
 import api from './api';
 import type { LoginRequest, LoginResponse } from './models/login';
 import type { ProductDTO } from './models/product/Product';
+import type { ProductPriceDTO } from "../types/pricingTypes";
+import type { ProductPrice } from "../types/pricingTypes";
 /**
  * Login.
  */
@@ -89,3 +91,61 @@ export async function updateProductStatus(
   }
 }
 
+/**
+ * Fetch all prices
+ */
+export async function getAllPrices(): Promise<ProductPriceDTO[]> {
+  try {
+    const response = await api.get("/admin/api/price/all");
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Fetch prices error:", error);
+    throw error.response?.data || { message: "Failed to fetch prices" };
+  }
+}
+
+/**
+ * Add new price
+ */
+export async function addPriceForm(
+  price: ProductPrice
+): Promise<ProductPriceDTO> {
+  try {
+    const response = await api.post("/admin/api/price/add", price);
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Add price error:", error);
+    throw error.response?.data || { message: "Failed to add price" };
+  }
+}
+
+/**
+ * Update price
+ */
+export async function updatePriceForm(
+  priceId: number,
+  price: ProductPrice
+): Promise<ProductPriceDTO> {
+  try {
+    const response = await api.put(
+      `/admin/api/price/update/${priceId}`,
+      price
+    );
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Update price error:", error);
+    throw error.response?.data || { message: "Failed to update price" };
+  }
+}
+
+/**
+ * Delete price
+ */
+export async function deletePriceById(priceId: number): Promise<void> {
+  try {
+    await api.delete(`/admin/api/price/delete/${priceId}`);
+  } catch (error: any) {
+    console.error("Delete price error:", error);
+    throw error.response?.data || { message: "Failed to delete price" };
+  }
+}

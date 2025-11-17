@@ -39,6 +39,11 @@ export const sidebarMenu: SidebarMenuSection[] = [
                         icon: Star,
                         path: "/dashboard/products/recommendation",
                     },
+                    {
+                        label: "Product Rates",
+                        icon: Star,
+                        path: "/dashboard/products/rates",
+                    },
                 ],
             },
         ],
