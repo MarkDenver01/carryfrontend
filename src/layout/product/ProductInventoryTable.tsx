@@ -10,6 +10,7 @@ import ProductRecommendationsModal from "../../components/product/ProductRecomme
 import Swal from "sweetalert2";
 import { useProductsContext } from "../../context/ProductsContext";
 
+
 // STRICT SORT KEYS
 type ProductSortField =
   | "name"

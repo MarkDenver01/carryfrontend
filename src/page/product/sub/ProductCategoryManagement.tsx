@@ -116,7 +116,7 @@ export default function ProductCategoryManagement() {
 
       {/* TABLE WRAPPER (SCROLLABLE) */}
       <div className="w-full overflow-x-auto pb-2">
-        <table className="min-w-[1000px] border border-gray-300 text-sm text-left text-gray-700">
+        <table className="min-w-[1400px] border border-gray-300 text-sm text-left text-gray-700">
           <thead className="bg-emerald-600 text-white">
             <tr>
               <th
