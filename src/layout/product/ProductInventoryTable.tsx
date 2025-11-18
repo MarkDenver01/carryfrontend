@@ -35,7 +35,7 @@ export default function ProductInventoryTable() {
   // ✅ Modal state for viewing recommendations
   const [viewModal, setViewModal] = useState(false);
   const [recommendations, setRecommendations] = useState<RecommendationRuleDTO[]>([]);
-  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+  const [ setSelectedProductId] = useState<number | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
