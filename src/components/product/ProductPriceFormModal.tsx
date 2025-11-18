@@ -1,17 +1,9 @@
-import {
-  Modal,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Button,
-  Label,
-  TextInput,
-  Select,
-} from "flowbite-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Button, Modal, ModalBody, ModalHeader, Label, Select, TextInput } from "flowbite-react";
 import Swal from "sweetalert2";
+import { usePricesContext } from "../../context/PricesContext";
+import { useProductsContext } from "../../context/ProductsContext";
 import type { ProductPrice } from "../../types/pricingTypes";
-import { usePrices } from "../../types/usePrices";
 
 interface Props {
   show: boolean;
@@ -20,132 +12,103 @@ interface Props {
 }
 
 export default function ProductPriceFormModal({ show, onClose, price }: Props) {
-  const { add, update } = usePrices();
+  const { addPrice, updatePrice } = usePricesContext();
+  const { products } = useProductsContext();
 
-  const empty = {
-    priceId: 0,
+  const [formData, setFormData] = useState({
     productId: 0,
-    productName: "",
     basePrice: 0,
-    taxPercentage: 12,
-    discountCategory: "NONE",
-    discountPercentage: 0,
     effectiveDate: "",
-  };
-
-  const [form, setForm] = useState<ProductPrice>(empty);
-  const isEdit = !!price?.priceId;
+  });
 
   useEffect(() => {
     if (price) {
-      setForm({ ...price });
-    } else if (show) {
-      setForm(empty);
+      setFormData({
+        productId: price.productId,
+        basePrice: price.basePrice,
+        effectiveDate: price.effectiveDate,
+      });
+    } else {
+      setFormData({ productId: 0, basePrice: 0, effectiveDate: "" });
     }
-  }, [price, show]);
-
-  const handleChange = (field: keyof ProductPrice, value: any) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+  }, [price]);
 
   const handleSubmit = async () => {
+    if (!formData.productId || !formData.basePrice) {
+      Swal.fire("Validation Error", "All fields are required.", "warning");
+      return;
+    }
+
     try {
-      if (isEdit) {
-        await update(form);
-        Swal.fire("Updated!", "Product price updated successfully.", "success");
+      if (price) {
+        await updatePrice({ ...price, ...formData });
+        Swal.fire("Updated!", "Price updated successfully.", "success");
       } else {
-        await add(form);
-        Swal.fire("Added!", "Product price added successfully.", "success");
+        await addPrice(formData as any);
+        Swal.fire("Added!", "Price added successfully.", "success");
       }
       onClose();
     } catch (err: any) {
-      Swal.fire("Error", err?.message || "Failed to save", "error");
+      Swal.fire("Error", err.message || "Something went wrong", "error");
     }
   };
 
   return (
-    <Modal show={show} onClose={onClose}>
-      <ModalHeader>{isEdit ? "Edit Price" : "Set Product Price"}</ModalHeader>
-
+    <Modal show={show} size="md" popup onClose={onClose}>
+      <ModalHeader />
       <ModalBody>
-        <div className="grid grid-cols-1 gap-3">
+        <h3 className="text-lg font-bold mb-4">
+          {price ? "Edit Product Price" : "Add Product Price"}
+        </h3>
 
-          {/* Base Price */}
-          <div>
-            <Label>Base Price</Label>
-            <TextInput
-              type="number"
-              value={form.basePrice}
-              onChange={(e) =>
-                handleChange("basePrice", Number(e.target.value))
-              }
-            />
-          </div>
+        <div className="mb-3">
+          <Label>Product</Label>
+          <Select
+            value={formData.productId || ""}
+            onChange={(e) =>
+              setFormData({ ...formData, productId: Number(e.target.value) })
+            }
+          >
+            <option value="">Select Product</option>
+            {products.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </Select>
+        </div>
 
-          {/* Tax */}
-          <div>
-            <Label>Tax Percentage (%)</Label>
-            <TextInput
-              type="number"
-              value={form.taxPercentage}
-              onChange={(e) =>
-                handleChange("taxPercentage", Number(e.target.value))
-              }
-            />
-          </div>
+        <div className="mb-3">
+          <Label>Base Price (₱)</Label>
+          <TextInput
+            type="number"
+            value={formData.basePrice}
+            onChange={(e) =>
+              setFormData({ ...formData, basePrice: Number(e.target.value) })
+            }
+          />
+        </div>
 
-          {/* Discount */}
-          <div>
-            <Label>Discount Category</Label>
-            <Select
-              value={form.discountCategory}
-              onChange={(e) =>
-                handleChange("discountCategory", e.target.value)
-              }
-            >
-              <option value="NONE">None</option>
-              <option value="SENIOR">Senior 20%</option>
-              <option value="PWD">PWD 20%</option>
-              <option value="STUDENT">Student</option>
-              <option value="PROMO">Promo Discount</option>
-            </Select>
-          </div>
+        <div className="mb-3">
+          <Label>Effective Date</Label>
+          <TextInput
+            type="date"
+            value={formData.effectiveDate}
+            onChange={(e) =>
+              setFormData({ ...formData, effectiveDate: e.target.value })
+            }
+          />
+        </div>
 
-          {/* Promo Input */}
-          {form.discountCategory === "PROMO" && (
-            <div>
-              <Label>Promo Discount (%)</Label>
-              <TextInput
-                type="number"
-                value={form.discountPercentage}
-                onChange={(e) =>
-                  handleChange("discountPercentage", Number(e.target.value))
-                }
-              />
-            </div>
-          )}
-
-          {/* Effective Date */}
-          <div>
-            <Label>Effective Date</Label>
-            <TextInput
-              type="date"
-              value={form.effectiveDate}
-              onChange={(e) => handleChange("effectiveDate", e.target.value)}
-            />
-          </div>
-
+        <div className="flex justify-end gap-2 mt-4">
+          <Button color="gray" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button color="blue" onClick={handleSubmit}>
+            {price ? "Update" : "Add"}
+          </Button>
         </div>
       </ModalBody>
-
-      <ModalFooter>
-        <Button color="success" onClick={handleSubmit}>
-          {isEdit ? "Update Price" : "Save Price"}
-        </Button>
-        <Button color="gray" onClick={onClose}>
-          Cancel
-        </Button>
-      </ModalFooter>
     </Modal>
   );
 }

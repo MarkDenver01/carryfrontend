@@ -1,21 +1,27 @@
 export interface ProductPriceDTO {
   priceId: number;
   productId: number;
-  productName: string;
   basePrice: number;
-  taxPercentage: number;
-  discountCategory: "SENIOR" | "PWD" | "STUDENT" | "PROMO" | "NONE";
-  discountPercentage?: number | null;
   effectiveDate: string;
+
+  productName: string;
+  productCode: string;
+  productSize: string;
+  productImgUrl: string;
+  stocks: number;
+  categoryName: string;
 }
 
 export interface ProductPrice {
   priceId: number;
   productId: number;
-  productName: string;
   basePrice: number;
-  taxPercentage: number;
-  discountCategory: string;
-  discountPercentage: number;
   effectiveDate: string;
+
+  productName: string;
+  productCode: string;
+  productSize: string;
+  productImgUrl: string;
+  stocks: number;
+  categoryName: string;
 }
