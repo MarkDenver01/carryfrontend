@@ -128,7 +128,6 @@ export default function ProductInventoryTable() {
       }
 
       setRecommendations(productRules);
-      setSelectedProductId(productId);
       setViewModal(true);
     } catch (error) {
       console.error("Error fetching recommendations:", error);
