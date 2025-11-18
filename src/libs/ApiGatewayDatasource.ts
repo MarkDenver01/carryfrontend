@@ -4,6 +4,10 @@ import type { ProductDTO } from './models/product/Product';
 import type { ProductPriceDTO } from "../types/pricingTypes";
 import type { ProductPrice } from "../types/pricingTypes";
 import type { CategoryDTO } from './models/product/Category';
+import type {
+  RecommendationRuleDTO,
+  RecommendationRulePayload,
+} from "../types/recommendationTypes"; // adjust path if needed
 
 /**
  * Login.
@@ -209,6 +213,91 @@ export async function deleteCategory(id: number): Promise<void> {
   } catch (error: any) {
     console.error("Delete category error:", error);
     throw error.response?.data || { message: "Failed to delete category" };
+  }
+}
+
+// ===============================
+//  Recommendation Rules APIs
+// ===============================
+
+/**
+ * Fetch all recommendation rules
+ */
+export async function getAllRecommendationRules(): Promise<RecommendationRuleDTO[]> {
+  try {
+    const response = await api.get("/admin/api/recommendation-rules");
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Fetch recommendation rules error:", error);
+    throw error.response?.data || { message: "Failed to fetch recommendation rules" };
+  }
+}
+
+/**
+ * Create a new recommendation rule
+ */
+export async function addRecommendationRule(
+  payload: RecommendationRulePayload
+): Promise<RecommendationRuleDTO> {
+  try {
+    const response = await api.post(
+      "/admin/api/recommendation-rules",
+      payload
+    );
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Add recommendation rule error:", error);
+    throw error.response?.data || { message: "Failed to add recommendation rule" };
+  }
+}
+
+/**
+ * Update an existing recommendation rule
+ */
+export async function updateRecommendationRule(
+  id: number,
+  payload: RecommendationRulePayload
+): Promise<RecommendationRuleDTO> {
+  try {
+    const response = await api.put(
+      `/admin/api/recommendation-rules/${id}`,
+      payload
+    );
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Update recommendation rule error:", error);
+    throw error.response?.data || { message: "Failed to update recommendation rule" };
+  }
+}
+
+/**
+ * Delete a recommendation rule
+ */
+export async function deleteRecommendationRule(id: number): Promise<void> {
+  try {
+    await api.delete(`/admin/api/recommendation-rules/${id}`);
+  } catch (error: any) {
+    console.error("Delete recommendation rule error:", error);
+    throw error.response?.data || { message: "Failed to delete recommendation rule" };
+  }
+}
+
+/**
+ * Update ONLY status (ACTIVE / INACTIVE)
+ */
+export async function updateRecommendationRuleStatus(
+  id: number,
+  status: "ACTIVE" | "INACTIVE"
+): Promise<RecommendationRuleDTO> {
+  try {
+    const response = await api.patch(
+      `/admin/api/recommendation-rules/${id}/status`,
+      { status }
+    );
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Update recommendation rule status error:", error);
+    throw error.response?.data || { message: "Failed to update recommendation rule status" };
   }
 }
 
