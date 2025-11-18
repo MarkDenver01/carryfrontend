@@ -94,63 +94,30 @@ export async function updateProductStatus(
   }
 }
 
-/**
- * Fetch all prices
- */
+/** Fetch all product prices */
 export async function getAllPrices(): Promise<ProductPriceDTO[]> {
-  try {
-    const response = await api.get("/admin/api/price/all");
-    return response.data?.data ?? response.data;
-  } catch (error: any) {
-    console.error("Fetch prices error:", error);
-    throw error.response?.data || { message: "Failed to fetch prices" };
-  }
+  const response = await api.get("/admin/api/price/all");
+  return response.data?.data ?? response.data;
 }
 
-/**
- * Add new price
- */
-export async function addPriceForm(
-  price: ProductPrice
-): Promise<ProductPriceDTO> {
-  try {
-    const response = await api.post("/admin/api/price/add", price);
-    return response.data?.data ?? response.data;
-  } catch (error: any) {
-    console.error("Add price error:", error);
-    throw error.response?.data || { message: "Failed to add price" };
-  }
+/** Add product price */
+export async function addPriceForm(price: Partial<ProductPrice>): Promise<ProductPriceDTO> {
+  const response = await api.post("/admin/api/price/add", price);
+  return response.data?.data ?? response.data;
 }
 
-/**
- * Update price
- */
+/** Update product price */
 export async function updatePriceForm(
   priceId: number,
-  price: ProductPrice
+  price: Partial<ProductPrice>
 ): Promise<ProductPriceDTO> {
-  try {
-    const response = await api.put(
-      `/admin/api/price/update/${priceId}`,
-      price
-    );
-    return response.data?.data ?? response.data;
-  } catch (error: any) {
-    console.error("Update price error:", error);
-    throw error.response?.data || { message: "Failed to update price" };
-  }
+  const response = await api.put(`/admin/api/price/update/${priceId}`, price);
+  return response.data?.data ?? response.data;
 }
 
-/**
- * Delete price
- */
+/** Delete product price */
 export async function deletePriceById(priceId: number): Promise<void> {
-  try {
-    await api.delete(`/admin/api/price/delete/${priceId}`);
-  } catch (error: any) {
-    console.error("Delete price error:", error);
-    throw error.response?.data || { message: "Failed to delete price" };
-  }
+  await api.delete(`/admin/api/price/delete/${priceId}`);
 }
 
 /**

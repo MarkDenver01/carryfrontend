@@ -4,24 +4,26 @@ export interface ProductPriceDTO {
   basePrice: number;
   effectiveDate: string;
 
+  // Product details from relationship
   productName: string;
   productCode: string;
-  productSize: string;
   productImgUrl: string;
+  productSize: string;
   stocks: number;
   categoryName: string;
+
+  // For convenience in frontend (optional)
+  recommendedProducts?: RecommendedProduct[];
 }
 
-export interface ProductPrice {
-  priceId: number;
-  productId: number;
-  basePrice: number;
-  effectiveDate: string;
+// For frontend local state, same structure
+export interface ProductPrice extends ProductPriceDTO {}
 
+export interface RecommendedProduct {
+  productId: number;
   productName: string;
-  productCode: string;
-  productSize: string;
   productImgUrl: string;
-  stocks: number;
-  categoryName: string;
+  productSize: string;
+  price?: number;
+  
 }
