@@ -8,6 +8,7 @@ export function mapPriceDTO(dto: ProductPriceDTO): ProductPrice {
     effectiveDate: dto.effectiveDate,
 
     productName: dto.productName,
+    productDescription: dto.productDescription,
     productCode: dto.productCode,
     productImgUrl: dto.productImgUrl,
     productSize: dto.productSize,
