@@ -3,13 +3,16 @@ import { Button, Dropdown, DropdownItem, Pagination } from "flowbite-react";
 import { Search, ChevronDown } from "lucide-react";
 import Swal from "sweetalert2";
 import { format } from "date-fns";
-import type {
-  RecommendationRuleDTO,
-  RecommendationRuleRequest,
-} from "../../libs/models/product/RecommendedRule";
+
+import { useProductsContext } from "../../context/ProductsContext";
 import { useRecommendationRules } from "../../context/RecommendationRulesContext";
+import type {
+  RecommendationRuleRequest,
+  RecommendationRuleDTO,
+} from "../../libs/models/product/RecommendedRule";
 
 export default function RecommendationRulesPage() {
+  const { products } = useProductsContext();
   const { rules, addRule, updateRuleById, removeRule } = useRecommendationRules();
 
   const [search, setSearch] = useState("");
@@ -24,10 +27,12 @@ export default function RecommendationRulesPage() {
     expiryDate: "",
   });
 
-  const pageSize = 8;
   const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 8;
 
-  // Filter
+  // =============================
+  // FILTER + SEARCH
+  // =============================
   const filtered = useMemo(() => {
     return rules.filter(
       (r) =>
@@ -39,14 +44,15 @@ export default function RecommendationRulesPage() {
     );
   }, [rules, search, status]);
 
-  // Pagination
   const totalPages = Math.ceil(filtered.length / pageSize);
-  const paginatedRules = filtered.slice(
+  const paginated = filtered.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
-  // Create or Edit
+  // =============================
+  // MODAL HANDLERS
+  // =============================
   const openCreateModal = () => {
     setEditTarget(null);
     setForm({
@@ -71,40 +77,50 @@ export default function RecommendationRulesPage() {
 
   const closeModal = () => setShowModal(false);
 
+  // =============================
+  // SAVE RULE (ADD / UPDATE)
+  // =============================
   const handleSaveRule = async () => {
     if (!form.baseProductId || form.recommendedProductIds.length === 0) {
-      await Swal.fire("Validation", "Please fill all required fields.", "warning");
+      await Swal.fire("Validation", "Please fill all required fields", "warning");
       return;
     }
 
     try {
       if (editTarget) {
         await updateRuleById(editTarget.id, form);
-        await Swal.fire("Updated", "Recommendation rule updated successfully!", "success");
+        await Swal.fire("Updated", "Rule updated successfully!", "success");
       } else {
         await addRule(form);
-        await Swal.fire("Created", "Recommendation rule created successfully!", "success");
+        await Swal.fire("Created", "Rule created successfully!", "success");
       }
       closeModal();
     } catch (err: any) {
-      await Swal.fire("Error", err?.message || "Failed to save rule.", "error");
+      await Swal.fire("Error", err.message || "Failed to save rule", "error");
     }
   };
 
-  const handleDeleteRule = async (id: number) => {
-    const confirm = await Swal.fire({
+  // =============================
+  // DELETE RULE
+  // =============================
+  const handleDelete = async (id: number) => {
+    const result = await Swal.fire({
       title: "Delete Rule?",
-      text: "Are you sure you want to delete this recommendation rule?",
+      text: "Are you sure you want to delete this rule?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Yes, delete it!",
     });
-    if (confirm.isConfirmed) {
+
+    if (result.isConfirmed) {
       await removeRule(id);
-      await Swal.fire("Deleted", "Rule has been removed.", "success");
+      Swal.fire("Deleted!", "Rule has been removed.", "success");
     }
   };
 
+  // =============================
+  // RENDER UI
+  // =============================
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
       {/* HEADER */}
@@ -117,16 +133,17 @@ export default function RecommendationRulesPage() {
           onClick={openCreateModal}
           className="bg-blue-600 text-white hover:bg-blue-700"
         >
-          + Add Recommendation Rule
+          + Add Rule
         </Button>
       </div>
 
       {/* FILTERS */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
+        {/* Search */}
         <div className="relative w-full max-w-xs">
           <input
             type="text"
-            placeholder="Search product or recommendation..."
+            placeholder="Search product..."
             className="w-full border border-emerald-300 rounded-full px-4 py-2 pl-10 shadow-sm 
                        focus:outline-none focus:ring-2 focus:ring-emerald-500"
             value={search}
@@ -138,8 +155,9 @@ export default function RecommendationRulesPage() {
           <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
         </div>
 
+        {/* Status Filter */}
         <Dropdown
-          dismissOnClick={true}
+          dismissOnClick
           label=""
           renderTrigger={() => (
             <button
@@ -147,65 +165,69 @@ export default function RecommendationRulesPage() {
                          text-emerald-900 font-semibold text-sm px-4 py-1 rounded-full shadow 
                          hover:shadow-md transition"
             >
-              {`Filter: ${status === "" ? "All Status" : status}`}
+              {`Filter: ${status === "" ? "All" : status}`}
               <ChevronDown className="w-4 h-4 text-emerald-900" />
             </button>
           )}
         >
-          <DropdownItem onClick={() => setStatus("")}>All Status</DropdownItem>
+          <DropdownItem onClick={() => setStatus("")}>All</DropdownItem>
           <DropdownItem onClick={() => setStatus("Active")}>Active</DropdownItem>
-          <DropdownItem onClick={() => setStatus("Inactive")}>Inactive</DropdownItem>
+          <DropdownItem onClick={() => setStatus("Inactive")}>
+            Inactive
+          </DropdownItem>
         </Dropdown>
       </div>
 
       {/* TABLE */}
       <div className="w-full overflow-x-auto pb-2">
-        <table className="min-w-full border border-gray-200 rounded-lg">
-          <thead className="bg-gray-100 text-gray-700">
+        <table className="min-w-full border border-gray-200 text-sm text-left text-gray-700">
+          <thead className="bg-emerald-600 text-white">
             <tr>
-              <th className="px-4 py-3 text-left text-sm font-medium">Main Product</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Recommended Products</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Effective Date</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Expiry Date</th>
-              <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-              <th className="px-4 py-3 text-right text-sm font-medium">Actions</th>
+              <th className="p-3 border font-medium">Main Product</th>
+              <th className="p-3 border font-medium">Recommended</th>
+              <th className="p-3 border font-medium">Effective Date</th>
+              <th className="p-3 border font-medium">Expiry Date</th>
+              <th className="p-3 border font-medium">Status</th>
+              <th className="p-3 border font-medium text-center">Actions</th>
             </tr>
           </thead>
           <tbody>
-            {paginatedRules.length > 0 ? (
-              paginatedRules.map((rule) => (
-                <tr key={rule.id} className="border-b hover:bg-gray-50 text-sm">
-                  <td className="px-4 py-3">{rule.productName}</td>
-                  <td className="px-4 py-3">
-                    {rule.recommendedNames.join(", ") || "—"}
+            {paginated.length > 0 ? (
+              paginated.map((r) => (
+                <tr key={r.id} className="hover:bg-gray-50">
+                  <td className="p-3 border font-medium">{r.productName}</td>
+                  <td className="p-3 border">{r.recommendedNames.join(", ")}</td>
+                  <td className="p-3 border">
+                    {r.effectiveDate
+                      ? format(new Date(r.effectiveDate), "yyyy-MM-dd")
+                      : "—"}
                   </td>
-                  <td className="px-4 py-3">
-                    {rule.effectiveDate ? format(new Date(rule.effectiveDate), "yyyy-MM-dd") : "—"}
+                  <td className="p-3 border">
+                    {r.expiryDate
+                      ? format(new Date(r.expiryDate), "yyyy-MM-dd")
+                      : "—"}
                   </td>
-                  <td className="px-4 py-3">
-                    {rule.expiryDate ? format(new Date(rule.expiryDate), "yyyy-MM-dd") : "—"}
-                  </td>
-                  <td className="px-4 py-3">
+                  <td className="p-3 border">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        rule.active
+                        r.active
                           ? "bg-green-100 text-green-800 border border-green-300"
                           : "bg-red-100 text-red-800 border border-red-300"
                       }`}
                     >
-                      {rule.active ? "Active" : "Inactive"}
+                      {r.active ? "Active" : "Inactive"}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right space-x-3">
+                  <td className="p-3 border text-center space-x-3">
                     <button
                       className="text-blue-600 hover:underline"
-                      onClick={() => openEditModal(rule)}
+                      onClick={() => openEditModal(r)}
                     >
                       Edit
                     </button>
                     <button
                       className="text-red-600 hover:underline"
-                      onClick={() => handleDeleteRule(rule.id)}
+                      onClick={() => handleDelete(r.id)}
                     >
                       Delete
                     </button>
@@ -216,9 +238,9 @@ export default function RecommendationRulesPage() {
               <tr>
                 <td
                   colSpan={6}
-                  className="text-center text-gray-500 py-6 text-sm"
+                  className="text-center text-gray-500 p-4 border"
                 >
-                  No recommendation rules found.
+                  No rules found.
                 </td>
               </tr>
             )}
@@ -228,7 +250,7 @@ export default function RecommendationRulesPage() {
 
       {/* PAGINATION */}
       {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
           <span>
             Showing{" "}
             <span className="font-semibold text-gray-800">
@@ -239,9 +261,7 @@ export default function RecommendationRulesPage() {
               {Math.min(currentPage * pageSize, filtered.length)}
             </span>{" "}
             of{" "}
-            <span className="font-semibold text-gray-800">
-              {filtered.length}
-            </span>{" "}
+            <span className="font-semibold text-gray-800">{filtered.length}</span>{" "}
             entries
           </span>
 
@@ -259,64 +279,88 @@ export default function RecommendationRulesPage() {
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-[500px] shadow-lg">
             <h2 className="text-xl font-semibold mb-4">
-              {editTarget ? "Edit Recommendation Rule" : "Add New Recommendation Rule"}
+              {editTarget ? "Edit Rule" : "Add Rule"}
             </h2>
 
             <div className="space-y-4">
-              <input
-                type="number"
-                placeholder="Main Product ID"
+              <label className="block text-sm font-medium text-gray-700">
+                Base Product
+              </label>
+              <select
+                className="w-full border border-gray-300 rounded p-2"
                 value={form.baseProductId}
                 onChange={(e) =>
                   setForm({ ...form, baseProductId: Number(e.target.value) })
                 }
-                className="border border-gray-300 w-full p-2 rounded focus:ring-2 focus:ring-emerald-400"
-              />
+              >
+                <option value="">Select product</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
 
-              <input
-                type="text"
-                placeholder="Recommended Product IDs (comma-separated)"
+              <label className="block text-sm font-medium text-gray-700">
+                Recommended Products
+              </label>
+              <select
+                multiple
+                className="w-full border border-gray-300 rounded p-2"
+                value={form.recommendedProductIds.map(String)}
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    recommendedProductIds: e.target.value
-                      .split(",")
-                      .map((id) => Number(id.trim()))
-                      .filter((id) => !isNaN(id)),
+                    recommendedProductIds: Array.from(
+                      e.target.selectedOptions,
+                      (o) => Number(o.value)
+                    ),
                   })
                 }
-                className="border border-gray-300 w-full p-2 rounded focus:ring-2 focus:ring-emerald-400"
-              />
+              >
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
 
-              <input
-                type="date"
-                value={form.effectiveDate}
-                onChange={(e) => setForm({ ...form, effectiveDate: e.target.value })}
-                className="border border-gray-300 w-full p-2 rounded focus:ring-2 focus:ring-emerald-400"
-              />
-
-              <input
-                type="date"
-                value={form.expiryDate}
-                onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
-                className="border border-gray-300 w-full p-2 rounded focus:ring-2 focus:ring-emerald-400"
-              />
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Effective Date
+                  </label>
+                  <input
+                    type="date"
+                    className="border border-gray-300 w-full p-2 rounded"
+                    value={form.effectiveDate}
+                    onChange={(e) =>
+                      setForm({ ...form, effectiveDate: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Expiry Date
+                  </label>
+                  <input
+                    type="date"
+                    className="border border-gray-300 w-full p-2 rounded"
+                    value={form.expiryDate}
+                    onChange={(e) =>
+                      setForm({ ...form, expiryDate: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end mt-6 gap-3">
-              <Button
-                color="gray"
-                onClick={closeModal}
-                className="bg-gray-100 text-gray-700 hover:bg-gray-200"
-              >
+              <Button color="gray" onClick={closeModal}>
                 Cancel
               </Button>
-              <Button
-                color="blue"
-                onClick={handleSaveRule}
-                className="bg-blue-600 hover:bg-blue-700"
-              >
-                {editTarget ? "Update Rule" : "Create Rule"}
+              <Button color="blue" onClick={handleSaveRule}>
+                {editTarget ? "Update" : "Save"}
               </Button>
             </div>
           </div>

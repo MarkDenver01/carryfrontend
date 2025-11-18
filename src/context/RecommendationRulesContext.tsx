@@ -1,13 +1,14 @@
-"use client";
-
 import React, { createContext, useContext, useState, useEffect } from "react";
 import {
   fetchAllRules,
   createRule,
+  updateRule,
   deleteRule,
-  updateRule 
 } from "../libs/ApiGatewayDatasource";
-import type { RecommendationRuleDTO, RecommendationRuleRequest } from "../libs/models/product/RecommendedRule";
+import type {
+  RecommendationRuleDTO,
+  RecommendationRuleRequest,
+} from "../libs/models/product/RecommendedRule";
 
 interface RecommendationRuleContextType {
   rules: RecommendationRuleDTO[];
@@ -18,9 +19,12 @@ interface RecommendationRuleContextType {
   refresh: () => Promise<void>;
 }
 
-const RecommendationRuleContext = createContext<RecommendationRuleContextType | null>(null);
+const RecommendationRuleContext =
+  createContext<RecommendationRuleContextType | null>(null);
 
-export const RecommendationRuleProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const RecommendationRuleProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [rules, setRules] = useState<RecommendationRuleDTO[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
@@ -43,18 +47,20 @@ export const RecommendationRuleProvider: React.FC<{ children: React.ReactNode }>
     setRules((prev) => [...prev, newRule]);
   };
 
+  const updateRuleById = async (id: number, rule: RecommendationRuleRequest) => {
+    const updated = await updateRule(id, rule);
+    setRules((prev) => prev.map((r) => (r.id === id ? updated : r)));
+  };
+
   const removeRule = async (id: number) => {
     await deleteRule(id);
     setRules((prev) => prev.filter((r) => r.id !== id));
   };
 
-  const updateRuleById = async (id: number, rule: RecommendationRuleRequest) => {
-  const updated = await updateRule(id, rule);
-  setRules((prev) => prev.map((r) => (r.id === id ? updated : r)));
-};
-
   return (
-    <RecommendationRuleContext.Provider value={{ rules, loading, addRule, updateRuleById, removeRule, refresh }}>
+    <RecommendationRuleContext.Provider
+      value={{ rules, loading, addRule, updateRuleById, removeRule, refresh }}
+    >
       {children}
     </RecommendationRuleContext.Provider>
   );
@@ -63,7 +69,9 @@ export const RecommendationRuleProvider: React.FC<{ children: React.ReactNode }>
 export const useRecommendationRules = () => {
   const context = useContext(RecommendationRuleContext);
   if (!context) {
-    throw new Error("useRecommendationRules must be used within a RecommendationRuleProvider");
+    throw new Error(
+      "useRecommendationRules must be used within a RecommendationRuleProvider"
+    );
   }
   return context;
 };
