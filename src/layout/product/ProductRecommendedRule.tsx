@@ -1,10 +1,11 @@
-// src/layout/product/ProductRecommendationRule.tsx
+// src/layout/product/ProductRecommendedRule.tsx
 
 import { useState, useMemo } from "react";
 import {
   Modal,
   Button,
   Label,
+  TextInput,
   Select,
   ModalHeader,
   ModalBody,
@@ -36,14 +37,15 @@ import type {
 type SortField = "product" | "category" | "effectiveDate";
 
 interface RuleFormState {
-  baseProductId: number | "";
+  // NOTE: form state can use null, pero payload will ALWAYS send number (Option A)
+  baseProductId: number | null;
   recommendedProductIds: number[];
   effectiveDate: string;
   expiryDate: string;
 }
 
 const initialForm: RuleFormState = {
-  baseProductId: "",
+  baseProductId: null,
   recommendedProductIds: [],
   effectiveDate: "",
   expiryDate: "",
@@ -70,9 +72,12 @@ export default function ProductRecommendedRule() {
   const [sortField, setSortField] = useState<SortField>("product");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  const pageSize = 8;
+  const itemsPerPage = 6;
   const [currentPage, setCurrentPage] = useState(1);
 
+  // ==============================
+  // CATEGORY OPTIONS
+  // ==============================
   const uniqueCategories = useMemo(
     () =>
       Array.from(
@@ -139,28 +144,39 @@ export default function ProductRecommendedRule() {
     value: string | number | string[]
   ) => {
     if (field === "baseProductId") {
+      const strVal = value as string;
       setForm((prev) => ({
         ...prev,
-        baseProductId: value === "" ? "" : Number(value),
+        baseProductId: strVal === "" ? null : Number(strVal),
         // reset recommended when changing base product
         recommendedProductIds: [],
       }));
-    } else if (field === "recommendedProductIds") {
-      setForm((prev) => ({
-        ...prev,
-        recommendedProductIds: (value as string[]).map((v) => Number(v)),
-      }));
-    } else {
-      setForm((prev) => ({
-        ...prev,
-        [field]: value,
-      }));
+      return;
     }
+
+    if (field === "recommendedProductIds") {
+      const values = (value as string[])
+        .map((v) => Number(v))
+        .filter((n) => !Number.isNaN(n));
+      setForm((prev) => ({
+        ...prev,
+        recommendedProductIds: values,
+      }));
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
   };
 
   // Recommended options: optionally same category as base product
   const baseProduct = useMemo(
-    () => products.find((p) => p.id === form.baseProductId),
+    () =>
+      form.baseProductId == null
+        ? undefined
+        : products.find((p) => p.id === form.baseProductId),
     [products, form.baseProductId]
   );
 
@@ -175,6 +191,9 @@ export default function ProductRecommendedRule() {
     );
   }, [products, baseProduct]);
 
+  // ==============================
+  // VALIDATION
+  // ==============================
   const validateForm = (): string | null => {
     if (!form.baseProductId) return "Please select a base product.";
     if (!form.effectiveDate) return "Effective date is required.";
@@ -186,6 +205,9 @@ export default function ProductRecommendedRule() {
     return null;
   };
 
+  // ==============================
+  // SAVE RULE (CREATE / UPDATE)
+  // ==============================
   const handleSaveRule = async () => {
     const validationError = validateForm();
     if (validationError) {
@@ -193,12 +215,32 @@ export default function ProductRecommendedRule() {
       return;
     }
 
-  const payload: RecommendationRulePayload = {
-    baseProductId: form.baseProductId === "" ? null : Number(form.baseProductId),
-    recommendedProductIds: form.recommendedProductIds,
-    effectiveDate: form.effectiveDate,
-    expiryDate: form.expiryDate,
-  };
+    // Extra defensive filter para walang null/NaN na pumalo sa backend
+    const cleanRecommendedIds = form.recommendedProductIds.filter(
+      (id) => typeof id === "number" && !Number.isNaN(id)
+    );
+
+    if (!form.baseProductId) {
+      await Swal.fire("Validation", "Base product is required.", "warning");
+      return;
+    }
+
+    if (cleanRecommendedIds.length === 0) {
+      await Swal.fire(
+        "Validation",
+        "Please select at least one valid recommended product.",
+        "warning"
+      );
+      return;
+    }
+
+    const payload: RecommendationRulePayload = {
+      // Option A: backend ALWAYS expects a number here
+      baseProductId: form.baseProductId as number,
+      recommendedProductIds: cleanRecommendedIds,
+      effectiveDate: form.effectiveDate,
+      expiryDate: form.expiryDate,
+    };
 
     try {
       if (editingRule) {
@@ -218,6 +260,9 @@ export default function ProductRecommendedRule() {
     }
   };
 
+  // ==============================
+  // DELETE / TOGGLE STATUS
+  // ==============================
   const handleDelete = async (rule: RecommendationRule) => {
     const result = await Swal.fire({
       title: "Delete Rule?",
@@ -289,13 +334,15 @@ export default function ProductRecommendedRule() {
     });
   }, [filtered, sortField, sortOrder]);
 
-  const totalPages = Math.ceil(sorted.length / pageSize);
-
+  const totalPages = Math.ceil(sorted.length / itemsPerPage);
   const paginated = sorted.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
   );
 
+  // ==============================
+  // RENDER
+  // ==============================
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
       {/* HEADER */}
@@ -312,9 +359,9 @@ export default function ProductRecommendedRule() {
         </Button>
       </div>
 
-      {/* SEARCH + FILTER */}
+      {/* SEARCH + FILTER (same feel as ProductInventoryTable) */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
-        {/* Search input with icon (same style as inventory) */}
+        {/* Search */}
         <div className="relative w-full max-w-xs">
           <input
             type="text"
@@ -330,7 +377,7 @@ export default function ProductRecommendedRule() {
           <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
         </div>
 
-        {/* Category filter using Dropdown like inventory */}
+        {/* Category filter (Dropdown style) */}
         <Dropdown
           dismissOnClick={true}
           label=""
@@ -340,8 +387,8 @@ export default function ProductRecommendedRule() {
                          text-emerald-900 font-semibold text-sm px-4 py-1 rounded-full shadow 
                          hover:shadow-md transition"
             >
-              {`Filter: ${
-                selectedCategory === "" ? "All Categories" : selectedCategory
+              {`Category: ${
+                selectedCategory === "" ? "All" : selectedCategory
               }`}
               <ChevronDown className="w-4 h-4 text-emerald-900" />
             </button>
@@ -355,6 +402,7 @@ export default function ProductRecommendedRule() {
           >
             All Categories
           </DropdownItem>
+
           {uniqueCategories.map((cat) => (
             <DropdownItem
               key={cat}
@@ -369,51 +417,46 @@ export default function ProductRecommendedRule() {
         </Dropdown>
       </div>
 
-      {/* TABLE WRAPPER WITH HORIZONTAL SCROLL */}
+      {/* TABLE */}
       <div className="w-full overflow-x-auto pb-2">
-        <table className="min-w-[1200px] border border-gray-200 text-sm text-left text-gray-700">
-          <thead className="bg-emerald-700 text-white text-xs uppercase tracking-wide">
-            <tr className="divide-x divide-emerald-600">
-              <th className="p-3 font-semibold w-[110px]">Status</th>
+        <table className="min-w-full border border-gray-200 text-sm text-left text-gray-700">
+          <thead className="bg-emerald-600 text-white">
+            <tr>
+              <th className="p-3 border font-medium">Status</th>
 
               <th
-                className="p-3 font-semibold w-[250px] cursor-pointer select-none"
+                className="p-3 border font-medium cursor-pointer select-none"
                 onClick={() => handleSort("product")}
               >
                 Product <SortIcon field="product" />
               </th>
 
-              <th className="p-3 font-semibold w-[350px]">Recommended</th>
+              <th className="p-3 border font-medium">Recommended</th>
 
               <th
-                className="p-3 font-semibold w-[220px] cursor-pointer select-none"
+                className="p-3 border font-medium cursor-pointer select-none"
                 onClick={() => handleSort("effectiveDate")}
               >
                 Date Range <SortIcon field="effectiveDate" />
               </th>
 
               <th
-                className="p-3 font-semibold w-[220px] cursor-pointer select-none"
+                className="p-3 border font-medium cursor-pointer select-none"
                 onClick={() => handleSort("category")}
               >
                 Category <SortIcon field="category" />
               </th>
 
-              <th className="p-3 font-semibold text-center w-[160px]">
-                Actions
-              </th>
+              <th className="p-3 border font-medium text-center">Actions</th>
             </tr>
           </thead>
 
-          <tbody className="bg-white">
+          <tbody>
             {paginated.length > 0 ? (
               paginated.map((rule) => (
-                <tr
-                  key={rule.id}
-                  className="hover:bg-gray-50 border-t border-gray-200"
-                >
+                <tr key={rule.id} className="hover:bg-gray-100">
                   {/* STATUS PILL */}
-                  <td className="p-2.5 w-[110px] align-middle">
+                  <td className="p-3 border">
                     <button
                       onClick={() => handleToggleStatus(rule)}
                       className={`px-2 py-1 text-xs font-semibold rounded-full border ${
@@ -427,12 +470,12 @@ export default function ProductRecommendedRule() {
                   </td>
 
                   {/* PRODUCT NAME */}
-                  <td className="p-2.5 w-[250px] align-middle font-medium">
+                  <td className="p-3 border font-medium">
                     {rule.baseProductName}
                   </td>
 
                   {/* RECOMMENDED LIST */}
-                  <td className="p-2.5 w-[350px] align-middle">
+                  <td className="p-3 border">
                     {rule.recommendedProducts.length > 0
                       ? rule.recommendedProducts
                           .map((r) => r.productName)
@@ -441,17 +484,17 @@ export default function ProductRecommendedRule() {
                   </td>
 
                   {/* DATE RANGE */}
-                  <td className="p-2.5 w-[220px] align-middle">
+                  <td className="p-3 border">
                     {rule.effectiveDate} → {rule.expiryDate}
                   </td>
 
                   {/* CATEGORY */}
-                  <td className="p-2.5 w-[220px] align-middle">
+                  <td className="p-3 border">
                     {rule.baseProductCategoryName ?? "—"}
                   </td>
 
                   {/* ACTIONS */}
-                  <td className="p-2.5 w-[160px] align-middle">
+                  <td className="p-3 border">
                     <div className="flex justify-center gap-2">
                       <Button
                         size="xs"
@@ -476,7 +519,7 @@ export default function ProductRecommendedRule() {
               <tr>
                 <td
                   colSpan={6}
-                  className="text-center py-4 text-gray-500 border-t border-gray-200"
+                  className="text-center p-4 text-gray-500 border"
                 >
                   No rules found.
                 </td>
@@ -486,19 +529,17 @@ export default function ProductRecommendedRule() {
         </table>
       </div>
 
-      {/* PAGINATION (same style as inventory) */}
+      {/* PAGINATION */}
       {totalPages > 1 && (
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
           <span>
             Showing{" "}
             <span className="font-semibold text-gray-800">
-              {sorted.length === 0
-                ? 0
-                : (currentPage - 1) * pageSize + 1}
+              {(currentPage - 1) * itemsPerPage + 1}
             </span>{" "}
             to{" "}
             <span className="font-semibold text-gray-800">
-              {Math.min(currentPage * pageSize, sorted.length)}
+              {Math.min(currentPage * itemsPerPage, sorted.length)}
             </span>{" "}
             of{" "}
             <span className="font-semibold text-gray-800">
@@ -533,7 +574,7 @@ export default function ProductRecommendedRule() {
               <Label htmlFor="product">When Product</Label>
               <Select
                 id="product"
-                value={form.baseProductId === "" ? "" : String(form.baseProductId)}
+                value={form.baseProductId == null ? "" : String(form.baseProductId)}
                 onChange={(e) =>
                   handleFormChange("baseProductId", e.target.value)
                 }
@@ -572,9 +613,8 @@ export default function ProductRecommendedRule() {
             {/* EFFECTIVE DATE */}
             <div>
               <Label>Effective Date</Label>
-              <input
+              <TextInput
                 type="date"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 value={form.effectiveDate}
                 onChange={(e) =>
                   handleFormChange("effectiveDate", e.target.value)
@@ -585,9 +625,8 @@ export default function ProductRecommendedRule() {
             {/* EXPIRY DATE */}
             <div>
               <Label>Expiry Date</Label>
-              <input
+              <TextInput
                 type="date"
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 value={form.expiryDate}
                 onChange={(e) =>
                   handleFormChange("expiryDate", e.target.value)
