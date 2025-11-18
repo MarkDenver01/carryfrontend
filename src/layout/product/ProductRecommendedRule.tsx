@@ -4,15 +4,13 @@ import { Search, ChevronDown } from "lucide-react";
 import Swal from "sweetalert2";
 import { format } from "date-fns";
 
-import { useProductsContext } from "../../context/ProductsContext";
 import { useRecommendationRules } from "../../context/RecommendationRulesContext";
 import type {
-  RecommendationRuleRequest,
   RecommendationRuleDTO,
+  RecommendationRuleRequest,
 } from "../../libs/models/product/RecommendedRule";
 
 export default function RecommendationRulesPage() {
-  const { products } = useProductsContext();
   const { rules, addRule, updateRuleById, removeRule } = useRecommendationRules();
 
   const [search, setSearch] = useState("");
@@ -78,7 +76,7 @@ export default function RecommendationRulesPage() {
   const closeModal = () => setShowModal(false);
 
   // =============================
-  // SAVE RULE (ADD / UPDATE)
+  // SAVE RULE (ADD OR UPDATE)
   // =============================
   const handleSaveRule = async () => {
     if (!form.baseProductId || form.recommendedProductIds.length === 0) {
@@ -106,7 +104,7 @@ export default function RecommendationRulesPage() {
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: "Delete Rule?",
-      text: "Are you sure you want to delete this rule?",
+      text: "Are you sure you want to delete this recommendation rule?",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Yes, delete it!",
@@ -131,7 +129,7 @@ export default function RecommendationRulesPage() {
 
         <Button
           onClick={openCreateModal}
-          className="bg-blue-600 text-white hover:bg-blue-700"
+          className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2 px-4 py-2 shadow-sm"
         >
           + Add Rule
         </Button>
@@ -143,7 +141,7 @@ export default function RecommendationRulesPage() {
         <div className="relative w-full max-w-xs">
           <input
             type="text"
-            placeholder="Search product..."
+            placeholder="Search product or recommended..."
             className="w-full border border-emerald-300 rounded-full px-4 py-2 pl-10 shadow-sm 
                        focus:outline-none focus:ring-2 focus:ring-emerald-500"
             value={search}
@@ -155,7 +153,7 @@ export default function RecommendationRulesPage() {
           <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
         </div>
 
-        {/* Status Filter */}
+        {/* Dropdown Filter */}
         <Dropdown
           dismissOnClick
           label=""
@@ -165,16 +163,14 @@ export default function RecommendationRulesPage() {
                          text-emerald-900 font-semibold text-sm px-4 py-1 rounded-full shadow 
                          hover:shadow-md transition"
             >
-              {`Filter: ${status === "" ? "All" : status}`}
+              {`Filter: ${status === "" ? "All Status" : status}`}
               <ChevronDown className="w-4 h-4 text-emerald-900" />
             </button>
           )}
         >
-          <DropdownItem onClick={() => setStatus("")}>All</DropdownItem>
+          <DropdownItem onClick={() => setStatus("")}>All Status</DropdownItem>
           <DropdownItem onClick={() => setStatus("Active")}>Active</DropdownItem>
-          <DropdownItem onClick={() => setStatus("Inactive")}>
-            Inactive
-          </DropdownItem>
+          <DropdownItem onClick={() => setStatus("Inactive")}>Inactive</DropdownItem>
         </Dropdown>
       </div>
 
@@ -184,7 +180,7 @@ export default function RecommendationRulesPage() {
           <thead className="bg-emerald-600 text-white">
             <tr>
               <th className="p-3 border font-medium">Main Product</th>
-              <th className="p-3 border font-medium">Recommended</th>
+              <th className="p-3 border font-medium">Recommended Products</th>
               <th className="p-3 border font-medium">Effective Date</th>
               <th className="p-3 border font-medium">Expiry Date</th>
               <th className="p-3 border font-medium">Status</th>
@@ -193,41 +189,41 @@ export default function RecommendationRulesPage() {
           </thead>
           <tbody>
             {paginated.length > 0 ? (
-              paginated.map((r) => (
-                <tr key={r.id} className="hover:bg-gray-50">
-                  <td className="p-3 border font-medium">{r.productName}</td>
-                  <td className="p-3 border">{r.recommendedNames.join(", ")}</td>
+              paginated.map((rule) => (
+                <tr key={rule.id} className="hover:bg-gray-50 transition">
+                  <td className="p-3 border font-medium">{rule.productName}</td>
+                  <td className="p-3 border">{rule.recommendedNames.join(", ")}</td>
                   <td className="p-3 border">
-                    {r.effectiveDate
-                      ? format(new Date(r.effectiveDate), "yyyy-MM-dd")
+                    {rule.effectiveDate
+                      ? format(new Date(rule.effectiveDate), "yyyy-MM-dd")
                       : "—"}
                   </td>
                   <td className="p-3 border">
-                    {r.expiryDate
-                      ? format(new Date(r.expiryDate), "yyyy-MM-dd")
+                    {rule.expiryDate
+                      ? format(new Date(rule.expiryDate), "yyyy-MM-dd")
                       : "—"}
                   </td>
-                  <td className="p-3 border">
+                  <td className="p-3 border text-center">
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        r.active
+                        rule.active
                           ? "bg-green-100 text-green-800 border border-green-300"
                           : "bg-red-100 text-red-800 border border-red-300"
                       }`}
                     >
-                      {r.active ? "Active" : "Inactive"}
+                      {rule.active ? "Active" : "Inactive"}
                     </span>
                   </td>
                   <td className="p-3 border text-center space-x-3">
                     <button
-                      className="text-blue-600 hover:underline"
-                      onClick={() => openEditModal(r)}
+                      className="text-blue-600 hover:text-blue-800 font-medium"
+                      onClick={() => openEditModal(rule)}
                     >
                       Edit
                     </button>
                     <button
-                      className="text-red-600 hover:underline"
-                      onClick={() => handleDelete(r.id)}
+                      className="text-red-600 hover:text-red-800 font-medium"
+                      onClick={() => handleDelete(rule.id)}
                     >
                       Delete
                     </button>
@@ -240,7 +236,7 @@ export default function RecommendationRulesPage() {
                   colSpan={6}
                   className="text-center text-gray-500 p-4 border"
                 >
-                  No rules found.
+                  No recommendation rules found.
                 </td>
               </tr>
             )}
@@ -265,102 +261,84 @@ export default function RecommendationRulesPage() {
             entries
           </span>
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            showIcons
-          />
+          <div className="flex overflow-x-auto sm:justify-center">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              showIcons
+            />
+          </div>
         </div>
       )}
 
       {/* MODAL */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-lg w-[500px] shadow-lg">
-            <h2 className="text-xl font-semibold mb-4">
-              {editTarget ? "Edit Rule" : "Add Rule"}
+        <div className="fixed inset-0 bg-gray-800 bg-opacity-40 flex items-center justify-center z-50 transition-opacity">
+          <div className="bg-white p-6 rounded-lg w-[500px] shadow-xl border border-gray-100">
+            <h2 className="text-xl font-semibold mb-4 text-gray-800">
+              {editTarget ? "Edit Recommendation Rule" : "Add New Recommendation Rule"}
             </h2>
 
             <div className="space-y-4">
-              <label className="block text-sm font-medium text-gray-700">
-                Base Product
-              </label>
-              <select
-                className="w-full border border-gray-300 rounded p-2"
+              <input
+                type="number"
+                placeholder="Main Product ID"
                 value={form.baseProductId}
                 onChange={(e) =>
                   setForm({ ...form, baseProductId: Number(e.target.value) })
                 }
-              >
-                <option value="">Select product</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                className="border border-gray-300 w-full p-2 rounded focus:ring-2 focus:ring-emerald-400"
+              />
 
-              <label className="block text-sm font-medium text-gray-700">
-                Recommended Products
-              </label>
-              <select
-                multiple
-                className="w-full border border-gray-300 rounded p-2"
-                value={form.recommendedProductIds.map(String)}
+              <input
+                type="text"
+                placeholder="Recommended Product IDs (comma-separated)"
                 onChange={(e) =>
                   setForm({
                     ...form,
-                    recommendedProductIds: Array.from(
-                      e.target.selectedOptions,
-                      (o) => Number(o.value)
-                    ),
+                    recommendedProductIds: e.target.value
+                      .split(",")
+                      .map((id) => Number(id.trim()))
+                      .filter((id) => !isNaN(id)),
                   })
                 }
-              >
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
+                className="border border-gray-300 w-full p-2 rounded focus:ring-2 focus:ring-emerald-400"
+              />
 
-              <div className="flex gap-4">
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Effective Date
-                  </label>
-                  <input
-                    type="date"
-                    className="border border-gray-300 w-full p-2 rounded"
-                    value={form.effectiveDate}
-                    onChange={(e) =>
-                      setForm({ ...form, effectiveDate: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="flex-1">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Expiry Date
-                  </label>
-                  <input
-                    type="date"
-                    className="border border-gray-300 w-full p-2 rounded"
-                    value={form.expiryDate}
-                    onChange={(e) =>
-                      setForm({ ...form, expiryDate: e.target.value })
-                    }
-                  />
-                </div>
-              </div>
+              <input
+                type="date"
+                value={form.effectiveDate}
+                onChange={(e) =>
+                  setForm({ ...form, effectiveDate: e.target.value })
+                }
+                className="border border-gray-300 w-full p-2 rounded focus:ring-2 focus:ring-emerald-400"
+              />
+
+              <input
+                type="date"
+                value={form.expiryDate}
+                onChange={(e) =>
+                  setForm({ ...form, expiryDate: e.target.value })
+                }
+                className="border border-gray-300 w-full p-2 rounded focus:ring-2 focus:ring-emerald-400"
+              />
             </div>
 
             <div className="flex justify-end mt-6 gap-3">
-              <Button color="gray" onClick={closeModal}>
+              <Button
+                color="gray"
+                onClick={closeModal}
+                className="bg-gray-100 text-gray-700 hover:bg-gray-200"
+              >
                 Cancel
               </Button>
-              <Button color="blue" onClick={handleSaveRule}>
-                {editTarget ? "Update" : "Save"}
+              <Button
+                color="blue"
+                onClick={handleSaveRule}
+                className="bg-blue-600 text-white hover:bg-blue-700"
+              >
+                {editTarget ? "Update Rule" : "Create Rule"}
               </Button>
             </div>
           </div>
