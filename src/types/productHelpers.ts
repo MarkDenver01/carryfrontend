@@ -1,9 +1,9 @@
-import type { Product, ProductRecommended } from "./types";
+import type { Product } from "./types";
+import type { RecommendationRuleDTO } from "../libs/models/product/RecommendedRule";
 import type {
   ProductDTO,
-  ProductRecommendedDTO,
   ProductRequest,
-} from "../../src/libs/models/product/Product";
+} from "../libs/models/product/Product";
 
 /** Format date as yyyy-MM-dd */
 export const formatDate = (d?: string | null) => {
@@ -13,18 +13,18 @@ export const formatDate = (d?: string | null) => {
   return parsed.toISOString().split("T")[0];
 };
 
-/** Maps a ProductRecommendedDTO → ProductRecommended */
+/** Maps a RecommendationRuleDTO → RecommendationRuleDTO (backend already normalized) */
 export const mapRecommendationDTO = (
-  r: ProductRecommendedDTO
-): ProductRecommended => ({
-  productRecommendedId: r.productRecommendedId,
-  productCode: r.productCode,
+  r: RecommendationRuleDTO
+): RecommendationRuleDTO => ({
+  id: r.id,
+  productId: r.productId,
   productName: r.productName,
-  productDescription: r.productDescription,
-  productSize: r.productSize,
-  productImgUrl: r.productImgUrl,
-  expiryDate: r.expiryDate ? formatDate(r.expiryDate) : "",
-  createdDate: r.createdDate ? formatDate(r.createdDate) : "",
+  categoryName: r.categoryName,
+  recommendedNames: r.recommendedNames ?? [],
+  effectiveDate: r.effectiveDate,
+  expiryDate: r.expiryDate,
+  active: r.active,
 });
 
 /** Maps a ProductDTO → Product (frontend type) */
@@ -39,9 +39,14 @@ export const mapProductDTO = (p: ProductDTO): Product => ({
   stock: p.stocks ?? 0,
   expiryDate: p.expiryDate ? formatDate(p.expiryDate) : "",
   inDate: p.productInDate ? formatDate(p.productInDate) : "",
-  status: (p.productStatus ?? "").toLowerCase() === "available" ? "Available" : "Not Available",
-  categoryId: p.categoryId ?? null, 
+  status:
+    (p.productStatus ?? "").toLowerCase() === "available"
+      ? "Available"
+      : "Not Available",
+  categoryId: p.categoryId ?? null,
   categoryName: p.productCategory ?? null,
+
+  // 🔗 Map backend recommendation rules if available
   recommendations: (p.recommendations ?? []).map(mapRecommendationDTO),
 });
 
@@ -65,7 +70,6 @@ export const toProductRequest = (p: Product): ProductRequest => ({
   stocks: Number(p.stock ?? 0),
   productSize: clean(p.size),
   productStatus: clean(p.status),
-  productImgFile: p.imageFile,
   expiryDate: formatDateForBackend(p.expiryDate),
   productInDate: formatDateForBackend(p.inDate),
   categoryId: p.categoryId ?? null,

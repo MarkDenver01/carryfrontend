@@ -1,3 +1,5 @@
+import type { RecommendationRuleDTO } from "../../../libs/models/product/RecommendedRule";
+
 export interface ProductDTO {
   productId: number;
   productCode: string;
@@ -11,18 +13,9 @@ export interface ProductDTO {
   productInDate?: string | null;
   categoryId: number | null;
   productCategory: string | null;
-  recommendations: ProductRecommendedDTO[];
-}
 
-export interface ProductRecommendedDTO {
-  productRecommendedId: number;
-  productCode: string;
-  productName: string;
-  productDescription: string;
-  productSize: string;
-  productImgUrl: string;
-  expiryDate?: string | null;
-  createdDate?: string | null;
+  // ✅ Replace old ProductRecommendedDTO[]
+  recommendations: RecommendationRuleDTO[];
 }
 
 export interface ProductRequest {

@@ -1,6 +1,6 @@
 import React from "react";
 import { Pencil, Eye, XCircle, CheckCircle } from "lucide-react";
-import type { Product, ProductRecommended } from "../../types/types";
+import type { Product } from "../../types/types";
 
 interface ProductTableProps {
   sortedProducts: Product[];
@@ -10,12 +10,11 @@ interface ProductTableProps {
   handleSort: (field: any) => void;
   getSortIcon: (field: any) => string;
   handleEditProduct: (index: number) => void;
- toggleAvailability: (product: Product) => void;
+  toggleAvailability: (product: Product) => void;
   handleDeleteProduct: (id: number) => void;
-  setSelectedRecommendations: React.Dispatch<
-    React.SetStateAction<ProductRecommended[]>
-  >;
-  setIsViewModalOpen: (value: boolean) => void;
+
+  // ✅ Replaced old modal triggers with the new unified handler
+  onViewRecommendations: (product: Product) => void;
 }
 
 const ProductTable: React.FC<ProductTableProps> = ({
@@ -27,8 +26,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
   handleEditProduct,
   toggleAvailability,
   handleDeleteProduct,
-  setSelectedRecommendations,
-  setIsViewModalOpen,
+  onViewRecommendations,
 }) => {
   return (
     <div className="overflow-x-auto w-full">
@@ -36,20 +34,35 @@ const ProductTable: React.FC<ProductTableProps> = ({
         <thead className="bg-emerald-700 text-white text-xs uppercase tracking-wide">
           <tr className="divide-x divide-emerald-600">
             <th className="p-3 font-semibold w-[80px]">Image</th>
-            <th className="p-3 font-semibold w-[100px] cursor-pointer" onClick={() => handleSort("code")}>
+            <th
+              className="p-3 font-semibold w-[100px] cursor-pointer"
+              onClick={() => handleSort("code")}
+            >
               Code {getSortIcon("code")}
             </th>
-            <th className="p-3 font-semibold w-[200px] cursor-pointer" onClick={() => handleSort("name")}>
+            <th
+              className="p-3 font-semibold w-[200px] cursor-pointer"
+              onClick={() => handleSort("name")}
+            >
               Name {getSortIcon("name")}
             </th>
-            <th className="p-3 font-semibold w-[260px] cursor-pointer" onClick={() => handleSort("categoryName")}>
+            <th
+              className="p-3 font-semibold w-[260px] cursor-pointer"
+              onClick={() => handleSort("categoryName")}
+            >
               Category {getSortIcon("categoryName")}
             </th>
-            <th className="p-3 font-semibold w-[350px] cursor-pointer" onClick={() => handleSort("description")}>
+            <th
+              className="p-3 font-semibold w-[350px] cursor-pointer"
+              onClick={() => handleSort("description")}
+            >
               Description {getSortIcon("description")}
             </th>
             <th className="p-3 font-semibold w-[80px]">Size</th>
-            <th className="p-3 font-semibold w-[80px] cursor-pointer" onClick={() => handleSort("stock")}>
+            <th
+              className="p-3 font-semibold w-[80px] cursor-pointer"
+              onClick={() => handleSort("stock")}
+            >
               Stocks {getSortIcon("stock")}
             </th>
             <th className="p-3 font-semibold w-[130px]">Expiry</th>
@@ -90,7 +103,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   </span>
                 </td>
 
-                {/* Description + Tooltip */}
+                {/* Description (with hover tooltip) */}
                 <td className="p-2.5 w-[350px] align-middle relative group">
                   <p className="line-clamp-3 cursor-pointer">
                     {product.description}
@@ -140,7 +153,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 {/* ACTION BUTTONS */}
                 <td className="p-2.5 align-middle w-[500px]">
                   <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-
                     {/* UPDATE */}
                     <button
                       className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
@@ -159,9 +171,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                           ? "bg-red-500 hover:bg-red-600"
                           : "bg-green-600 hover:bg-green-700"
                       }`}
-                      onClick={() => {
-                        toggleAvailability(product);
-                      }}
+                      onClick={() => toggleAvailability(product)}
                     >
                       {product.status === "Available" ? (
                         <>
@@ -174,18 +184,12 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       )}
                     </button>
 
-                    {/* RECOMMENDED */}
+                    {/* VIEW RECOMMENDATIONS ✅ */}
                     <button
-                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
-                      onClick={() => {
-                        const target = paginatedProducts[idx];
-                        setSelectedRecommendations(
-                          target.recommendations ?? []
-                        );
-                        setIsViewModalOpen(true);
-                      }}
+                      className="h-9 min-w-[150px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                      onClick={() => onViewRecommendations(product)}
                     >
-                      <Eye className="w-4 h-4" /> Recommended
+                      <Eye className="w-4 h-4" /> View Recommendations
                     </button>
 
                     {/* DELETE */}
@@ -197,7 +201,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     >
                       <XCircle className="w-4 h-4" /> Delete
                     </button>
-
                   </div>
                 </td>
               </tr>
