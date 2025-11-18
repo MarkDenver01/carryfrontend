@@ -1,5 +1,3 @@
-// src/layout/product/ProductRecommendationRule.tsx
-
 import { useState, useMemo } from "react";
 import {
   Modal,

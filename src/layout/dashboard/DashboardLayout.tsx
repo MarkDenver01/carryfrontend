@@ -25,6 +25,7 @@ import RidersPage from '../../page/delivery/sub/Riders.tsx';
 import { ProductsProvider } from "../../context/ProductsContext";
 import { PricesProvider } from "../../context/PricesContext";
 import CategoryProvider from "../../context/CategoryContext";
+import { RecommendationRulesProvider } from '../../context/RecommendationRulesContext';
 
 
 export default function DashboardLayout() {
@@ -50,30 +51,32 @@ export default function DashboardLayout() {
                     <CategoryProvider>
                         <ProductsProvider>
                             <PricesProvider>
-                                <Routes>
-                                    <Route path="" element={<DashboardPage />} />
+                                <RecommendationRulesProvider>
+                                    <Routes>
+                                        <Route path="" element={<DashboardPage />} />
 
-                                    {/* Product Management */}
-                                    <Route path="products" element={<ProductsPage />} />
-                                    <Route path="products/monitoring" element={<ProductMonitoring />} />
-                                    <Route path="products/recommendation" element={<ProductRecommendation />} />
-                                    <Route path="products/rates" element={<ProductPriceMonitoring />} />
-                                    <Route path="products/categories" element={<ProductCategoryManagement />}/>
+                                        {/* Product Management */}
+                                        <Route path="products" element={<ProductsPage />} />
+                                        <Route path="products/monitoring" element={<ProductMonitoring />} />
+                                        <Route path="products/recommendation" element={<ProductRecommendation />} />
+                                        <Route path="products/rates" element={<ProductPriceMonitoring />} />
+                                        <Route path="products/categories" element={<ProductCategoryManagement />}/>
 
-                                    {/* Analytics */}
-                                    <Route path="analytics" element={<AnalyticsPage />} />
-                                    <Route path="analytics/customers" element={<CustomerReport />} />
-                                    <Route path="analytics/sales" element={<SalesReport />} />
-                                    <Route path="analytics/products" element={<ProductReport />} />
+                                        {/* Analytics */}
+                                        <Route path="analytics" element={<AnalyticsPage />} />
+                                        <Route path="analytics/customers" element={<CustomerReport />} />
+                                        <Route path="analytics/sales" element={<SalesReport />} />
+                                        <Route path="analytics/products" element={<ProductReport />} />
 
-                                    {/* Customers */}
-                                    <Route path="users" element={<UsersPage />} />
+                                        {/* Customers */}
+                                        <Route path="users" element={<UsersPage />} />
 
-                                    {/* Delivery Management */}
-                                    <Route path="delivery" element={<DeliveryPage />} />
-                                    <Route path="delivery/orders" element={<OrdersPage />} />
-                                    <Route path="delivery/riders" element={<RidersPage />} />
-                                </Routes>
+                                        {/* Delivery Management */}
+                                        <Route path="delivery" element={<DeliveryPage />} />
+                                        <Route path="delivery/orders" element={<OrdersPage />} />
+                                        <Route path="delivery/riders" element={<RidersPage />} />
+                                    </Routes>
+                                </RecommendationRulesProvider>
                             </PricesProvider>
                         </ProductsProvider>
                     </CategoryProvider>
