@@ -25,7 +25,8 @@ import RidersPage from '../../page/delivery/sub/Riders.tsx';
 import { ProductsProvider } from "../../context/ProductsContext";
 import { PricesProvider } from "../../context/PricesContext";
 import CategoryProvider from "../../context/CategoryContext";
-import { RecommendationRulesProvider } from '../../context/RecommendationRulesContext';
+import { RecommendationRuleProvider } from "../../context/RecommendationRulesContext";
+
 
 
 export default function DashboardLayout() {
@@ -51,7 +52,7 @@ export default function DashboardLayout() {
                     <CategoryProvider>
                         <ProductsProvider>
                             <PricesProvider>
-                                <RecommendationRulesProvider>
+                                <RecommendationRuleProvider>
                                     <Routes>
                                         <Route path="" element={<DashboardPage />} />
 
@@ -76,7 +77,7 @@ export default function DashboardLayout() {
                                         <Route path="delivery/orders" element={<OrdersPage />} />
                                         <Route path="delivery/riders" element={<RidersPage />} />
                                     </Routes>
-                                </RecommendationRulesProvider>
+                                </RecommendationRuleProvider>
                             </PricesProvider>
                         </ProductsProvider>
                     </CategoryProvider>
