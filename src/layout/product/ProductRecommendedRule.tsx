@@ -1,5 +1,3 @@
-// src/layout/product/ProductRecommendedRule.tsx
-
 import { useState, useMemo } from "react";
 import {
   Modal,
@@ -15,7 +13,6 @@ import {
   Pagination,
 } from "flowbite-react";
 import {
-  Pencil,
   Trash2,
   Plus,
   ArrowUp,
@@ -27,17 +24,16 @@ import {
 import Swal from "sweetalert2";
 
 import { useProductsContext } from "../../context/ProductsContext";
-import { useRecommendationRulesContext } from "../../context/RecommendationRulesContext";
+import { useRecommendationRules } from "../../context/RecommendationRulesContext";
 
 import type {
-  RecommendationRule,
-  RecommendationRulePayload,
-} from "../../types/recommendationTypes";
+  RecommendationRuleDTO,
+  RecommendationRuleRequest,
+} from "../../libs/models/product/RecommendedRule";
 
 type SortField = "product" | "category" | "effectiveDate";
 
 interface RuleFormState {
-  // NOTE: form state can use null, pero payload will ALWAYS send number (Option A)
   baseProductId: number | null;
   recommendedProductIds: number[];
   effectiveDate: string;
@@ -53,19 +49,10 @@ const initialForm: RuleFormState = {
 
 export default function ProductRecommendedRule() {
   const { products } = useProductsContext();
-  const {
-    rules,
-    createRule,
-    editRule,
-    removeRule,
-    toggleStatus,
-  } = useRecommendationRulesContext();
+  const { rules, addRule, removeRule } = useRecommendationRules();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form, setForm] = useState<RuleFormState>(initialForm);
-  const [editingRule, setEditingRule] = useState<RecommendationRule | null>(
-    null
-  );
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -91,7 +78,7 @@ export default function ProductRecommendedRule() {
   );
 
   // ==============================
-  // SORT ICON
+  // SORT ICONS
   // ==============================
   const SortIcon = ({ field }: { field: SortField }) => {
     if (sortField !== field)
@@ -110,29 +97,15 @@ export default function ProductRecommendedRule() {
   };
 
   // ==============================
-  // OPEN / CLOSE MODAL
+  // MODAL HANDLERS
   // ==============================
   const openAddModal = () => {
-    setEditingRule(null);
     setForm(initialForm);
-    setIsModalOpen(true);
-  };
-
-  const openEditModal = (rule: RecommendationRule) => {
-    setEditingRule(rule);
-    setForm({
-      baseProductId: rule.baseProductId,
-      recommendedProductIds:
-        rule.recommendedProducts?.map((r) => r.productId) ?? [],
-      effectiveDate: rule.effectiveDate,
-      expiryDate: rule.expiryDate,
-    });
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setEditingRule(null);
     setForm(initialForm);
   };
 
@@ -148,7 +121,6 @@ export default function ProductRecommendedRule() {
       setForm((prev) => ({
         ...prev,
         baseProductId: strVal === "" ? null : Number(strVal),
-        // reset recommended when changing base product
         recommendedProductIds: [],
       }));
       return;
@@ -171,7 +143,9 @@ export default function ProductRecommendedRule() {
     }));
   };
 
-  // Recommended options: optionally same category as base product
+  // ==============================
+  // BASE + RECOMMENDED PRODUCTS
+  // ==============================
   const baseProduct = useMemo(
     () =>
       form.baseProductId == null
@@ -182,7 +156,6 @@ export default function ProductRecommendedRule() {
 
   const recommendedOptions = useMemo(() => {
     if (!baseProduct) return products;
-    // filter by same category and exclude self
     return products.filter(
       (p) =>
         p.id !== baseProduct.id &&
@@ -206,7 +179,7 @@ export default function ProductRecommendedRule() {
   };
 
   // ==============================
-  // SAVE RULE (CREATE / UPDATE)
+  // SAVE RULE
   // ==============================
   const handleSaveRule = async () => {
     const validationError = validateForm();
@@ -215,64 +188,46 @@ export default function ProductRecommendedRule() {
       return;
     }
 
-    // Extra defensive filter para walang null/NaN na pumalo sa backend
-    const cleanRecommendedIds = form.recommendedProductIds.filter(
-      (id) => typeof id === "number" && !Number.isNaN(id)
-    );
-
-    if (!form.baseProductId) {
-      await Swal.fire("Validation", "Base product is required.", "warning");
-      return;
-    }
-
-    if (cleanRecommendedIds.length === 0) {
-      await Swal.fire(
-        "Validation",
-        "Please select at least one valid recommended product.",
-        "warning"
-      );
-      return;
-    }
-
-    const payload: RecommendationRulePayload = {
-      // Option A: backend ALWAYS expects a number here
+    const payload: RecommendationRuleRequest = {
       baseProductId: form.baseProductId as number,
-      recommendedProductIds: cleanRecommendedIds,
+      recommendedProductIds: form.recommendedProductIds,
       effectiveDate: form.effectiveDate,
       expiryDate: form.expiryDate,
     };
 
     try {
-      if (editingRule) {
-        await editRule(editingRule.id, payload);
-        await Swal.fire("Updated", "Recommendation rule updated.", "success");
-      } else {
-        await createRule(payload);
-        await Swal.fire("Created", "Recommendation rule created.", "success");
-      }
+      await addRule(payload);
+      await Swal.fire(
+        "Created",
+        "Recommendation rule created successfully.",
+        "success"
+      );
       closeModal();
     } catch (err: any) {
       await Swal.fire(
         "Error",
-        err?.message || "Failed to save recommendation rule",
+        err?.response?.data?.message ||
+          err?.message ||
+          "Failed to create recommendation rule.",
         "error"
       );
     }
   };
 
   // ==============================
-  // DELETE / TOGGLE STATUS
+  // DELETE RULE
   // ==============================
-  const handleDelete = async (rule: RecommendationRule) => {
+  const handleDelete = async (rule: RecommendationRuleDTO) => {
     const result = await Swal.fire({
       title: "Delete Rule?",
-      text: `Delete recommendation rule for "${rule.baseProductName}"?`,
+      text: `Delete recommendation rule for "${rule.productName}"?`,
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Yes, delete it",
     });
 
     if (!result.isConfirmed) return;
+
     try {
       await removeRule(rule.id);
       await Swal.fire("Deleted", "Rule has been removed.", "success");
@@ -285,44 +240,31 @@ export default function ProductRecommendedRule() {
     }
   };
 
-  const handleToggleStatus = async (rule: RecommendationRule) => {
-    try {
-      await toggleStatus(rule.id);
-    } catch (err: any) {
-      await Swal.fire(
-        "Error",
-        err?.message || "Failed to update rule status",
-        "error"
-      );
-    }
-  };
-
   // ==============================
   // FILTER + SORT + PAGINATION
   // ==============================
-  const filtered = useMemo(() => {
-    return rules.filter((r) => {
-      const matchSearch = r.baseProductName
+  const filtered = useMemo<RecommendationRuleDTO[]>(() => {
+    return rules.filter((r: RecommendationRuleDTO) => {
+      const matchSearch = r.productName
         .toLowerCase()
         .includes(search.toLowerCase());
       const matchCategory =
-        selectedCategory === "" ||
-        r.baseProductCategoryName === selectedCategory;
+        selectedCategory === "" || r.categoryName === selectedCategory;
       return matchSearch && matchCategory;
     });
   }, [rules, search, selectedCategory]);
 
-  const sorted = useMemo(() => {
-    return [...filtered].sort((a, b) => {
+  const sorted = useMemo<RecommendationRuleDTO[]>(() => {
+    return [...filtered].sort((a: RecommendationRuleDTO, b: RecommendationRuleDTO) => {
       let aVal = "";
       let bVal = "";
 
       if (sortField === "product") {
-        aVal = a.baseProductName.toLowerCase();
-        bVal = b.baseProductName.toLowerCase();
+        aVal = a.productName.toLowerCase();
+        bVal = b.productName.toLowerCase();
       } else if (sortField === "category") {
-        aVal = (a.baseProductCategoryName ?? "").toLowerCase();
-        bVal = (b.baseProductCategoryName ?? "").toLowerCase();
+        aVal = (a.categoryName ?? "").toLowerCase();
+        bVal = (b.categoryName ?? "").toLowerCase();
       } else if (sortField === "effectiveDate") {
         aVal = a.effectiveDate;
         bVal = b.effectiveDate;
@@ -359,15 +301,14 @@ export default function ProductRecommendedRule() {
         </Button>
       </div>
 
-      {/* SEARCH + FILTER (same feel as ProductInventoryTable) */}
+      {/* SEARCH + FILTER */}
       <div className="flex flex-wrap items-center gap-3 mb-6">
         {/* Search */}
         <div className="relative w-full max-w-xs">
           <input
             type="text"
-            placeholder="Search base product..."
-            className="w-full border border-emerald-300 rounded-full px-4 py-2 pl-10 shadow-sm 
-                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            placeholder="Search product..."
+            className="w-full border border-emerald-300 rounded-full px-4 py-2 pl-10 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -377,15 +318,13 @@ export default function ProductRecommendedRule() {
           <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
         </div>
 
-        {/* Category filter (Dropdown style) */}
+        {/* Category Filter */}
         <Dropdown
-          dismissOnClick={true}
+          dismissOnClick
           label=""
           renderTrigger={() => (
             <button
-              className="flex items-center gap-2 border border-emerald-500 bg-emerald-100 
-                         text-emerald-900 font-semibold text-sm px-4 py-1 rounded-full shadow 
-                         hover:shadow-md transition"
+              className="flex items-center gap-2 border border-emerald-500 bg-emerald-100 text-emerald-900 font-semibold text-sm px-4 py-1 rounded-full shadow hover:shadow-md transition"
             >
               {`Category: ${
                 selectedCategory === "" ? "All" : selectedCategory
@@ -422,31 +361,20 @@ export default function ProductRecommendedRule() {
         <table className="min-w-full border border-gray-200 text-sm text-left text-gray-700">
           <thead className="bg-emerald-600 text-white">
             <tr>
-              <th className="p-3 border font-medium">Status</th>
-
-              <th
-                className="p-3 border font-medium cursor-pointer select-none"
-                onClick={() => handleSort("product")}
-              >
-                Product <SortIcon field="product" />
-              </th>
-
+              <th className="p-3 border font-medium">Product</th>
               <th className="p-3 border font-medium">Recommended</th>
-
               <th
                 className="p-3 border font-medium cursor-pointer select-none"
                 onClick={() => handleSort("effectiveDate")}
               >
                 Date Range <SortIcon field="effectiveDate" />
               </th>
-
               <th
                 className="p-3 border font-medium cursor-pointer select-none"
                 onClick={() => handleSort("category")}
               >
                 Category <SortIcon field="category" />
               </th>
-
               <th className="p-3 border font-medium text-center">Actions</th>
             </tr>
           </thead>
@@ -455,55 +383,16 @@ export default function ProductRecommendedRule() {
             {paginated.length > 0 ? (
               paginated.map((rule) => (
                 <tr key={rule.id} className="hover:bg-gray-100">
-                  {/* STATUS PILL */}
+                  <td className="p-3 border font-medium">{rule.productName}</td>
                   <td className="p-3 border">
-                    <button
-                      onClick={() => handleToggleStatus(rule)}
-                      className={`px-2 py-1 text-xs font-semibold rounded-full border ${
-                        rule.status === "ACTIVE"
-                          ? "bg-green-100 text-green-700 border-green-300"
-                          : "bg-gray-100 text-gray-700 border-gray-300"
-                      }`}
-                    >
-                      {rule.status === "ACTIVE" ? "Active" : "Inactive"}
-                    </button>
+                    {rule.recommendedNames.join(", ")}
                   </td>
-
-                  {/* PRODUCT NAME */}
-                  <td className="p-3 border font-medium">
-                    {rule.baseProductName}
-                  </td>
-
-                  {/* RECOMMENDED LIST */}
-                  <td className="p-3 border">
-                    {rule.recommendedProducts.length > 0
-                      ? rule.recommendedProducts
-                          .map((r) => r.productName)
-                          .join(", ")
-                      : "—"}
-                  </td>
-
-                  {/* DATE RANGE */}
                   <td className="p-3 border">
                     {rule.effectiveDate} → {rule.expiryDate}
                   </td>
-
-                  {/* CATEGORY */}
+                  <td className="p-3 border">{rule.categoryName ?? "—"}</td>
                   <td className="p-3 border">
-                    {rule.baseProductCategoryName ?? "—"}
-                  </td>
-
-                  {/* ACTIONS */}
-                  <td className="p-3 border">
-                    <div className="flex justify-center gap-2">
-                      <Button
-                        size="xs"
-                        color="warning"
-                        onClick={() => openEditModal(rule)}
-                      >
-                        <Pencil className="w-4 h-4" />
-                      </Button>
-
+                    <div className="flex justify-center">
                       <Button
                         size="xs"
                         color="failure"
@@ -518,7 +407,7 @@ export default function ProductRecommendedRule() {
             ) : (
               <tr>
                 <td
-                  colSpan={6}
+                  colSpan={5}
                   className="text-center p-4 text-gray-500 border"
                 >
                   No rules found.
@@ -531,7 +420,7 @@ export default function ProductRecommendedRule() {
 
       {/* PAGINATION */}
       {totalPages > 1 && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
           <span>
             Showing{" "}
             <span className="font-semibold text-gray-800">
@@ -548,33 +437,27 @@ export default function ProductRecommendedRule() {
             entries
           </span>
 
-          <div className="flex overflow-x-auto sm:justify-center">
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              showIcons
-            />
-          </div>
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            showIcons
+          />
         </div>
       )}
 
       {/* MODAL */}
       <Modal show={isModalOpen} onClose={closeModal}>
-        <ModalHeader>
-          {editingRule
-            ? "Edit Recommendation Rule"
-            : "Add New Recommendation Rule"}
-        </ModalHeader>
-
+        <ModalHeader>Add New Recommendation Rule</ModalHeader>
         <ModalBody>
           <div className="space-y-4">
             {/* PRODUCT */}
             <div>
-              <Label htmlFor="product">When Product</Label>
+              <Label>When Product</Label>
               <Select
-                id="product"
-                value={form.baseProductId == null ? "" : String(form.baseProductId)}
+                value={
+                  form.baseProductId == null ? "" : String(form.baseProductId)
+                }
                 onChange={(e) =>
                   handleFormChange("baseProductId", e.target.value)
                 }
@@ -582,7 +465,7 @@ export default function ProductRecommendedRule() {
                 <option value="">Select Product</option>
                 {products.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} ({p.code})
+                    {p.name}
                   </option>
                 ))}
               </Select>
@@ -590,9 +473,8 @@ export default function ProductRecommendedRule() {
 
             {/* RECOMMENDED MULTI SELECT */}
             <div>
-              <Label htmlFor="recommended">Show Recommended Product(s)</Label>
+              <Label>Show Recommended Product(s)</Label>
               <Select
-                id="recommended"
                 multiple
                 value={form.recommendedProductIds.map(String)}
                 onChange={(e) =>
@@ -604,34 +486,34 @@ export default function ProductRecommendedRule() {
               >
                 {recommendedOptions.map((p) => (
                   <option key={p.id} value={p.id}>
-                    {p.name} ({p.code})
+                    {p.name}
                   </option>
                 ))}
               </Select>
             </div>
 
-            {/* EFFECTIVE DATE */}
-            <div>
-              <Label>Effective Date</Label>
-              <TextInput
-                type="date"
-                value={form.effectiveDate}
-                onChange={(e) =>
-                  handleFormChange("effectiveDate", e.target.value)
-                }
-              />
-            </div>
-
-            {/* EXPIRY DATE */}
-            <div>
-              <Label>Expiry Date</Label>
-              <TextInput
-                type="date"
-                value={form.expiryDate}
-                onChange={(e) =>
-                  handleFormChange("expiryDate", e.target.value)
-                }
-              />
+            {/* DATES */}
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <Label>Effective Date</Label>
+                <TextInput
+                  type="date"
+                  value={form.effectiveDate}
+                  onChange={(e) =>
+                    handleFormChange("effectiveDate", e.target.value)
+                  }
+                />
+              </div>
+              <div className="flex-1">
+                <Label>Expiry Date</Label>
+                <TextInput
+                  type="date"
+                  value={form.expiryDate}
+                  onChange={(e) =>
+                    handleFormChange("expiryDate", e.target.value)
+                  }
+                />
+              </div>
             </div>
           </div>
         </ModalBody>
@@ -641,9 +523,8 @@ export default function ProductRecommendedRule() {
             className="bg-green-600 hover:bg-green-700"
             onClick={handleSaveRule}
           >
-            {editingRule ? "Update Rule" : "Add Rule"}
+            Add Rule
           </Button>
-
           <Button color="gray" onClick={closeModal}>
             Cancel
           </Button>
