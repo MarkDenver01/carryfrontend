@@ -31,6 +31,11 @@ export default function ViewRecommendedModal({ show, onClose, productId }: Props
     if (show) fetchRecommended();
   }, [show, productId]);
 
+  /** 🔁 Navigate to Recommendation Rules page */
+  const handleGoToRules = () => {
+    window.location.href = "/dashboard/recommendations"; // or your actual route
+  };
+
   return (
     <Modal show={show} onClose={onClose} size="xl" popup>
       <div className="bg-white rounded-lg shadow-lg">
@@ -75,7 +80,9 @@ export default function ViewRecommendedModal({ show, onClose, productId }: Props
                   <table className="min-w-full border-t border-gray-200 text-sm text-left text-gray-700">
                     <thead className="bg-emerald-600 text-white">
                       <tr>
-                        <th className="p-3 border font-medium">Recommended Product Names</th>
+                        <th className="p-3 border font-medium">
+                          Recommended Product Names
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -90,9 +97,17 @@ export default function ViewRecommendedModal({ show, onClose, productId }: Props
               </div>
             ))
           ) : (
-            <p className="text-center text-gray-500 py-4">
-              No recommendations found for this product.
-            </p>
+            <div className="flex flex-col items-center justify-center py-10">
+              <p className="text-gray-600 mb-4 text-center">
+                No recommendations found for this product.
+              </p>
+              <Button
+                onClick={handleGoToRules}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-full text-sm font-medium shadow-sm"
+              >
+                Go to Recommendation Rules
+              </Button>
+            </div>
           )}
         </div>
       </div>
