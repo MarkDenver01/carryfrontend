@@ -8,6 +8,7 @@ import ProductTable from "../product/ProductTable";
 import ProductFormModal from "../../components/product/ProductFormModal";
 import ProductRecommendationsModal from "../../components/product/ProductRecommendationsModal";
 
+import { fetchAllRules } from "../../libs/ApiGatewayDatasource"; // ✅ adjust path if different
 import type { Product } from "../../types/types";
 import type { RecommendationRuleDTO } from "../../libs/models/product/RecommendedRule";
 
@@ -31,14 +32,15 @@ export default function ProductInventoryTable() {
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<Product | null>(null);
 
-  // ✅ Updated to use backend-aligned RecommendationRuleDTO
-  const [showRecs, setShowRecs] = useState(false);
+  // ✅ Modal state for viewing recommendations
+  const [viewModal, setViewModal] = useState(false);
   const [recommendations, setRecommendations] = useState<RecommendationRuleDTO[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
-  /** FILTER */
+  /** 🔍 FILTER */
   const filtered = useMemo(() => {
     return products.filter(
       (p) =>
@@ -47,7 +49,7 @@ export default function ProductInventoryTable() {
     );
   }, [products, search, status]);
 
-  /** SORT */
+  /** ↕️ SORT */
   const [sortField, setSortField] = useState<ProductSortField>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
@@ -73,14 +75,14 @@ export default function ProductInventoryTable() {
     return sortOrder === "asc" ? "↑" : "↓";
   };
 
-  /** PAGINATION */
+  /** 📄 PAGINATION */
   const totalPages = Math.ceil(sortedProducts.length / pageSize);
   const paginatedProducts = sortedProducts.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
-  /** ACTIONS */
+  /** ✏️ EDIT PRODUCT */
   const handleEditProduct = (index: number) => {
     const product = sortedProducts[index];
     if (product) {
@@ -89,6 +91,7 @@ export default function ProductInventoryTable() {
     }
   };
 
+  /** ❌ DELETE PRODUCT */
   const handleDeleteProduct = async (id: number) => {
     const result = await Swal.fire({
       title: "Delete Product?",
@@ -104,27 +107,42 @@ export default function ProductInventoryTable() {
     }
   };
 
+  /** 🔁 TOGGLE AVAILABILITY */
   const toggleAvailability = async (product: Product) => {
     if (!product?.id) return;
     const newStatus = product.status === "Available" ? "Not Available" : "Available";
     await updateProductStatusById(product.id, newStatus);
   };
 
-  /** VIEW RECOMMENDATIONS HANDLER */
-  const handleViewRecommendations = (product: Product) => {
-    if (!product?.recommendations?.length) {
-      Swal.fire("Info", "No recommendations found for this product.", "info");
-      return;
+  /** 👁️ VIEW RECOMMENDATIONS — fetch dynamically like ProductPriceTable */
+  const handleViewRecommendations = async (productId: number | undefined) => {
+    if (!productId) return;
+
+    try {
+      const allRules = await fetchAllRules();
+      const productRules = allRules.filter((rule) => rule.productId === productId);
+
+      if (productRules.length === 0) {
+        Swal.fire("Info", "No recommendations found for this product.", "info");
+        return;
+      }
+
+      setRecommendations(productRules);
+      setSelectedProductId(productId);
+      setViewModal(true);
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+      Swal.fire("Error", "Failed to load recommendations.", "error");
     }
-    setRecommendations(product.recommendations);
-    setShowRecs(true);
   };
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
       {/* HEADER */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">Product Inventory Monitoring</h2>
+        <h2 className="text-xl font-semibold text-gray-800">
+          Product Inventory Monitoring
+        </h2>
         <Button
           onClick={() => {
             setEditTarget(null);
@@ -169,7 +187,9 @@ export default function ProductInventoryTable() {
         >
           <DropdownItem onClick={() => setStatus("")}>All Status</DropdownItem>
           <DropdownItem onClick={() => setStatus("Available")}>Available</DropdownItem>
-          <DropdownItem onClick={() => setStatus("Not Available")}>Not Available</DropdownItem>
+          <DropdownItem onClick={() => setStatus("Not Available")}>
+            Not Available
+          </DropdownItem>
         </Dropdown>
       </div>
 
@@ -185,7 +205,7 @@ export default function ProductInventoryTable() {
           handleEditProduct={handleEditProduct}
           toggleAvailability={toggleAvailability}
           handleDeleteProduct={handleDeleteProduct}
-          onViewRecommendations={handleViewRecommendations} // ✅ UPDATED
+          onViewRecommendations={(product) => handleViewRecommendations(product.id!)} // ✅ FIXED
         />
       </div>
 
@@ -226,9 +246,10 @@ export default function ProductInventoryTable() {
         product={editTarget}
       />
 
+      {/* ✅ Dynamic recommendation viewer */}
       <ProductRecommendationsModal
-        show={showRecs}
-        onClose={() => setShowRecs(false)}
+        show={viewModal}
+        onClose={() => setViewModal(false)}
         recommendations={recommendations}
       />
     </div>
