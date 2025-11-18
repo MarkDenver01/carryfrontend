@@ -1,13 +1,4 @@
-export interface ProductRecommended {
-  productRecommendedId: number;
-  productCode: string;
-  productName: string;
-  productDescription: string;
-  productSize: string;
-  productImgUrl: string;
-  expiryDate?: string | null;
-  createdDate?: string | null;
-}
+import { type RecommendationRuleDTO } from "../libs/models/product/RecommendedRule";
 
 export interface Product {
   id?: number;
@@ -25,5 +16,6 @@ export interface Product {
   categoryId?: number | null;
   categoryName?: string | null;
 
-  recommendations?: ProductRecommended[];
+    // 👇 replace old "ProductRecommended[]" with the new structured rules
+  recommendations?: RecommendationRuleDTO[];
 }

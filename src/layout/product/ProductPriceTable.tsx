@@ -3,6 +3,7 @@ import { Button, Pagination } from "flowbite-react";
 import { Pencil, XCircle, Search, Eye } from "lucide-react";
 import Swal from "sweetalert2";
 import ProductPriceFormModal from "../../components/product/ProductPriceFormModal";
+import ViewRecommendedModal from "../../components/product/ViewRecommendedModal";
 import { usePricesContext } from "../../context/PricesContext";
 import type { ProductPrice } from "../../types/pricingTypes";
 
@@ -13,31 +14,39 @@ export default function ProductPriceTable() {
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<ProductPrice | null>(null);
 
+  const [viewModal, setViewModal] = useState(false);
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
+
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
+  /** 🔍 SEARCH FILTER */
   const filtered = useMemo(() => {
     return prices.filter((p) =>
       p.productName.toLowerCase().includes(search.toLowerCase())
     );
   }, [prices, search]);
 
+  /** 📄 PAGINATION */
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
+  /** ➕ ADD PRICE */
   const handleAdd = () => {
     setEditTarget(null);
     setShowModal(true);
   };
 
+  /** ✏️ EDIT PRICE */
   const handleEdit = (price: ProductPrice) => {
     setEditTarget(price);
     setShowModal(true);
   };
 
+  /** ❌ DELETE PRICE */
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: "Delete Price?",
@@ -52,6 +61,12 @@ export default function ProductPriceTable() {
       await removePrice(id);
       Swal.fire("Deleted!", "Price record removed.", "success");
     }
+  };
+
+  /** 👁️ VIEW RECOMMENDATIONS */
+  const handleViewRecommendations = (productId: number) => {
+    setSelectedProductId(productId);
+    setViewModal(true);
   };
 
   return (
@@ -136,6 +151,7 @@ export default function ProductPriceTable() {
                       </button>
                       <button
                         className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                        onClick={() => handleViewRecommendations(p.productId)}
                       >
                         <Eye className="w-4 h-4" /> View Recommendations
                       </button>
@@ -181,11 +197,17 @@ export default function ProductPriceTable() {
         </div>
       )}
 
-      {/* MODAL */}
+      {/* MODALS */}
       <ProductPriceFormModal
         show={showModal}
         onClose={() => setShowModal(false)}
         price={editTarget}
+      />
+
+      <ViewRecommendedModal
+        show={viewModal}
+        onClose={() => setViewModal(false)}
+        productId={selectedProductId}
       />
     </div>
   );
