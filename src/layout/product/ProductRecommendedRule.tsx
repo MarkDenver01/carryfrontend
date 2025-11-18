@@ -193,12 +193,12 @@ export default function ProductRecommendedRule() {
       return;
     }
 
-    const payload: RecommendationRulePayload = {
-      baseProductId: form.baseProductId as number,
-      recommendedProductIds: form.recommendedProductIds,
-      effectiveDate: form.effectiveDate,
-      expiryDate: form.expiryDate,
-    };
+  const payload: RecommendationRulePayload = {
+    baseProductId: form.baseProductId === "" ? null : Number(form.baseProductId),
+    recommendedProductIds: form.recommendedProductIds,
+    effectiveDate: form.effectiveDate,
+    expiryDate: form.expiryDate,
+  };
 
     try {
       if (editingRule) {

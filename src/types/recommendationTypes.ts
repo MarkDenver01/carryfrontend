@@ -27,7 +27,7 @@ export interface RecommendationRuleDTO {
  * Payload used when creating/updating a rule
  */
 export interface RecommendationRulePayload {
-  baseProductId: number;
+  baseProductId: number | null;
   recommendedProductIds: number[];
   effectiveDate: string;
   expiryDate: string;
