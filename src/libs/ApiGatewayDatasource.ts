@@ -213,16 +213,16 @@ export async function deleteCategory(id: number): Promise<void> {
 }
 
 export async function fetchAllRules() {
-  const res = await api.get<RecommendationRuleDTO[]>("/admin/api/rules");
+  const res = await api.get<RecommendationRuleDTO[]>("/admin/api/recommendation-rules");
   return res.data;
 }
 
 export async function createRule(rule: RecommendationRuleRequest) {
-  const res = await api.post<RecommendationRuleDTO>("/admin/api/rules", rule);
+  const res = await api.post<RecommendationRuleDTO>("/admin/api/recommendation-rules", rule);
   return res.data;
 }
 
 export async function deleteRule(id: number) {
-  await api.delete(`/admin/api/rules/${id}`);
+  await api.delete(`/admin/api/recommendation-rules/${id}`);
 }
 
