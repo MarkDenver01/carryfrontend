@@ -1,535 +1,190 @@
-import { useState, useMemo } from "react";
-import {
-  Modal,
-  Button,
-  Label,
-  TextInput,
-  Select,
-  ModalHeader,
-  ModalBody,
-  ModalFooter,
-  Dropdown,
-  DropdownItem,
-  Pagination,
-} from "flowbite-react";
-import {
-  Trash2,
-  Plus,
-  ArrowUp,
-  ArrowDown,
-  ArrowUpDown,
-  Search,
-  ChevronDown,
-} from "lucide-react";
-import Swal from "sweetalert2";
+"use client";
 
-import { useProductsContext } from "../../context/ProductsContext";
+import React, { useState } from "react";
 import { useRecommendationRules } from "../../context/RecommendationRulesContext";
+import Swal from "sweetalert2";
+import { format } from "date-fns";
+import type { RecommendationRuleRequest, RecommendationRuleDTO } from "../../libs/models/product/RecommendedRule";
 
-import type {
-  RecommendationRuleDTO,
-  RecommendationRuleRequest,
-} from "../../libs/models/product/RecommendedRule";
-
-type SortField = "product" | "category" | "effectiveDate";
-
-interface RuleFormState {
-  baseProductId: number | null;
-  recommendedProductIds: number[];
-  effectiveDate: string;
-  expiryDate: string;
-}
-
-const initialForm: RuleFormState = {
-  baseProductId: null,
-  recommendedProductIds: [],
-  effectiveDate: "",
-  expiryDate: "",
-};
-
-export default function ProductRecommendedRule() {
-  const { products } = useProductsContext();
-  const { rules, addRule, removeRule } = useRecommendationRules();
-
+const RecommendationRulesPage: React.FC = () => {
+  const { rules, addRule, updateRuleById, removeRule } = useRecommendationRules();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState<RuleFormState>(initialForm);
+  const [editingRule, setEditingRule] = useState<RecommendationRuleDTO | null>(null);
 
-  const [search, setSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [sortField, setSortField] = useState<SortField>("product");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [form, setForm] = useState<RecommendationRuleRequest>({
+    baseProductId: 0,
+    recommendedProductIds: [],
+    effectiveDate: "",
+    expiryDate: "",
+  });
 
-  const itemsPerPage = 6;
-  const [currentPage, setCurrentPage] = useState(1);
-
-  // ==============================
-  // CATEGORY OPTIONS
-  // ==============================
-  const uniqueCategories = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          products
-            .map((p) => p.categoryName)
-            .filter((x): x is string => !!x && x.trim() !== "")
-        )
-      ),
-    [products]
-  );
-
-  // ==============================
-  // SORT ICONS
-  // ==============================
-  const SortIcon = ({ field }: { field: SortField }) => {
-    if (sortField !== field)
-      return <ArrowUpDown className="w-4 h-4 inline opacity-50" />;
-    if (sortOrder === "asc") return <ArrowUp className="w-4 h-4 inline" />;
-    return <ArrowDown className="w-4 h-4 inline" />;
-  };
-
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      setSortOrder((prev) => (prev === "asc" ? "desc" : "asc"));
-    } else {
-      setSortField(field);
-      setSortOrder("asc");
-    }
-  };
-
-  // ==============================
-  // MODAL HANDLERS
-  // ==============================
-  const openAddModal = () => {
-    setForm(initialForm);
+  const openCreateModal = () => {
+    setEditingRule(null);
+    setForm({ baseProductId: 0, recommendedProductIds: [], effectiveDate: "", expiryDate: "" });
     setIsModalOpen(true);
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setForm(initialForm);
+  const openEditModal = (rule: RecommendationRuleDTO) => {
+    setEditingRule(rule);
+    setForm({
+      baseProductId: rule.productId,
+      recommendedProductIds: [], // You can fetch actual IDs here if needed
+      effectiveDate: rule.effectiveDate,
+      expiryDate: rule.expiryDate,
+    });
+    setIsModalOpen(true);
   };
 
-  // ==============================
-  // FORM HANDLERS
-  // ==============================
-  const handleFormChange = (
-    field: keyof RuleFormState,
-    value: string | number | string[]
-  ) => {
-    if (field === "baseProductId") {
-      const strVal = value as string;
-      setForm((prev) => ({
-        ...prev,
-        baseProductId: strVal === "" ? null : Number(strVal),
-        recommendedProductIds: [],
-      }));
-      return;
-    }
+  const closeModal = () => setIsModalOpen(false);
 
-    if (field === "recommendedProductIds") {
-      const values = (value as string[])
-        .map((v) => Number(v))
-        .filter((n) => !Number.isNaN(n));
-      setForm((prev) => ({
-        ...prev,
-        recommendedProductIds: values,
-      }));
-      return;
-    }
-
-    setForm((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
-  // ==============================
-  // BASE + RECOMMENDED PRODUCTS
-  // ==============================
-  const baseProduct = useMemo(
-    () =>
-      form.baseProductId == null
-        ? undefined
-        : products.find((p) => p.id === form.baseProductId),
-    [products, form.baseProductId]
-  );
-
-  const recommendedOptions = useMemo(() => {
-    if (!baseProduct) return products;
-    return products.filter(
-      (p) =>
-        p.id !== baseProduct.id &&
-        (!baseProduct.categoryName ||
-          p.categoryName === baseProduct.categoryName)
-    );
-  }, [products, baseProduct]);
-
-  // ==============================
-  // VALIDATION
-  // ==============================
-  const validateForm = (): string | null => {
-    if (!form.baseProductId) return "Please select a base product.";
-    if (!form.effectiveDate) return "Effective date is required.";
-    if (!form.expiryDate) return "Expiry date is required.";
-    if (form.recommendedProductIds.length === 0)
-      return "Please select at least one recommended product.";
-    if (form.expiryDate < form.effectiveDate)
-      return "Expiry date cannot be earlier than effective date.";
-    return null;
-  };
-
-  // ==============================
-  // SAVE RULE
-  // ==============================
   const handleSaveRule = async () => {
-    const validationError = validateForm();
-    if (validationError) {
-      await Swal.fire("Validation", validationError, "warning");
+    if (!form.baseProductId || form.recommendedProductIds.length === 0) {
+      await Swal.fire("Validation", "Please fill all required fields", "warning");
       return;
     }
-
-    const payload: RecommendationRuleRequest = {
-      baseProductId: form.baseProductId as number,
-      recommendedProductIds: form.recommendedProductIds,
-      effectiveDate: form.effectiveDate,
-      expiryDate: form.expiryDate,
-    };
 
     try {
-      await addRule(payload);
-      await Swal.fire(
-        "Created",
-        "Recommendation rule created successfully.",
-        "success"
-      );
+      if (editingRule) {
+        await updateRuleById(editingRule.id, form);
+        await Swal.fire("Updated", "Rule updated successfully!", "success");
+      } else {
+        await addRule(form);
+        await Swal.fire("Created", "Rule created successfully!", "success");
+      }
       closeModal();
     } catch (err: any) {
-      await Swal.fire(
-        "Error",
-        err?.response?.data?.message ||
-          err?.message ||
-          "Failed to create recommendation rule.",
-        "error"
-      );
+      await Swal.fire("Error", err.message || "Failed to save rule", "error");
     }
   };
 
-  // ==============================
-  // DELETE RULE
-  // ==============================
-  const handleDelete = async (rule: RecommendationRuleDTO) => {
-    const result = await Swal.fire({
-      title: "Delete Rule?",
-      text: `Delete recommendation rule for "${rule.productName}"?`,
+  const handleDelete = async (id: number) => {
+    const confirm = await Swal.fire({
+      title: "Are you sure?",
+      text: "This will delete the rule permanently.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Yes, delete it",
+      confirmButtonText: "Yes, delete it!",
     });
-
-    if (!result.isConfirmed) return;
-
-    try {
-      await removeRule(rule.id);
+    if (confirm.isConfirmed) {
+      await removeRule(id);
       await Swal.fire("Deleted", "Rule has been removed.", "success");
-    } catch (err: any) {
-      await Swal.fire(
-        "Error",
-        err?.message || "Failed to delete recommendation rule",
-        "error"
-      );
     }
   };
 
-  // ==============================
-  // FILTER + SORT + PAGINATION
-  // ==============================
-  const filtered = useMemo<RecommendationRuleDTO[]>(() => {
-    return rules.filter((r: RecommendationRuleDTO) => {
-      const matchSearch = r.productName
-        .toLowerCase()
-        .includes(search.toLowerCase());
-      const matchCategory =
-        selectedCategory === "" || r.categoryName === selectedCategory;
-      return matchSearch && matchCategory;
-    });
-  }, [rules, search, selectedCategory]);
-
-  const sorted = useMemo<RecommendationRuleDTO[]>(() => {
-    return [...filtered].sort((a: RecommendationRuleDTO, b: RecommendationRuleDTO) => {
-      let aVal = "";
-      let bVal = "";
-
-      if (sortField === "product") {
-        aVal = a.productName.toLowerCase();
-        bVal = b.productName.toLowerCase();
-      } else if (sortField === "category") {
-        aVal = (a.categoryName ?? "").toLowerCase();
-        bVal = (b.categoryName ?? "").toLowerCase();
-      } else if (sortField === "effectiveDate") {
-        aVal = a.effectiveDate;
-        bVal = b.effectiveDate;
-      }
-
-      return sortOrder === "asc"
-        ? aVal.localeCompare(bVal)
-        : bVal.localeCompare(aVal);
-    });
-  }, [filtered, sortField, sortOrder]);
-
-  const totalPages = Math.ceil(sorted.length / itemsPerPage);
-  const paginated = sorted.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
-
-  // ==============================
-  // RENDER
-  // ==============================
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Product Recommendation Rules
-        </h2>
-
-        <Button
-          onClick={openAddModal}
-          className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
+    <div className="p-6">
+      <div className="flex justify-between mb-6">
+        <h1 className="text-2xl font-semibold">Recommendation Rules</h1>
+        <button
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          onClick={openCreateModal}
         >
-          <Plus className="w-4 h-4" /> Add Rule
-        </Button>
+          + Add Rule
+        </button>
       </div>
 
-      {/* SEARCH + FILTER */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        {/* Search */}
-        <div className="relative w-full max-w-xs">
-          <input
-            type="text"
-            placeholder="Search product..."
-            className="w-full border border-emerald-300 rounded-full px-4 py-2 pl-10 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-          <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
-        </div>
-
-        {/* Category Filter */}
-        <Dropdown
-          dismissOnClick
-          label=""
-          renderTrigger={() => (
-            <button
-              className="flex items-center gap-2 border border-emerald-500 bg-emerald-100 text-emerald-900 font-semibold text-sm px-4 py-1 rounded-full shadow hover:shadow-md transition"
-            >
-              {`Category: ${
-                selectedCategory === "" ? "All" : selectedCategory
-              }`}
-              <ChevronDown className="w-4 h-4 text-emerald-900" />
-            </button>
-          )}
-        >
-          <DropdownItem
-            onClick={() => {
-              setSelectedCategory("");
-              setCurrentPage(1);
-            }}
-          >
-            All Categories
-          </DropdownItem>
-
-          {uniqueCategories.map((cat) => (
-            <DropdownItem
-              key={cat}
-              onClick={() => {
-                setSelectedCategory(cat);
-                setCurrentPage(1);
-              }}
-            >
-              {cat}
-            </DropdownItem>
-          ))}
-        </Dropdown>
-      </div>
-
-      {/* TABLE */}
-      <div className="w-full overflow-x-auto pb-2">
-        <table className="min-w-full border border-gray-200 text-sm text-left text-gray-700">
-          <thead className="bg-emerald-600 text-white">
-            <tr>
-              <th className="p-3 border font-medium">Product</th>
-              <th className="p-3 border font-medium">Recommended</th>
-              <th
-                className="p-3 border font-medium cursor-pointer select-none"
-                onClick={() => handleSort("effectiveDate")}
-              >
-                Date Range <SortIcon field="effectiveDate" />
-              </th>
-              <th
-                className="p-3 border font-medium cursor-pointer select-none"
-                onClick={() => handleSort("category")}
-              >
-                Category <SortIcon field="category" />
-              </th>
-              <th className="p-3 border font-medium text-center">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {paginated.length > 0 ? (
-              paginated.map((rule) => (
-                <tr key={rule.id} className="hover:bg-gray-100">
-                  <td className="p-3 border font-medium">{rule.productName}</td>
-                  <td className="p-3 border">
-                    {rule.recommendedNames.join(", ")}
-                  </td>
-                  <td className="p-3 border">
-                    {rule.effectiveDate} → {rule.expiryDate}
-                  </td>
-                  <td className="p-3 border">{rule.categoryName ?? "—"}</td>
-                  <td className="p-3 border">
-                    <div className="flex justify-center">
-                      <Button
-                        size="xs"
-                        color="failure"
-                        onClick={() => handleDelete(rule)}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={5}
-                  className="text-center p-4 text-gray-500 border"
+      <table className="min-w-full bg-white shadow rounded-lg">
+        <thead>
+          <tr className="bg-gray-100 text-left">
+            <th className="py-3 px-4">Product</th>
+            <th className="py-3 px-4">Recommended</th>
+            <th className="py-3 px-4">Effective Date</th>
+            <th className="py-3 px-4">Expiry Date</th>
+            <th className="py-3 px-4 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rules.map((rule) => (
+            <tr key={rule.id} className="border-b hover:bg-gray-50">
+              <td className="py-3 px-4">{rule.productName}</td>
+              <td className="py-3 px-4">{rule.recommendedNames.join(", ")}</td>
+              <td className="py-3 px-4">{rule.effectiveDate ? format(new Date(rule.effectiveDate), "yyyy-MM-dd") : "-"}</td>
+              <td className="py-3 px-4">{rule.expiryDate ? format(new Date(rule.expiryDate), "yyyy-MM-dd") : "-"}</td>
+              <td className="py-3 px-4 text-right space-x-3">
+                <button
+                  className="text-blue-600 hover:underline"
+                  onClick={() => openEditModal(rule)}
                 >
-                  No rules found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                  Edit
+                </button>
+                <button
+                  className="text-red-600 hover:underline"
+                  onClick={() => handleDelete(rule.id)}
+                >
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-      {/* PAGINATION */}
-      {totalPages > 1 && (
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
-          <span>
-            Showing{" "}
-            <span className="font-semibold text-gray-800">
-              {(currentPage - 1) * itemsPerPage + 1}
-            </span>{" "}
-            to{" "}
-            <span className="font-semibold text-gray-800">
-              {Math.min(currentPage * itemsPerPage, sorted.length)}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold text-gray-800">
-              {sorted.length}
-            </span>{" "}
-            entries
-          </span>
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg w-[500px]">
+            <h2 className="text-xl font-semibold mb-4">
+              {editingRule ? "Edit Recommendation Rule" : "Add New Recommendation Rule"}
+            </h2>
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            showIcons
-          />
-        </div>
-      )}
+            <div className="space-y-4">
+              <input
+                type="number"
+                placeholder="Base Product ID"
+                value={form.baseProductId}
+                onChange={(e) => setForm({ ...form, baseProductId: Number(e.target.value) })}
+                className="border w-full p-2 rounded"
+              />
 
-      {/* MODAL */}
-      <Modal show={isModalOpen} onClose={closeModal}>
-        <ModalHeader>Add New Recommendation Rule</ModalHeader>
-        <ModalBody>
-          <div className="space-y-4">
-            {/* PRODUCT */}
-            <div>
-              <Label>When Product</Label>
-              <Select
-                value={
-                  form.baseProductId == null ? "" : String(form.baseProductId)
-                }
+              <input
+                type="text"
+                placeholder="Recommended Product IDs (comma-separated)"
                 onChange={(e) =>
-                  handleFormChange("baseProductId", e.target.value)
+                  setForm({
+                    ...form,
+                    recommendedProductIds: e.target.value
+                      .split(",")
+                      .map((id) => Number(id.trim()))
+                      .filter((id) => !isNaN(id)),
+                  })
                 }
-              >
-                <option value="">Select Product</option>
-                {products.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </Select>
+                className="border w-full p-2 rounded"
+              />
+
+              <input
+                type="date"
+                value={form.effectiveDate}
+                onChange={(e) => setForm({ ...form, effectiveDate: e.target.value })}
+                className="border w-full p-2 rounded"
+              />
+
+              <input
+                type="date"
+                value={form.expiryDate}
+                onChange={(e) => setForm({ ...form, expiryDate: e.target.value })}
+                className="border w-full p-2 rounded"
+              />
             </div>
 
-            {/* RECOMMENDED MULTI SELECT */}
-            <div>
-              <Label>Show Recommended Product(s)</Label>
-              <Select
-                multiple
-                value={form.recommendedProductIds.map(String)}
-                onChange={(e) =>
-                  handleFormChange(
-                    "recommendedProductIds",
-                    Array.from(e.target.selectedOptions, (o) => o.value)
-                  )
-                }
+            <div className="flex justify-end mt-6 space-x-3">
+              <button
+                onClick={closeModal}
+                className="px-4 py-2 border rounded hover:bg-gray-100"
               >
-                {recommendedOptions.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            {/* DATES */}
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Label>Effective Date</Label>
-                <TextInput
-                  type="date"
-                  value={form.effectiveDate}
-                  onChange={(e) =>
-                    handleFormChange("effectiveDate", e.target.value)
-                  }
-                />
-              </div>
-              <div className="flex-1">
-                <Label>Expiry Date</Label>
-                <TextInput
-                  type="date"
-                  value={form.expiryDate}
-                  onChange={(e) =>
-                    handleFormChange("expiryDate", e.target.value)
-                  }
-                />
-              </div>
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveRule}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                {editingRule ? "Update" : "Save"}
+              </button>
             </div>
           </div>
-        </ModalBody>
-
-        <ModalFooter>
-          <Button
-            className="bg-green-600 hover:bg-green-700"
-            onClick={handleSaveRule}
-          >
-            Add Rule
-          </Button>
-          <Button color="gray" onClick={closeModal}>
-            Cancel
-          </Button>
-        </ModalFooter>
-      </Modal>
+        </div>
+      )}
     </div>
   );
-}
+};
+
+export default RecommendationRulesPage;

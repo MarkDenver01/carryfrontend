@@ -226,3 +226,8 @@ export async function deleteRule(id: number) {
   await api.delete(`/admin/api/recommendation-rules/${id}`);
 }
 
+export async function updateRule(id: number, rule: RecommendationRuleRequest) {
+  const res = await api.put<RecommendationRuleDTO>(`/admin/api/rules/${id}`, rule);
+  return res.data;
+}
+

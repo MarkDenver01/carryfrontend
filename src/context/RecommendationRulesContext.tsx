@@ -4,7 +4,8 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import {
   fetchAllRules,
   createRule,
-  deleteRule
+  deleteRule,
+  updateRule 
 } from "../libs/ApiGatewayDatasource";
 import type { RecommendationRuleDTO, RecommendationRuleRequest } from "../libs/models/product/RecommendedRule";
 
@@ -12,6 +13,7 @@ interface RecommendationRuleContextType {
   rules: RecommendationRuleDTO[];
   loading: boolean;
   addRule: (rule: RecommendationRuleRequest) => Promise<void>;
+  updateRuleById: (id: number, rule: RecommendationRuleRequest) => Promise<void>;
   removeRule: (id: number) => Promise<void>;
   refresh: () => Promise<void>;
 }
@@ -46,8 +48,13 @@ export const RecommendationRuleProvider: React.FC<{ children: React.ReactNode }>
     setRules((prev) => prev.filter((r) => r.id !== id));
   };
 
+  const updateRuleById = async (id: number, rule: RecommendationRuleRequest) => {
+  const updated = await updateRule(id, rule);
+  setRules((prev) => prev.map((r) => (r.id === id ? updated : r)));
+};
+
   return (
-    <RecommendationRuleContext.Provider value={{ rules, loading, addRule, removeRule, refresh }}>
+    <RecommendationRuleContext.Provider value={{ rules, loading, addRule, updateRuleById, removeRule, refresh }}>
       {children}
     </RecommendationRuleContext.Provider>
   );
