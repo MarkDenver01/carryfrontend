@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Button, Pagination, Modal, ModalHeader, ModalBody, TextInput, Label, Select } from "flowbite-react";
 import { Search, Pencil, XCircle } from "lucide-react";
 import Swal from "sweetalert2";
