@@ -114,29 +114,25 @@ export default function ProductInventoryTable() {
   };
 
   /** 👁️ VIEW RECOMMENDATIONS — fetch dynamically like ProductPriceTable */
-/** 👁️ VIEW RECOMMENDATIONS — FIXED */
-const handleViewRecommendations = async (productId: number | undefined) => {
-  if (!productId) return;
+  const handleViewRecommendations = async (productId: number | undefined) => {
+    if (!productId) return;
 
-  try {
-    const allRules = await fetchAllRules();
+    try {
+      const allRules = await fetchAllRules();
+      const productRules = allRules.filter((rule) => rule.productId === productId);
 
-    // ✅ Correct field: baseProductId, not productId
-    const productRules = allRules.filter((rule) => rule.productId === productId);
+      if (productRules.length === 0) {
+        Swal.fire("Info", "No recommendations found for this product.", "info");
+        return;
+      }
 
-    if (productRules.length === 0) {
-      Swal.fire("Info", "No recommendations found for this product.", "info");
-      return;
+      setRecommendations(productRules);
+      setViewModal(true);
+    } catch (error) {
+      console.error("Error fetching recommendations:", error);
+      Swal.fire("Error", "Failed to load recommendations.", "error");
     }
-
-    setRecommendations(productRules);
-    setViewModal(true);
-  } catch (error) {
-    console.error("Error fetching recommendations:", error);
-    Swal.fire("Error", "Failed to load recommendations.", "error");
-  }
-};
-
+  };
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
