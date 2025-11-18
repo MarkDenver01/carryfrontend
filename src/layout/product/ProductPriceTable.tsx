@@ -164,7 +164,7 @@ export default function ProductPriceTable() {
             ) : (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="text-center text-gray-500 py-4 border"
                 >
                   No product price records found.
