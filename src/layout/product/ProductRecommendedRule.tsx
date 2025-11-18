@@ -1,13 +1,17 @@
+// src/layout/product/ProductRecommendationRule.tsx
+
 import { useState, useMemo } from "react";
 import {
   Modal,
   Button,
   Label,
-  TextInput,
   Select,
   ModalHeader,
   ModalBody,
   ModalFooter,
+  Dropdown,
+  DropdownItem,
+  Pagination,
 } from "flowbite-react";
 import {
   Pencil,
@@ -16,6 +20,8 @@ import {
   ArrowUp,
   ArrowDown,
   ArrowUpDown,
+  Search,
+  ChevronDown,
 } from "lucide-react";
 import Swal from "sweetalert2";
 
@@ -64,7 +70,7 @@ export default function ProductRecommendedRule() {
   const [sortField, setSortField] = useState<SortField>("product");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
-  const itemsPerPage = 6;
+  const pageSize = 8;
   const [currentPage, setCurrentPage] = useState(1);
 
   const uniqueCategories = useMemo(
@@ -283,193 +289,241 @@ export default function ProductRecommendedRule() {
     });
   }, [filtered, sortField, sortOrder]);
 
-  const totalPages = Math.ceil(sorted.length / itemsPerPage);
+  const totalPages = Math.ceil(sorted.length / pageSize);
+
   const paginated = sorted.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
   );
 
   return (
     <div className="p-6 bg-white rounded-lg shadow-md">
       {/* HEADER */}
-      <div className="flex justify-between items-center mb-4">
-        <h2 className="text-xl font-semibold">Product Recommendation Rules</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold text-gray-800">
+          Product Recommendation Rules
+        </h2>
 
         <Button
-          color="blue"
-          className="flex items-center gap-2"
           onClick={openAddModal}
+          className="bg-blue-600 text-white hover:bg-blue-700 flex items-center gap-2"
         >
           <Plus className="w-4 h-4" /> Add Rule
         </Button>
       </div>
 
       {/* SEARCH + FILTER */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <TextInput
-          placeholder="Search product..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
-        />
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        {/* Search input with icon (same style as inventory) */}
+        <div className="relative w-full max-w-xs">
+          <input
+            type="text"
+            placeholder="Search base product..."
+            className="w-full border border-emerald-300 rounded-full px-4 py-2 pl-10 shadow-sm 
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+          <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
+        </div>
 
-        <Select
-          value={selectedCategory}
-          onChange={(e) => {
-            setSelectedCategory(e.target.value);
-            setCurrentPage(1);
-          }}
+        {/* Category filter using Dropdown like inventory */}
+        <Dropdown
+          dismissOnClick={true}
+          label=""
+          renderTrigger={() => (
+            <button
+              className="flex items-center gap-2 border border-emerald-500 bg-emerald-100 
+                         text-emerald-900 font-semibold text-sm px-4 py-1 rounded-full shadow 
+                         hover:shadow-md transition"
+            >
+              {`Filter: ${
+                selectedCategory === "" ? "All Categories" : selectedCategory
+              }`}
+              <ChevronDown className="w-4 h-4 text-emerald-900" />
+            </button>
+          )}
         >
-          <option value="">All Categories</option>
+          <DropdownItem
+            onClick={() => {
+              setSelectedCategory("");
+              setCurrentPage(1);
+            }}
+          >
+            All Categories
+          </DropdownItem>
           {uniqueCategories.map((cat) => (
-            <option key={cat} value={cat}>
+            <DropdownItem
+              key={cat}
+              onClick={() => {
+                setSelectedCategory(cat);
+                setCurrentPage(1);
+              }}
+            >
               {cat}
-            </option>
+            </DropdownItem>
           ))}
-        </Select>
+        </Dropdown>
       </div>
 
-      {/* TABLE */}
-      <table className="min-w-full border border-gray-300 text-sm text-left text-gray-700">
-        <thead className="bg-emerald-600 text-white">
-          <tr>
-            <th className="p-3 border font-medium">Status</th>
+      {/* TABLE WRAPPER WITH HORIZONTAL SCROLL */}
+      <div className="w-full overflow-x-auto pb-2">
+        <table className="min-w-[1200px] border border-gray-200 text-sm text-left text-gray-700">
+          <thead className="bg-emerald-700 text-white text-xs uppercase tracking-wide">
+            <tr className="divide-x divide-emerald-600">
+              <th className="p-3 font-semibold w-[110px]">Status</th>
 
-            <th
-              className="p-3 border font-medium cursor-pointer select-none"
-              onClick={() => handleSort("product")}
-            >
-              Product <SortIcon field="product" />
-            </th>
+              <th
+                className="p-3 font-semibold w-[250px] cursor-pointer select-none"
+                onClick={() => handleSort("product")}
+              >
+                Product <SortIcon field="product" />
+              </th>
 
-            <th className="p-3 border font-medium">Recommended</th>
+              <th className="p-3 font-semibold w-[350px]">Recommended</th>
 
-            <th
-              className="p-3 border font-medium cursor-pointer select-none"
-              onClick={() => handleSort("effectiveDate")}
-            >
-              Date Range <SortIcon field="effectiveDate" />
-            </th>
+              <th
+                className="p-3 font-semibold w-[220px] cursor-pointer select-none"
+                onClick={() => handleSort("effectiveDate")}
+              >
+                Date Range <SortIcon field="effectiveDate" />
+              </th>
 
-            <th
-              className="p-3 border font-medium cursor-pointer select-none"
-              onClick={() => handleSort("category")}
-            >
-              Category <SortIcon field="category" />
-            </th>
+              <th
+                className="p-3 font-semibold w-[220px] cursor-pointer select-none"
+                onClick={() => handleSort("category")}
+              >
+                Category <SortIcon field="category" />
+              </th>
 
-            <th className="p-3 border font-medium text-center">Actions</th>
-          </tr>
-        </thead>
+              <th className="p-3 font-semibold text-center w-[160px]">
+                Actions
+              </th>
+            </tr>
+          </thead>
 
-        <tbody>
-          {paginated.length > 0 ? (
-            paginated.map((rule) => (
-              <tr key={rule.id} className="hover:bg-gray-100">
-                {/* STATUS PILL */}
-                <td className="p-3 border">
-                  <button
-                    onClick={() => handleToggleStatus(rule)}
-                    className={`px-2 py-1 text-xs font-semibold rounded-full border ${
-                      rule.status === "ACTIVE"
-                        ? "bg-green-100 text-green-700 border-green-300"
-                        : "bg-gray-100 text-gray-700 border-gray-300"
-                    }`}
-                  >
-                    {rule.status === "ACTIVE" ? "Active" : "Inactive"}
-                  </button>
-                </td>
-
-                {/* PRODUCT NAME */}
-                <td className="p-3 border font-medium">
-                  {rule.baseProductName}
-                </td>
-
-                {/* RECOMMENDED LIST */}
-                <td className="p-3 border">
-                  {rule.recommendedProducts.length > 0
-                    ? rule.recommendedProducts
-                        .map((r) => r.productName)
-                        .join(", ")
-                    : "—"}
-                </td>
-
-                {/* DATE RANGE */}
-                <td className="p-3 border">
-                  {rule.effectiveDate} → {rule.expiryDate}
-                </td>
-
-                {/* CATEGORY */}
-                <td className="p-3 border">
-                  {rule.baseProductCategoryName ?? "—"}
-                </td>
-
-                {/* ACTIONS */}
-                <td className="p-3 border">
-                  <div className="flex justify-center gap-2">
-                    <Button
-                      size="xs"
-                      color="warning"
-                      onClick={() => openEditModal(rule)}
+          <tbody className="bg-white">
+            {paginated.length > 0 ? (
+              paginated.map((rule) => (
+                <tr
+                  key={rule.id}
+                  className="hover:bg-gray-50 border-t border-gray-200"
+                >
+                  {/* STATUS PILL */}
+                  <td className="p-2.5 w-[110px] align-middle">
+                    <button
+                      onClick={() => handleToggleStatus(rule)}
+                      className={`px-2 py-1 text-xs font-semibold rounded-full border ${
+                        rule.status === "ACTIVE"
+                          ? "bg-green-100 text-green-700 border-green-300"
+                          : "bg-gray-100 text-gray-700 border-gray-300"
+                      }`}
                     >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
+                      {rule.status === "ACTIVE" ? "Active" : "Inactive"}
+                    </button>
+                  </td>
 
-                    <Button
-                      size="xs"
-                      color="failure"
-                      onClick={() => handleDelete(rule)}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
+                  {/* PRODUCT NAME */}
+                  <td className="p-2.5 w-[250px] align-middle font-medium">
+                    {rule.baseProductName}
+                  </td>
+
+                  {/* RECOMMENDED LIST */}
+                  <td className="p-2.5 w-[350px] align-middle">
+                    {rule.recommendedProducts.length > 0
+                      ? rule.recommendedProducts
+                          .map((r) => r.productName)
+                          .join(", ")
+                      : "—"}
+                  </td>
+
+                  {/* DATE RANGE */}
+                  <td className="p-2.5 w-[220px] align-middle">
+                    {rule.effectiveDate} → {rule.expiryDate}
+                  </td>
+
+                  {/* CATEGORY */}
+                  <td className="p-2.5 w-[220px] align-middle">
+                    {rule.baseProductCategoryName ?? "—"}
+                  </td>
+
+                  {/* ACTIONS */}
+                  <td className="p-2.5 w-[160px] align-middle">
+                    <div className="flex justify-center gap-2">
+                      <Button
+                        size="xs"
+                        color="warning"
+                        onClick={() => openEditModal(rule)}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+
+                      <Button
+                        size="xs"
+                        color="failure"
+                        onClick={() => handleDelete(rule)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td
+                  colSpan={6}
+                  className="text-center py-4 text-gray-500 border-t border-gray-200"
+                >
+                  No rules found.
                 </td>
               </tr>
-            ))
-          ) : (
-            <tr>
-              <td
-                colSpan={6}
-                className="text-center p-4 text-gray-500 border"
-              >
-                No rules found.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      {/* PAGINATION (simple) */}
+      {/* PAGINATION (same style as inventory) */}
       {totalPages > 1 && (
-        <div className="flex justify-center mt-4 gap-2 text-sm items-center">
-          <Button
-            size="xs"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-          >
-            Prev
-          </Button>
-
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
           <span>
-            Page {currentPage} of {totalPages}
+            Showing{" "}
+            <span className="font-semibold text-gray-800">
+              {sorted.length === 0
+                ? 0
+                : (currentPage - 1) * pageSize + 1}
+            </span>{" "}
+            to{" "}
+            <span className="font-semibold text-gray-800">
+              {Math.min(currentPage * pageSize, sorted.length)}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-gray-800">
+              {sorted.length}
+            </span>{" "}
+            entries
           </span>
 
-          <Button
-            size="xs"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-          >
-            Next
-          </Button>
+          <div className="flex overflow-x-auto sm:justify-center">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              showIcons
+            />
+          </div>
         </div>
       )}
 
       {/* MODAL */}
       <Modal show={isModalOpen} onClose={closeModal}>
         <ModalHeader>
-          {editingRule ? "Edit Recommendation Rule" : "Add New Recommendation Rule"}
+          {editingRule
+            ? "Edit Recommendation Rule"
+            : "Add New Recommendation Rule"}
         </ModalHeader>
 
         <ModalBody>
@@ -518,8 +572,9 @@ export default function ProductRecommendedRule() {
             {/* EFFECTIVE DATE */}
             <div>
               <Label>Effective Date</Label>
-              <TextInput
+              <input
                 type="date"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 value={form.effectiveDate}
                 onChange={(e) =>
                   handleFormChange("effectiveDate", e.target.value)
@@ -530,8 +585,9 @@ export default function ProductRecommendedRule() {
             {/* EXPIRY DATE */}
             <div>
               <Label>Expiry Date</Label>
-              <TextInput
+              <input
                 type="date"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 value={form.expiryDate}
                 onChange={(e) =>
                   handleFormChange("expiryDate", e.target.value)
