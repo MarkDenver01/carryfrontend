@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { UserPlus, Image as ImageIcon, IdCard, MapPin } from "lucide-react";
+import { UserPlus, Image as ImageIcon, IdCard } from "lucide-react";
 import Swal from "sweetalert2";
 
 export default function AddDriverLayout() {
@@ -36,10 +36,9 @@ export default function AddDriverLayout() {
     });
 
     if (file) {
-      const url = URL.createObjectURL(file);
       setPreview({
         ...preview,
-        [type]: url,
+        [type]: URL.createObjectURL(file),
       });
     }
   };
@@ -73,12 +72,6 @@ export default function AddDriverLayout() {
 
     if (!validate()) return;
 
-    // OPTIONAL: For backend, you will send FormData
-    // let formData = new FormData();
-    // formData.append("photo", form.photoFile!);
-    // formData.append("frontId", form.frontIdFile!);
-    // formData.append("backId", form.backIdFile!);
-
     Swal.fire({
       title: "Driver Registered!",
       text: "The driver has been successfully added.",
@@ -111,7 +104,7 @@ export default function AddDriverLayout() {
             Driver Information
           </div>
 
-          {/* TEXT FIELDS */}
+          {/* FIELDS */}
           <div className="flex flex-col gap-1">
             <label className="font-semibold text-sm">Full Name</label>
             <input
@@ -143,8 +136,8 @@ export default function AddDriverLayout() {
             <input
               type="text"
               name="mobileNumber"
-              required
               maxLength={11}
+              required
               className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500"
               placeholder="09XXXXXXXXX"
               value={form.mobileNumber}
@@ -152,6 +145,7 @@ export default function AddDriverLayout() {
             />
           </div>
 
+          {/* ADDRESS — MAP PIN REMOVED */}
           <div className="flex flex-col gap-1">
             <label className="font-semibold text-sm">Address</label>
             <input
@@ -166,7 +160,7 @@ export default function AddDriverLayout() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="font-semibold text-sm">Driver License No.</label>
+            <label className="font-semibold text-sm">Driver's License No.</label>
             <input
               type="text"
               name="driversLicenseNumber"
@@ -184,7 +178,7 @@ export default function AddDriverLayout() {
             Driver Images
           </div>
 
-          {/* DRIVER PHOTO */}
+          {/* UPLOAD: DRIVER PHOTO */}
           <div className="flex flex-col gap-1">
             <label className="font-semibold text-sm">Driver Photo</label>
             <input
@@ -201,7 +195,7 @@ export default function AddDriverLayout() {
             )}
           </div>
 
-          {/* FRONT ID */}
+          {/* UPLOAD: FRONT ID */}
           <div className="flex flex-col gap-1">
             <label className="font-semibold text-sm">Front ID</label>
             <input
@@ -218,7 +212,7 @@ export default function AddDriverLayout() {
             )}
           </div>
 
-          {/* BACK ID */}
+          {/* UPLOAD: BACK ID */}
           <div className="flex flex-col gap-1">
             <label className="font-semibold text-sm">Back ID</label>
             <input
@@ -258,11 +252,7 @@ export default function AddDriverLayout() {
                   frontIdFile: null,
                   backIdFile: null,
                 });
-                setPreview({
-                  photo: "",
-                  frontId: "",
-                  backId: "",
-                });
+                setPreview({ photo: "", frontId: "", backId: "" });
               }}
             >
               Reset
