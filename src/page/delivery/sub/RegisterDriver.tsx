@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { UserPlus } from "lucide-react";
+import Swal from "sweetalert2";
 
 export default function AddDriverLayout() {
   const [form, setForm] = useState({
@@ -19,14 +20,29 @@ export default function AddDriverLayout() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    alert("Driver Registered Successfully!");
+
+    Swal.fire({
+      title: "Driver Registered!",
+      text: "The driver has been successfully added.",
+      icon: "success",
+      confirmButtonColor: "#059669", // emerald-600
+      confirmButtonText: "Continue",
+      background: "#f0fdf4",
+      color: "#065f46",
+      customClass: {
+        popup: "rounded-xl shadow-lg",
+      },
+    });
+
+    // You may clear the form if needed:
+    // setForm({...});
   };
 
   return (
     <div className="flex justify-center w-full">
       <div className="p-6 bg-gray-100 rounded-xl shadow-lg flex flex-col gap-6 w-full max-w-4xl">
 
-        {/* TITLE / ICON */}
+        {/* TITLE */}
         <div className="flex items-center gap-2 justify-center">
           <UserPlus className="w-6 h-6 text-gray-700" />
           <h2 className="text-lg font-bold text-gray-700">Driver Registration</h2>
@@ -146,7 +162,7 @@ export default function AddDriverLayout() {
             />
           </div>
 
-          {/* SUBMIT BUTTON FULL WIDTH */}
+          {/* BUTTON */}
           <div className="col-span-1 md:col-span-2 flex justify-center mt-4">
             <button
               type="submit"
