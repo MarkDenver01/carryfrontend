@@ -9,13 +9,39 @@ export default function AddDriverLayout() {
     mobileNumber: "",
     address: "",
     driversLicenseNumber: "",
-    photoUrl: "",
-    frontIdUrl: "",
-    backIdUrl: "",
+    photoFile: null as File | null,
+    frontIdFile: null as File | null,
+    backIdFile: null as File | null,
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [preview, setPreview] = useState({
+    photo: "",
+    frontId: "",
+    backId: "",
+  });
+
+  const handleTextChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    type: "photo" | "frontId" | "backId"
+  ) => {
+    const file = e.target.files?.[0] || null;
+
+    setForm({
+      ...form,
+      [`${type}File`]: file,
+    });
+
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPreview({
+        ...preview,
+        [type]: url,
+      });
+    }
   };
 
   const validate = () => {
@@ -28,6 +54,17 @@ export default function AddDriverLayout() {
       });
       return false;
     }
+
+    if (!form.photoFile || !form.frontIdFile || !form.backIdFile) {
+      Swal.fire({
+        title: "Missing Images",
+        text: "Please upload Driver Photo, Front ID, and Back ID.",
+        icon: "warning",
+        confirmButtonColor: "#d97706",
+      });
+      return false;
+    }
+
     return true;
   };
 
@@ -35,6 +72,12 @@ export default function AddDriverLayout() {
     e.preventDefault();
 
     if (!validate()) return;
+
+    // OPTIONAL: For backend, you will send FormData
+    // let formData = new FormData();
+    // formData.append("photo", form.photoFile!);
+    // formData.append("frontId", form.frontIdFile!);
+    // formData.append("backId", form.backIdFile!);
 
     Swal.fire({
       title: "Driver Registered!",
@@ -54,9 +97,7 @@ export default function AddDriverLayout() {
         {/* HEADER */}
         <div className="flex items-center gap-2 justify-center">
           <UserPlus className="w-6 h-6 text-gray-700" />
-          <h2 className="text-lg font-bold text-gray-700">
-            Driver Registration
-          </h2>
+          <h2 className="text-lg font-bold text-gray-700">Driver Registration</h2>
         </div>
 
         {/* FORM */}
@@ -70,6 +111,7 @@ export default function AddDriverLayout() {
             Driver Information
           </div>
 
+          {/* TEXT FIELDS */}
           <div className="flex flex-col gap-1">
             <label className="font-semibold text-sm">Full Name</label>
             <input
@@ -79,7 +121,7 @@ export default function AddDriverLayout() {
               className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500"
               placeholder="Enter full name"
               value={form.userName}
-              onChange={handleChange}
+              onChange={handleTextChange}
             />
           </div>
 
@@ -92,28 +134,26 @@ export default function AddDriverLayout() {
               className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500"
               placeholder="example@gmail.com"
               value={form.email}
-              onChange={handleChange}
+              onChange={handleTextChange}
             />
           </div>
 
-          {/* MOBILE + ADDRESS SECTION */}
           <div className="flex flex-col gap-1">
             <label className="font-semibold text-sm">Mobile Number</label>
             <input
               type="text"
               name="mobileNumber"
               required
+              maxLength={11}
               className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500"
               placeholder="09XXXXXXXXX"
               value={form.mobileNumber}
-              onChange={handleChange}
+              onChange={handleTextChange}
             />
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="font-semibold text-sm flex items-center gap-1">
-              <MapPin className="w-4 h-4" /> Address
-            </label>
+            <label className="font-semibold text-sm">Address</label>
             <input
               type="text"
               name="address"
@@ -121,13 +161,12 @@ export default function AddDriverLayout() {
               className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500"
               placeholder="Enter address"
               value={form.address}
-              onChange={handleChange}
+              onChange={handleTextChange}
             />
           </div>
 
-          {/* LICENSE */}
           <div className="flex flex-col gap-1">
-            <label className="font-semibold text-sm">Driver's License No.</label>
+            <label className="font-semibold text-sm">Driver License No.</label>
             <input
               type="text"
               name="driversLicenseNumber"
@@ -135,7 +174,7 @@ export default function AddDriverLayout() {
               className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500"
               placeholder="DL-XXXXX"
               value={form.driversLicenseNumber}
-              onChange={handleChange}
+              onChange={handleTextChange}
             />
           </div>
 
@@ -145,21 +184,18 @@ export default function AddDriverLayout() {
             Driver Images
           </div>
 
-          {/* PHOTO URL */}
+          {/* DRIVER PHOTO */}
           <div className="flex flex-col gap-1">
-            <label className="font-semibold text-sm">Driver Photo URL</label>
+            <label className="font-semibold text-sm">Driver Photo</label>
             <input
-              type="text"
-              name="photoUrl"
-              className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500"
-              placeholder="https://image-url"
-              value={form.photoUrl}
-              onChange={handleChange}
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleFileChange(e, "photo")}
+              className="border rounded-xl p-2 bg-white shadow-sm"
             />
-            {form.photoUrl && (
+            {preview.photo && (
               <img
-                src={form.photoUrl}
-                alt="driver preview"
+                src={preview.photo}
                 className="w-32 h-32 object-cover rounded-xl border shadow-sm mt-2"
               />
             )}
@@ -167,18 +203,16 @@ export default function AddDriverLayout() {
 
           {/* FRONT ID */}
           <div className="flex flex-col gap-1">
-            <label className="font-semibold text-sm">Front ID URL</label>
+            <label className="font-semibold text-sm">Front ID</label>
             <input
-              type="text"
-              name="frontIdUrl"
-              className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500"
-              placeholder="https://front-id-url"
-              value={form.frontIdUrl}
-              onChange={handleChange}
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleFileChange(e, "frontId")}
+              className="border rounded-xl p-2 bg-white shadow-sm"
             />
-            {form.frontIdUrl && (
+            {preview.frontId && (
               <img
-                src={form.frontIdUrl}
+                src={preview.frontId}
                 className="w-32 h-32 object-cover rounded-xl border shadow-sm mt-2"
               />
             )}
@@ -186,18 +220,16 @@ export default function AddDriverLayout() {
 
           {/* BACK ID */}
           <div className="flex flex-col gap-1">
-            <label className="font-semibold text-sm">Back ID URL</label>
+            <label className="font-semibold text-sm">Back ID</label>
             <input
-              type="text"
-              name="backIdUrl"
-              className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm focus:ring-2 focus:ring-emerald-500"
-              placeholder="https://back-id-url"
-              value={form.backIdUrl}
-              onChange={handleChange}
+              type="file"
+              accept="image/*"
+              onChange={(e) => handleFileChange(e, "backId")}
+              className="border rounded-xl p-2 bg-white shadow-sm"
             />
-            {form.backIdUrl && (
+            {preview.backId && (
               <img
-                src={form.backIdUrl}
+                src={preview.backId}
                 className="w-32 h-32 object-cover rounded-xl border shadow-sm mt-2"
               />
             )}
@@ -215,18 +247,23 @@ export default function AddDriverLayout() {
             <button
               type="button"
               className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-xl shadow-sm"
-              onClick={() =>
+              onClick={() => {
                 setForm({
                   userName: "",
                   email: "",
                   mobileNumber: "",
                   address: "",
                   driversLicenseNumber: "",
-                  photoUrl: "",
-                  frontIdUrl: "",
-                  backIdUrl: "",
-                })
-              }
+                  photoFile: null,
+                  frontIdFile: null,
+                  backIdFile: null,
+                });
+                setPreview({
+                  photo: "",
+                  frontId: "",
+                  backId: "",
+                });
+              }}
             >
               Reset
             </button>
