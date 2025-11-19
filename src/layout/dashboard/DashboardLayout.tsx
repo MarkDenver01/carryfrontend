@@ -21,6 +21,7 @@ import UsersPage from '../../page/customer/Users.tsx';
 import DeliveryPage from '../../page/delivery/Delivery.tsx';
 import OrdersPage from '../../page/delivery/sub/Orders.tsx';
 import RidersPage from '../../page/delivery/sub/Riders.tsx';
+import AddDriverPage from '../../page/delivery/AddDriver.tsx'
 
 import { ProductsProvider } from "../../context/ProductsContext";
 import { PricesProvider } from "../../context/PricesContext";
@@ -76,6 +77,7 @@ export default function DashboardLayout() {
                                         <Route path="delivery" element={<DeliveryPage />} />
                                         <Route path="delivery/orders" element={<OrdersPage />} />
                                         <Route path="delivery/riders" element={<RidersPage />} />
+                                        <Route path="delivery/add-rider" element={<AddDriverPage />} />
                                     </Routes>
                                 </RecommendationRuleProvider>
                             </PricesProvider>

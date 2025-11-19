@@ -7,6 +7,7 @@ export default function ProductMonitoring() {
         <div className="p-4">
             {/* Header, nav, etc. */}
             <ProductInventoryTable />
+            
         </div>
     );
 }
