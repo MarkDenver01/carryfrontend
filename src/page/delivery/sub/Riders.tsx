@@ -296,7 +296,7 @@ export default function Riders() {
 
       {/* TABLE */}
       <div className="overflow-x-auto rounded-xl shadow-xl border border-gray-200">
-        <table className="min-w-full text-sm bg-white">
+        <table className="min-w-full text-sm bg-white table-fixed">
           <thead className="bg-gray-100 text-gray-700 sticky top-0 shadow">
             <tr>
               {[
@@ -325,30 +325,36 @@ export default function Riders() {
                 >
 
                   {/* Rider */}
-                  <td className="p-4 flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-semibold text-lg">
-                      {rider.name.charAt(0)}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-gray-800">
-                        {rider.name}
-                      </p>
-                      <span className="text-gray-400 text-xs">{rider.id}</span>
-                      <p className="flex items-center gap-1 text-[11px] text-gray-500 mt-1">
-                        <MapPin className="w-3 h-3 text-emerald-500" />
-                        {rider.homeBase}
-                      </p>
+                  <td className="p-4 align-middle">
+                    <div className="flex items-center gap-3">
+                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-semibold text-lg">
+                        {rider.name.charAt(0)}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-800">
+                          {rider.name}
+                        </p>
+                        <span className="text-gray-400 text-xs">
+                          {rider.id}
+                        </span>
+                        <p className="flex items-center gap-1 text-[11px] text-gray-500 mt-1">
+                          <MapPin className="w-3 h-3 text-emerald-500" />
+                          {rider.homeBase}
+                        </p>
+                      </div>
                     </div>
                   </td>
 
                   {/* Contact */}
-                  <td className="p-4 flex items-center gap-2 text-gray-700">
-                    <Phone className="w-4 h-4 text-emerald-500" />
-                    {rider.contact}
+                  <td className="p-4 align-middle">
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <Phone className="w-4 h-4 text-emerald-500" />
+                      {rider.contact}
+                    </div>
                   </td>
 
                   {/* Status */}
-                  <td className="p-4">
+                  <td className="p-4 align-middle">
                     <span
                       className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyles(
                         rider.status
@@ -365,7 +371,7 @@ export default function Riders() {
                   </td>
 
                   {/* Rating */}
-                  <td className="p-4">
+                  <td className="p-4 align-middle">
                     <div className="flex items-center gap-1 text-yellow-500">
                       <Star className="w-4 h-4 fill-yellow-400" />
                       <span className="font-semibold text-gray-800">
@@ -375,13 +381,15 @@ export default function Riders() {
                   </td>
 
                   {/* Completed Deliveries */}
-                  <td className="p-4 text-gray-800 font-medium">
+                  <td className="p-4 align-middle text-gray-800 font-medium">
                     {rider.completedDeliveries}
                   </td>
 
                   {/* Orders Today */}
-                  <td className="p-4 font-medium text-gray-700">
-                    {rider.ordersToday}
+                  <td className="p-4 align-middle">
+                    <p className="font-medium text-gray-700">
+                      {rider.ordersToday}
+                    </p>
                     <div className="mt-1 w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
                       <div
                         className="h-2 bg-emerald-500"
@@ -394,35 +402,37 @@ export default function Riders() {
                   </td>
 
                   {/* Last Assigned */}
-                  <td className="p-4 flex items-center gap-2 text-gray-700">
-                    <CalendarClock className="w-4 h-4 text-gray-500" />
-                    {rider.lastAssigned}
+                  <td className="p-4 align-middle">
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <CalendarClock className="w-4 h-4 text-gray-500" />
+                      {rider.lastAssigned}
+                    </div>
                   </td>
 
                   {/* ACTION BUTTONS */}
-                  <td className="p-4 text-center">
+                  <td className="p-4 align-middle">
                     <div className="flex items-center justify-center gap-2">
 
                       {/* View Profile */}
                       <button
-                        className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition shadow-sm"
+                        className="w-9 h-9 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition shadow-sm flex items-center justify-center"
                         onClick={() => openProfile(rider)}
                       >
                         <Eye className="w-4 h-4" />
                       </button>
 
                       {/* Assign (stub for now) */}
-                      <button className="p-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition shadow-sm">
+                      <button className="w-9 h-9 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition shadow-sm flex items-center justify-center">
                         <Plus className="w-4 h-4" />
                       </button>
 
                       {/* Edit */}
-                      <button className="p-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition shadow-sm">
+                      <button className="w-9 h-9 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition shadow-sm flex items-center justify-center">
                         <Pencil className="w-4 h-4" />
                       </button>
 
                       {/* Delete */}
-                      <button className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition shadow-sm">
+                      <button className="w-9 h-9 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition shadow-sm flex items-center justify-center">
                         <Trash className="w-4 h-4" />
                       </button>
                     </div>
