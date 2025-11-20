@@ -1,3 +1,5 @@
+// YOUR ENHANCED ORDERS MANAGEMENT UI WITH PREMIUM ADMIN FEATURES
+
 import { useState, useMemo } from "react";
 import {
   Search,
@@ -11,6 +13,8 @@ import {
   Package,
   MapPin,
   User,
+  Printer,
+  MoreVertical,
 } from "lucide-react";
 import { Dropdown, DropdownItem } from "flowbite-react";
 
@@ -63,40 +67,63 @@ export default function Orders() {
     <div className="p-6 flex flex-col gap-8">
 
       {/* HEADER */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 rounded-2xl shadow-lg p-6 text-white">
-        <h1 className="text-2xl font-bold">Orders Management</h1>
-        <p className="text-emerald-100 text-sm mt-1">
-          Track customer orders, monitor deliveries, and assign riders.
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 rounded-2xl shadow-xl p-6 text-white">
+        <h1 className="text-3xl font-bold tracking-tight">Orders Management</h1>
+        <p className="text-emerald-100 text-sm opacity-90 mt-1">
+          Track customer orders, monitor deliveries, and manage assignments.
         </p>
       </div>
 
+      {/* STATUS FILTER TABS */}
+      <div className="flex gap-3 overflow-x-auto pb-2">
+        {["All", "Pending", "Delivered", "Cancelled"].map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setFilter(tab)}
+            className={`px-4 py-2 rounded-full text-sm font-semibold border transition
+              ${
+                filter === tab
+                  ? "bg-emerald-600 text-white shadow"
+                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
+              }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
       {/* SUMMARY CARDS */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-5">
         {[
-          { label: "Total", value: 27, color: "bg-blue-100 text-blue-700" },
-          { label: "Pending", value: 3, color: "bg-yellow-100 text-yellow-700" },
-          { label: "Delivered", value: 7, color: "bg-green-100 text-green-700" },
-          { label: "Cancelled", value: 9, color: "bg-red-100 text-red-700" },
-          { label: "In Transit", value: 8, color: "bg-indigo-100 text-indigo-700" },
+          { label: "Total Orders", value: 27, icon: Package, color: "bg-blue-100 text-blue-700" },
+          { label: "Pending", value: 3, icon: Package, color: "bg-amber-100 text-amber-700" },
+          { label: "Delivered", value: 7, icon: CheckCircle, color: "bg-green-100 text-green-700" },
+          { label: "Cancelled", value: 9, icon: XCircle, color: "bg-red-100 text-red-700" },
+          { label: "In Transit", value: 8, icon: Truck, color: "bg-indigo-100 text-indigo-700" },
         ].map((card) => (
           <div
             key={card.label}
-            className="bg-white border border-gray-200 rounded-xl p-4 shadow hover:shadow-md transition"
+            className="bg-white border border-gray-100 rounded-xl p-5 shadow-lg hover:shadow-xl transition-all"
           >
-            <p className="text-sm font-medium text-gray-600">{card.label}</p>
-            <p className={`text-2xl font-bold mt-1 ${card.color}`}>{card.value}</p>
+            <div className="flex items-center gap-3">
+              <card.icon className={`w-8 h-8 ${card.color.split(" ")[1]}`} />
+              <div>
+                <p className="text-sm text-gray-500">{card.label}</p>
+                <p className={`text-2xl font-bold ${card.color}`}>{card.value}</p>
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* FILTERS */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+      {/* FILTER + SEARCH */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 mt-2">
         <Dropdown
           dismissOnClick
           renderTrigger={() => (
-            <button className="flex items-center gap-2 border border-emerald-500 bg-emerald-100 text-emerald-900 font-semibold text-sm px-4 py-2 rounded-full shadow hover:shadow-md transition">
-              <Filter className="w-4 h-4" />
-              Filter: {filter}
+            <button className="flex items-center gap-2 bg-white border border-gray-300 px-5 py-2 rounded-xl shadow hover:bg-gray-50 transition">
+              <Filter className="w-4 h-4 text-emerald-600" />
+              <span className="font-medium text-gray-700">Filter: {filter}</span>
             </button>
           )}
         >
@@ -111,7 +138,7 @@ export default function Orders() {
           <input
             type="text"
             placeholder="Search orders..."
-            className="w-full border border-emerald-300 rounded-xl px-4 py-2 pl-10 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+            className="w-full border border-gray-300 rounded-xl px-4 py-2 pl-11 shadow-sm focus:ring-2 focus:ring-emerald-500"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -120,16 +147,16 @@ export default function Orders() {
       </div>
 
       {/* ORDER LIST */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-2">
         {filteredOrders.map((order, index) => (
           <div
             key={index}
-            className="bg-white border border-gray-200 rounded-2xl p-6 shadow hover:shadow-xl transition-all"
+            className="bg-white border border-gray-200 rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all"
           >
             {/* HEADER */}
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-700 flex items-center justify-center">
                   <User className="w-6 h-6" />
                 </div>
                 <div>
@@ -139,7 +166,7 @@ export default function Orders() {
               </div>
 
               <span
-                className={`flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full ${getStatusColor(
+                className={`flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-full ${getStatusColor(
                   order.status
                 )}`}
               >
@@ -150,14 +177,14 @@ export default function Orders() {
 
             {/* ADDRESS */}
             <p className="flex items-center gap-2 text-sm text-gray-600 mb-2">
-              <MapPin className="w-4 h-4 text-emerald-500" />
+              <MapPin className="w-4 h-4 text-emerald-600" />
               {order.address}
             </p>
 
-            {/* PRODUCTS */}
-            <div className="text-sm text-gray-700 bg-gray-50 rounded-xl p-3 border border-gray-200 mb-3">
+            {/* ITEMS */}
+            <div className="bg-gray-50 rounded-xl p-3 border border-gray-200 mb-3">
               <p className="font-semibold text-gray-700 mb-1">Items Ordered:</p>
-              <ul className="space-y-1 list-disc list-inside">
+              <ul className="space-y-1 list-disc list-inside text-sm text-gray-600">
                 {order.products.map((product, i) => (
                   <li key={i}>{product}</li>
                 ))}
@@ -165,29 +192,27 @@ export default function Orders() {
             </div>
 
             {/* TOTAL */}
-            <p className="font-bold text-gray-800 text-lg mb-4">
-              Total: ₱{order.total}
-            </p>
+            <p className="font-bold text-gray-800 text-lg mb-4">Total: ₱{order.total}</p>
 
-            {/* ACTION BUTTONS */}
+            {/* ACTIONS */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
-              <button className="bg-blue-100 text-blue-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-blue-200 transition flex items-center justify-center gap-1">
+              <button className="btn-primary-soft">
                 <Eye className="w-4 h-4" /> View
               </button>
-              <button className="bg-emerald-100 text-emerald-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-emerald-200 transition flex items-center justify-center gap-1">
+              <button className="btn-green-soft">
                 <UserPlus className="w-4 h-4" /> Assign
               </button>
-              <button className="bg-indigo-100 text-indigo-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-indigo-200 transition flex items-center justify-center gap-1">
+              <button className="btn-indigo-soft">
                 <Truck className="w-4 h-4" /> Track
               </button>
-              <button className="bg-orange-100 text-orange-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-orange-200 transition flex items-center justify-center gap-1">
+              <button className="btn-orange-soft">
                 <Phone className="w-4 h-4" /> Contact
               </button>
-              <button className="bg-green-100 text-green-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-green-200 transition flex items-center justify-center gap-1">
-                <CheckCircle className="w-4 h-4" /> Delivered
+              <button className="btn-blue-soft">
+                <Printer className="w-4 h-4" /> Print
               </button>
-              <button className="bg-red-100 text-red-700 px-3 py-2 rounded-xl text-xs font-semibold hover:bg-red-200 transition flex items-center justify-center gap-1">
-                <XCircle className="w-4 h-4" /> Cancel
+              <button className="btn-gray-soft">
+                <MoreVertical className="w-4 h-4" />
               </button>
             </div>
           </div>
