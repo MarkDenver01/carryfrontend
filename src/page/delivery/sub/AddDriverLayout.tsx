@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { UserPlus, Image as ImageIcon, IdCard } from "lucide-react";
+import {
+  UserPlus,
+  Image as ImageIcon,
+  IdCard,
+  MapPin,
+  Phone,
+  Mail,
+  FileSignature,
+  UploadCloud,
+} from "lucide-react";
 import Swal from "sweetalert2";
 import { useDrivers } from "../../../context/DriverContext";
 
@@ -100,112 +109,166 @@ export default function AddDriverLayout() {
   };
 
   return (
-    <div className="flex justify-center w-full">
-      <div className="p-6 bg-gray-100 rounded-xl shadow-lg flex flex-col gap-6 w-full max-w-4xl">
-        <div className="flex items-center gap-2 justify-center">
-          <UserPlus className="w-6 h-6 text-gray-700" />
-          <h2 className="text-lg font-bold text-gray-700">Driver Registration</h2>
+    <div className="flex justify-center w-full px-4 md:px-0">
+      <div className="p-6 bg-white rounded-2xl shadow-xl flex flex-col gap-8 w-full max-w-4xl border border-gray-200">
+
+        {/* HEADER */}
+        <div className="bg-gradient-to-r from-emerald-600 to-teal-500 rounded-xl p-5 text-white shadow-md">
+          <div className="flex items-center gap-3">
+            <UserPlus className="w-7 h-7" />
+            <h2 className="text-2xl font-bold">Driver Registration</h2>
+          </div>
+          <p className="text-emerald-100 mt-1 text-sm">
+            Add a new driver and upload required identification documents.
+          </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-800">
-          <div className="col-span-2 font-semibold text-gray-600 flex items-center gap-2">
-            <IdCard className="w-4 h-4" />
+        {/* FORM */}
+        <form
+          onSubmit={handleSubmit}
+          className="grid grid-cols-1 md:grid-cols-2 gap-6 text-gray-800"
+        >
+          {/* SECTION TITLE */}
+          <div className="col-span-2 font-semibold text-gray-700 flex items-center gap-2 text-lg border-b pb-2">
+            <IdCard className="w-5 h-5 text-emerald-600" />
             Driver Information
           </div>
 
-          <div>
+          {/* FULL NAME */}
+          <div className="flex flex-col gap-1">
             <label className="font-semibold text-sm">Full Name</label>
-            <input
-              type="text"
-              name="userName"
-              required
-              className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm"
-              value={form.userName}
-              onChange={handleTextChange}
-            />
+            <div className="flex items-center border rounded-xl px-3 py-2 bg-gray-50 shadow-sm gap-2">
+              <FileSignature className="w-4 h-4 text-gray-500" />
+              <input
+                type="text"
+                name="userName"
+                required
+                className="w-full bg-transparent outline-none"
+                value={form.userName}
+                onChange={handleTextChange}
+              />
+            </div>
           </div>
 
-          <div>
+          {/* EMAIL */}
+          <div className="flex flex-col gap-1">
             <label className="font-semibold text-sm">Email</label>
-            <input
-              type="email"
-              name="email"
-              required
-              className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm"
-              value={form.email}
-              onChange={handleTextChange}
-            />
+            <div className="flex items-center border rounded-xl px-3 py-2 bg-gray-50 shadow-sm gap-2">
+              <Mail className="w-4 h-4 text-gray-500" />
+              <input
+                type="email"
+                name="email"
+                required
+                className="w-full bg-transparent outline-none"
+                value={form.email}
+                onChange={handleTextChange}
+              />
+            </div>
           </div>
 
-          <div>
+          {/* MOBILE NUMBER */}
+          <div className="flex flex-col gap-1">
             <label className="font-semibold text-sm">Mobile Number</label>
-            <input
-              type="text"
-              name="mobileNumber"
-              maxLength={11}
-              required
-              className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm"
-              value={form.mobileNumber}
-              onChange={handleTextChange}
-            />
+            <div className="flex items-center border rounded-xl px-3 py-2 bg-gray-50 shadow-sm gap-2">
+              <Phone className="w-4 h-4 text-emerald-600" />
+              <input
+                type="text"
+                name="mobileNumber"
+                maxLength={11}
+                required
+                className="w-full bg-transparent outline-none"
+                value={form.mobileNumber}
+                onChange={handleTextChange}
+              />
+            </div>
           </div>
 
-          <div>
+          {/* ADDRESS */}
+          <div className="flex flex-col gap-1">
             <label className="font-semibold text-sm">Address</label>
-            <input
-              type="text"
-              name="address"
-              required
-              className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm"
-              value={form.address}
-              onChange={handleTextChange}
-            />
+            <div className="flex items-center border rounded-xl px-3 py-2 bg-gray-50 shadow-sm gap-2">
+              <MapPin className="w-4 h-4 text-red-500" />
+              <input
+                type="text"
+                name="address"
+                required
+                className="w-full bg-transparent outline-none"
+                value={form.address}
+                onChange={handleTextChange}
+              />
+            </div>
           </div>
 
-          <div>
+          {/* LICENSE */}
+          <div className="flex flex-col gap-1">
             <label className="font-semibold text-sm">Driver's License No.</label>
-            <input
-              type="text"
-              name="driversLicenseNumber"
-              required
-              className="w-full border rounded-xl px-4 py-2 bg-white shadow-sm"
-              value={form.driversLicenseNumber}
-              onChange={handleTextChange}
-            />
+            <div className="flex items-center border rounded-xl px-3 py-2 bg-gray-50 shadow-sm gap-2">
+              <IdCard className="w-4 h-4 text-gray-700" />
+              <input
+                type="text"
+                name="driversLicenseNumber"
+                required
+                className="w-full bg-transparent outline-none"
+                value={form.driversLicenseNumber}
+                onChange={handleTextChange}
+              />
+            </div>
           </div>
 
-          <div className="col-span-2 font-semibold text-gray-600 flex items-center gap-2">
-            <ImageIcon className="w-4 h-4" />
+          {/* SECTION TITLE */}
+          <div className="col-span-2 font-semibold text-gray-700 flex items-center gap-2 text-lg border-b pb-2">
+            <ImageIcon className="w-5 h-5 text-emerald-600" />
             Driver Images
           </div>
 
-          <div>
-            <label className="font-semibold text-sm">Driver Photo</label>
-            <input type="file" accept="image/*" className="border rounded-xl p-2 bg-white shadow-sm"
-              onChange={(e) => handleFileChange(e, "photo")} />
-            {preview.photo && (<img src={preview.photo} className="w-32 h-32 object-cover rounded-xl border mt-2" />)}
-          </div>
+          {/* IMAGE UPLOAD COMPONENT */}
+          {[
+            { label: "Driver Photo", type: "photo", preview: preview.photo },
+            { label: "Front ID", type: "frontId", preview: preview.frontId },
+            { label: "Back ID", type: "backId", preview: preview.backId },
+          ].map((img, index) => (
+            <div key={index} className="flex flex-col gap-2">
+              <label className="font-semibold text-sm">{img.label}</label>
 
-          <div>
-            <label className="font-semibold text-sm">Front ID</label>
-            <input type="file" accept="image/*" className="border rounded-xl p-2 bg-white shadow-sm"
-              onChange={(e) => handleFileChange(e, "frontId")} />
-            {preview.frontId && (<img src={preview.frontId} className="w-32 h-32 object-cover rounded-xl border mt-2" />)}
-          </div>
+              <label className="border-2 border-dashed rounded-xl p-4 bg-gray-50 flex flex-col items-center justify-center text-sm text-gray-600 cursor-pointer hover:bg-gray-100 transition shadow-sm">
+                <UploadCloud className="w-6 h-6 text-emerald-600 mb-1" />
+                <span>Select Image</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) =>
+                    handleFileChange(
+                      e,
+                      img.type as "photo" | "frontId" | "backId"
+                    )
+                  }
+                />
+              </label>
 
-          <div>
-            <label className="font-semibold text-sm">Back ID</label>
-            <input type="file" accept="image/*" className="border rounded-xl p-2 bg-white shadow-sm"
-              onChange={(e) => handleFileChange(e, "backId")} />
-            {preview.backId && (<img src={preview.backId} className="w-32 h-32 object-cover rounded-xl border mt-2" />)}
-          </div>
+              {img.preview && (
+                <img
+                  src={img.preview}
+                  className="w-32 h-32 object-cover rounded-xl border shadow"
+                />
+              )}
+            </div>
+          ))}
 
-          <div className="col-span-2 flex justify-center gap-4 mt-4">
-            <button type="submit" className="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-2 rounded-xl">
+          {/* BUTTONS */}
+          <div className="col-span-2 flex justify-center gap-6 mt-6">
+            {/* SUBMIT */}
+            <button
+              type="submit"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-xl shadow-md font-semibold tracking-wide"
+            >
               Register Driver
             </button>
 
-            <button type="button" className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-6 py-2 rounded-xl"
+            {/* RESET */}
+            <button
+              type="button"
+              className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-8 py-3 rounded-xl shadow"
               onClick={() => {
                 setForm({
                   userName: "",
@@ -218,7 +281,8 @@ export default function AddDriverLayout() {
                   backIdFile: null,
                 });
                 setPreview({ photo: "", frontId: "", backId: "" });
-              }}>
+              }}
+            >
               Reset
             </button>
           </div>
