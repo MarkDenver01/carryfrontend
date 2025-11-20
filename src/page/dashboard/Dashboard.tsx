@@ -5,6 +5,8 @@ import {
   Users,
   ArrowRight,
   Truck,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { AreaChart, Area, ResponsiveContainer } from "recharts";
@@ -26,6 +28,14 @@ type StatConfig = {
 
 const Dashboard: React.FC = () => {
   const [secondsSinceUpdate, setSecondsSinceUpdate] = useState(0);
+  const [isDarkMode, setIsDarkMode] = useState(
+    localStorage.getItem("darkMode") === "true"
+  );
+
+  useEffect(() => {
+    localStorage.setItem("darkMode", isDarkMode.toString());
+    document.documentElement.classList.toggle("dark", isDarkMode);
+  }, [isDarkMode]);
 
   useEffect(() => {
     setSecondsSinceUpdate(0);
@@ -87,7 +97,11 @@ const Dashboard: React.FC = () => {
   });
 
   return (
-    <div className={`p-6 flex flex-col gap-8 bg-gray-50 text-gray-900`}>
+    <div
+      className={`p-6 flex flex-col gap-8 transition-all duration-500 ${
+        isDarkMode ? "bg-slate-950 text-gray-100" : "bg-gray-50 text-gray-900"
+      }`}
+    >
 
       {/* HEADER */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -96,30 +110,52 @@ const Dashboard: React.FC = () => {
             Dashboard Overview
           </h1>
 
-          <p className="text-sm text-gray-500">Today • {dateLabel}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Today • {dateLabel}
+          </p>
 
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
             Last updated:{" "}
             {secondsSinceUpdate === 0 ? "Just now" : `${secondsSinceUpdate}s ago`}
           </p>
         </div>
 
-        {/* Dark Mode Placeholder (UI only – optional) */}
-        {/* Removed notifications, filters, quick actions */}
+        {/* DARK MODE TOGGLE */}
+        <button
+          onClick={() => setIsDarkMode((prev) => !prev)}
+          className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow hover:shadow-lg transition"
+        >
+          {isDarkMode ? (
+            <>
+              <Sun size={16} className="text-yellow-400" />
+              <span className="text-xs font-medium">Light Mode</span>
+            </>
+          ) : (
+            <>
+              <Moon size={16} className="text-slate-700" />
+              <span className="text-xs font-medium">Dark Mode</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* METRIC CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="grid grid-cols-1 md:grid-cols-4 gap-6"
+      >
         {stats.map((stat) => (
           <DashboardStatCard key={stat.id} {...stat} />
         ))}
-      </div>
+      </motion.div>
 
       {/* Divider */}
-      <div className="h-[1px] bg-gray-200 rounded-full" />
+      <div className="h-[1px] bg-gray-200 dark:bg-slate-800 rounded-full" />
 
       {/* TABLE */}
-      <div className="p-4 bg-white rounded-xl shadow-lg border border-gray-200">
+      <div className="p-4 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700">
         <DashboardTable />
       </div>
     </div>
@@ -145,12 +181,17 @@ function DashboardStatCard({
 
   return (
     <motion.div
-      whileHover={{ scale: 1.03, y: -3 }}
+      whileHover={{ scale: 1.04, y: -4 }}
       transition={{ type: "spring", stiffness: 200, damping: 16 }}
-      className={`flex flex-col gap-4 p-4 rounded-2xl shadow-lg text-white bg-gradient-to-br ${gradient}`}
+      className={`flex flex-col gap-4 p-4 rounded-2xl shadow-xl bg-gradient-to-br ${gradient} text-white backdrop-blur-md`}
     >
       <div className="flex items-start gap-3">
-        <div className={`p-3 rounded-full shadow ${iconBg}`}>{icon}</div>
+        <motion.div
+          whileHover={{ scale: 1.15 }}
+          className={`p-3 rounded-full shadow ${iconBg}`}
+        >
+          {icon}
+        </motion.div>
 
         <div>
           <p className="text-xs text-white/80">{title}</p>
@@ -169,14 +210,14 @@ function DashboardStatCard({
               dataKey="value"
               stroke={sparkColor}
               fill={sparkColor}
-              fillOpacity={0.25}
+              fillOpacity={0.3}
               strokeWidth={2}
             />
           </AreaChart>
         </ResponsiveContainer>
       </div>
 
-      <button className="group flex items-center gap-2 text-xs font-semibold text-white/90 hover:text-white">
+      <button className="group flex items-center gap-2 text-xs font-medium text-white/90 hover:text-white">
         More Info
         <ArrowRight size={18} className="transition-transform group-hover:translate-x-1" />
       </button>
