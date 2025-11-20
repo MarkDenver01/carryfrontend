@@ -34,8 +34,6 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const { setAuth } = useAuth();
 
-  // 🔧 Config (UI only)
-  const maintenanceMode = true; // set to false pag wala maintenance
   const tips = [
     "Tip: Make sure Caps Lock is off before typing your password.",
     "Tip: Never share your admin credentials with other users.",
@@ -49,7 +47,7 @@ const Login: React.FC = () => {
     { label: "SMS Gateway", status: "Active", color: "bg-emerald-500" },
   ];
 
-  // ⏰ POS-style digital clock
+  // Clock
   useEffect(() => {
     const updateClock = () => {
       const now = new Date();
@@ -72,7 +70,7 @@ const Login: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // 💡 Tips rotator
+  // Tip Rotator
   useEffect(() => {
     const interval = setInterval(() => {
       setTipIndex((prev) => (prev + 1) % tips.length);
@@ -80,7 +78,7 @@ const Login: React.FC = () => {
     return () => clearInterval(interval);
   }, [tips.length]);
 
-  // 📌 ORIGINAL LOGIN LOGIC (unchanged)
+  // Login Logic (unchanged)
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -130,7 +128,6 @@ const Login: React.FC = () => {
     }
   };
 
-  // CapsLock detection
   const handlePasswordKeyEvent = (
     e: React.KeyboardEvent<HTMLInputElement>
   ) => {
@@ -145,26 +142,10 @@ const Login: React.FC = () => {
     <div
       className="relative min-h-screen w-full bg-cover bg-center bg-no-repeat flex items-center justify-center"
       style={{
-        backgroundImage: `url('/assets/admin_bg.jpg')`, // your supermarket background
+        backgroundImage: `url('/assets/admin_bg.jpg')`,
       }}
     >
-      {/* Maintenance Ribbon (top) */}
-      {maintenanceMode && (
-        <div className="absolute top-0 left-0 w-full z-30">
-          <div className="bg-amber-500/95 text-white text-xs sm:text-sm px-4 py-2 flex items-center justify-center gap-2 shadow-md">
-            <span className="inline-flex h-2 w-2 rounded-full bg-white animate-pulse" />
-            <span className="font-semibold uppercase tracking-wide">
-              Scheduled Maintenance:
-            </span>
-            <span className="text-[0.7rem] sm:text-xs">
-              System optimization tonight from 10:00 PM to 11:30 PM. Some
-              features may be temporarily unavailable.
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* Global overlay + spotlight effect */}
+      {/* Global overlay */}
       <div
         className={`absolute inset-0 backdrop-blur-[2px] transition-colors duration-300 z-0 ${
           isInputFocused ? "bg-black/40" : "bg-white/25"
@@ -196,21 +177,19 @@ const Login: React.FC = () => {
         <HiCube size={34} />
       </motion.div>
 
-      {/* Barcode scanner line (subtle) */}
+      {/* Scanner Line */}
       <motion.div
         className="absolute top-1/2 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-green-400/80 to-transparent opacity-60"
         animate={{ x: ["-20%", "20%", "-20%"] }}
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Card wrapper with neon glow / glass shelf */}
+      {/* Card */}
       <div className="relative z-20 w-full px-4 sm:px-6">
-        {/* Neon under-glow */}
         <div className="mx-auto max-w-4xl pointer-events-none">
           <div className="mx-auto h-6 w-3/4 rounded-full bg-green-500/40 blur-2xl opacity-70" />
         </div>
 
-        {/* Main card */}
         <motion.div
           initial={{ opacity: 0, y: 30, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -223,7 +202,7 @@ const Login: React.FC = () => {
             overflow-hidden
           "
         >
-          {/* Top bar with clock + role badge */}
+          {/* Top bar */}
           <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200/70 bg-white/80">
             <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-600">
               <span className="inline-flex h-2 w-2 rounded-full bg-green-500 mr-1" />
@@ -246,7 +225,7 @@ const Login: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-5">
-            {/* Left brand panel */}
+            {/* Left Panel */}
             <div className="md:col-span-2 border-b md:border-b-0 md:border-r border-gray-200/70 bg-gradient-to-br from-green-700 via-green-600 to-green-500 text-white p-6 sm:p-7 flex flex-col justify-between">
               <div>
                 <div className="flex items-center gap-3 mb-4">
@@ -293,7 +272,7 @@ const Login: React.FC = () => {
               </div>
             </div>
 
-            {/* Right login form panel */}
+            {/* Right Form */}
             <div className="md:col-span-3 p-6 sm:p-8 bg-white/90">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 text-center md:text-left">
                 Admin Login
@@ -302,7 +281,7 @@ const Login: React.FC = () => {
                 Sign in with your administrator credentials
               </p>
 
-              {/* System status row */}
+              {/* System status */}
               <div className="mb-4 flex flex-wrap gap-2 text-[0.7rem] sm:text-xs">
                 {systemStatus.map((item) => (
                   <div
@@ -393,7 +372,7 @@ const Login: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Remember me + helper text */}
+                {/* Remember me */}
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <label className="inline-flex items-center gap-2 cursor-pointer select-none">
                     <div className="relative">
@@ -436,7 +415,6 @@ const Login: React.FC = () => {
                   />
                 </div>
 
-                {/* Login button */}
                 <Button
                   type="submit"
                   disabled={loading}
@@ -452,13 +430,11 @@ const Login: React.FC = () => {
                   {loading ? "Logging in..." : "Login"}
                 </Button>
 
-                {/* Tips rotator */}
                 <div className="mt-2 text-[0.7rem] sm:text-xs text-gray-500 flex items-center gap-2">
                   <span className="inline-flex h-1.5 w-1.5 rounded-full bg-green-500" />
                   <span>{tips[tipIndex]}</span>
                 </div>
 
-                {/* Footer info */}
                 <div className="mt-3 text-[0.7rem] sm:text-xs text-gray-500 flex flex-col sm:flex-row justify-between gap-1">
                   <span>© {new Date().getFullYear()} Grocery Admin System</span>
                   <span>Version 1.0 • Carry Guide Admin</span>
