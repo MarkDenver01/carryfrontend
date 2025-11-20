@@ -1,24 +1,27 @@
-import React, { useState, type FormEvent } from 'react';
-import { Button } from 'flowbite-react';
-import { useNavigate } from 'react-router-dom';
-import ReCAPTCHA from 'react-google-recaptcha';
+import React, { useState } from "react";
+import type { FormEvent } from "react"; // ✅ Correct type import
+import { Button } from "flowbite-react";
+import { useNavigate } from "react-router-dom";
+import ReCAPTCHA from "react-google-recaptcha";
 import { login } from "../../libs/ApiGatewayDatasource.ts";
 import { useAuth } from "../../context/AuthContext.tsx";
 import Swal from "sweetalert2";
 import { getSwalTheme } from "../../utils/getSwalTheme";
-import type { LoginResponse } from '../../libs/models/login';
+import type { LoginResponse } from "../../libs/models/login";
 import { HiLockClosed, HiUser, HiEye, HiEyeOff } from "react-icons/hi";
+import { motion } from "framer-motion";
 
 const Login: React.FC = () => {
-  const [email, setEmail] = useState<string>('');
-  const [password, setPassword] = useState<string>('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [recaptchaValue, setRecaptchaValue] = useState<string | null>(null);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+
   const navigate = useNavigate();
   const { setAuth } = useAuth();
 
+  // 📌 ORIGINAL LOGIC (unchanged)
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
 
@@ -26,8 +29,7 @@ const Login: React.FC = () => {
       Swal.fire({
         icon: "error",
         title: "Invalid Captcha",
-        text: `Please complete the captcha.`,
-        confirmButtonText: "CLOSE",
+        text: "Please complete the captcha.",
         ...getSwalTheme(),
       });
       return;
@@ -35,17 +37,14 @@ const Login: React.FC = () => {
 
     try {
       setLoading(true);
-      setError('');
-
       const response: LoginResponse = await login({ email, password });
       setAuth(response);
 
-      if (response.role !== 'ADMIN') {
+      if (response.role !== "ADMIN") {
         Swal.fire({
           icon: "error",
           title: "Access Denied",
-          text: `Non-administrator role is prohibited to login.`,
-          confirmButtonText: "CLOSE",
+          text: "Non-admin roles cannot log in.",
           ...getSwalTheme(),
         });
         return;
@@ -53,22 +52,18 @@ const Login: React.FC = () => {
 
       Swal.fire({
         icon: "success",
-        title: `Hi ${response.username}! Your login is successful.`,
-        text: "Tap proceed to continue.",
+        title: `Hi ${response.username}!`,
+        text: "Login successful.",
         confirmButtonText: "PROCEED",
         ...getSwalTheme(),
-      }).then((result) => {
-        if (result.isConfirmed) {
-          navigate("/dashboard", { replace: true });
-        }
+      }).then((res) => {
+        if (res.isConfirmed) navigate("/dashboard", { replace: true });
       });
-    } catch (err) {
-      console.error(err);
+    } catch {
       Swal.fire({
         icon: "error",
-        title: "Access Denied",
-        text: `Please check the account credentials.`,
-        confirmButtonText: "CLOSE",
+        title: "Login Failed",
+        text: "Invalid email or password.",
         ...getSwalTheme(),
       });
     } finally {
@@ -77,82 +72,126 @@ const Login: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-sm p-4 bg-white border border-gray-200 rounded-lg shadow-sm sm:p-6 md:p-8 dark:bg-gray-800 dark:border-gray-700">
-      <form className="space-y-6" onSubmit={handleLogin}>
-        <h5 className="text-xl font-medium text-gray-900 dark:text-white text-center">ADMIN PORTAL</h5>
+    <div
+      className="min-h-screen w-full bg-cover bg-center bg-no-repeat flex items-center justify-center"
+      style={{
+        backgroundImage: `url('/assets/admin_bg.jpg')`, // <-- Your supermarket background stays here
+      }}
+    >
+      {/* Soft overlay to help readability */}
+      <div className="absolute inset-0 bg-white/25 backdrop-blur-sm"></div>
 
-        {/* EMAIL FIELD */}
-        <div>
-          <label
-            htmlFor="email"
-            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-          >
-            Email Address
-          </label>
-          <div className="relative flex items-center">
-            <HiUser className="absolute left-3 text-gray-500 dark:text-gray-400 text-lg" />
-            <input
-              type="email"
-              name="email"
-              id="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="pl-10 pr-3 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full py-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
-            />
-          </div>
-        </div>
-
-        {/* PASSWORD FIELD */}
-        <div>
-          <label
-            htmlFor="password"
-            className="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-          >
-            Password
-          </label>
-          <div className="relative flex items-center">
-            <HiLockClosed className="absolute left-3 text-gray-500 dark:text-gray-400 text-lg" />
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              id="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="pl-10 pr-10 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full py-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
-            />
-            <span
-              onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 text-gray-500 cursor-pointer"
-            >
-              {showPassword ? <HiEyeOff /> : <HiEye />}
-            </span>
-          </div>
-        </div>
-
-        {/* RECAPTCHA */}
-        <div className="flex justify-center">
-          <ReCAPTCHA
-            sitekey="6LdiamErAAAAAKqiA3FrNCyMC_H2srGF1U0qebnV"
-            onChange={(value: string | null) => setRecaptchaValue(value)}
-          />
-        </div>
-
-        {/* ERROR MESSAGE */}
-        {error && <p className="text-sm text-red-600 text-center">{error}</p>}
-
-        {/* LOGIN BUTTON */}
-        <Button
-          type="submit"
-          disabled={loading}
-          className="w-full text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
+      {/* Login Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 25 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, ease: "easeOut" }}
+        className="
+          relative z-10 w-full max-w-md
+          bg-white/80 backdrop-blur-xl 
+          border border-gray-300 shadow-2xl
+          rounded-2xl p-8
+        "
+      >
+        <motion.h1
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="text-3xl font-bold text-center text-gray-800 mb-1"
         >
-          {loading ? 'Logging in...' : 'Login'}
-        </Button>
-      </form>
+          Admin Portal
+        </motion.h1>
+
+        <p className="text-center text-gray-600 mb-6">
+          Sign in to manage store operations
+        </p>
+
+        <form className="space-y-6" onSubmit={handleLogin}>
+          {/* EMAIL */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">
+              Email Address
+            </label>
+
+            <div className="relative group">
+              <HiUser className="absolute left-3 top-3 text-gray-500 group-focus-within:text-green-700 transition" />
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="admin@store.com"
+                className="
+                  w-full pl-10 pr-3 py-2.5 rounded-lg 
+                  bg-white/70 border border-gray-300 
+                  text-gray-800
+                  focus:ring-2 focus:ring-green-600 focus:border-green-600
+                  backdrop-blur-md transition
+                "
+              />
+            </div>
+          </div>
+
+          {/* PASSWORD */}
+          <div>
+            <label className="text-sm font-medium text-gray-700 mb-1 block">
+              Password
+            </label>
+
+            <div className="relative group">
+              <HiLockClosed className="absolute left-3 top-3 text-gray-500 group-focus-within:text-green-700 transition" />
+
+              <input
+                type={showPassword ? "text" : "password"}
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="
+                  w-full pl-10 pr-10 py-2.5 rounded-lg 
+                  bg-white/70 border border-gray-300 
+                  text-gray-800
+                  focus:ring-2 focus:ring-green-600 focus:border-green-600
+                  backdrop-blur-md transition
+                "
+              />
+
+              <span
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-3 text-gray-500 hover:text-green-700 cursor-pointer"
+              >
+                {showPassword ? <HiEyeOff /> : <HiEye />}
+              </span>
+            </div>
+          </div>
+
+          {/* RECAPTCHA */}
+          <div className="flex justify-center">
+            <ReCAPTCHA
+              sitekey="6LdiamErAAAAAKqiA3FrNCyMC_H2srGF1U0qebnV"
+              onChange={(v) => setRecaptchaValue(v)}
+            />
+          </div>
+
+          {/* LOGIN BUTTON */}
+          <Button
+            type="submit"
+            disabled={loading}
+            className="
+              w-full py-3 bg-green-700 hover:bg-green-800
+              text-white text-lg font-semibold rounded-lg 
+              shadow-lg hover:shadow-green-300/30 
+              transition-all
+            "
+          >
+            {loading ? "Logging in..." : "Login"}
+          </Button>
+        </form>
+
+        <p className="text-center text-gray-600 text-sm mt-6">
+          © {new Date().getFullYear()} Grocery Admin System
+        </p>
+      </motion.div>
     </div>
   );
 };
