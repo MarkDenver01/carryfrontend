@@ -1,23 +1,31 @@
 import {
-    PieChart, Pie, Cell,
-    BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList
+    PieChart,
+    Pie,
+    Cell,
+    BarChart,
+    Bar,
+    XAxis,
+    YAxis,
+    Tooltip,
+    ResponsiveContainer,
+    LabelList
 } from "recharts";
-import { Package, Tag } from "lucide-react";
+import { Package, Tag, TrendingUp, Activity } from "lucide-react";
 
 export default function SalesReport() {
     const totalSales = 40732;
     const mostSalesCategory = 5756;
 
     const categoryData = [
-        { name: "Beverages", value: 1200, fill: "#00008B" },
-        { name: "Snacks", value: 1800, fill: "#5C4033" },
-        { name: "Wines", value: 3100, fill: "#A020F0" },
-        { name: "Sweets", value: 2700, fill: "#F5F5F5" },
-        { name: "Milks", value: 5400, fill: "#228B22" },
-        { name: "Cigars", value: 3900, fill: "#000000" },
-        { name: "Condiments", value: 4500, fill: "#FFFF00" },
-        { name: "Canned Goods", value: 4600, fill: "#ADFF2F" },
-        { name: "Laundry", value: 3700, fill: "#40E0D0" },
+        { name: "Beverages", value: 1200, fill: "#3B82F6" },
+        { name: "Snacks", value: 1800, fill: "#F59E0B" },
+        { name: "Wines", value: 3100, fill: "#A855F7" },
+        { name: "Sweets", value: 2700, fill: "#EC4899" },
+        { name: "Milks", value: 5400, fill: "#10B981" },
+        { name: "Cigars", value: 3900, fill: "#6B7280" },
+        { name: "Condiments", value: 4500, fill: "#EAB308" },
+        { name: "Canned Goods", value: 4600, fill: "#22C55E" },
+        { name: "Laundry", value: 3700, fill: "#06B6D4" },
     ];
 
     const topProducts = [
@@ -29,53 +37,84 @@ export default function SalesReport() {
     ];
 
     return (
-        <div className="p-6 flex flex-col gap-6">
-            {/* Title */}
-            <h1 className="text-2xl font-bold text-gray-800">Sales Product/Category Reports</h1>
+        <div className="p-6 flex flex-col gap-8">
 
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="flex flex-col justify-between gap-4 py-6 px-4 bg-emerald-600 rounded-xl shadow-lg hover:shadow-xl transition">
+            {/* HEADER */}
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-6 rounded-2xl shadow-xl text-white">
+                <h1 className="text-3xl font-bold">Sales Reports & Analytics</h1>
+                <p className="opacity-90 mt-1 text-sm">
+                    Comprehensive overview of product and category performance.
+                </p>
+            </div>
+
+            {/* SUMMARY CARDS */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                {/* Total Sales Card */}
+                <div className="p-6 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition border border-gray-200 backdrop-blur-lg">
                     <div className="flex items-center gap-4">
-                        <div className="p-4 bg-green-100 text-green-600 rounded-full">
-                            <Package size={64} />
+                        <div className="p-4 bg-green-100 text-green-600 rounded-full shadow">
+                            <Package size={48} />
                         </div>
                         <div>
-                            <div className="text-4xl font-bold text-white">{totalSales.toLocaleString()}</div>
-                            <div className="text-sm font-semibold text-white">Total Product Sales</div>
+                            <h2 className="text-gray-700 font-semibold text-sm">Total Product Sales</h2>
+                            <p className="text-4xl font-bold text-gray-800">
+                                {totalSales.toLocaleString()}
+                            </p>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex flex-col justify-between gap-4 py-6 px-4 bg-amber-600 rounded-xl shadow-lg hover:shadow-xl transition">
+                {/* Most Sales Category */}
+                <div className="p-6 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition border border-gray-200 backdrop-blur-lg">
                     <div className="flex items-center gap-4">
-                        <div className="p-4 bg-orange-100 text-orange-600 rounded-full">
-                            <Tag size={64} />
+                        <div className="p-4 bg-amber-100 text-amber-600 rounded-full shadow">
+                            <Tag size={48} />
                         </div>
                         <div>
-                            <div className="text-4xl font-bold text-white">{mostSalesCategory.toLocaleString()}</div>
-                            <div className="text-sm font-semibold text-white">Most Sales Category</div>
+                            <h2 className="text-gray-700 font-semibold text-sm">Top Sales Category</h2>
+                            <p className="text-4xl font-bold text-gray-800">
+                                {mostSalesCategory.toLocaleString()}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Insights Card */}
+                <div className="p-6 bg-white rounded-2xl shadow-lg hover:shadow-2xl transition border border-gray-200 backdrop-blur-lg">
+                    <div className="flex items-center gap-4">
+                        <div className="p-4 bg-indigo-100 text-indigo-600 rounded-full shadow">
+                            <TrendingUp size={48} />
+                        </div>
+                        <div>
+                            <h2 className="text-gray-700 font-semibold text-sm">Growth Rate (Est.)</h2>
+                            <p className="text-4xl font-bold text-indigo-600">+12%</p>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Charts Section */}
+            {/* ANALYTICS CHARTS */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Bar Chart */}
-                <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Sales by Category</h2>
-                    <ResponsiveContainer width="100%" height={300}>
+
+                {/* BAR CHART */}
+                <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition border border-gray-200">
+                    <h2 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-emerald-600" />
+                        Sales by Category
+                    </h2>
+
+                    <ResponsiveContainer width="100%" height={320}>
                         <BarChart
                             data={categoryData}
                             layout="vertical"
-                            margin={{ top: 5, right: 30, left: 100, bottom: 5 }}
+                            margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
                         >
                             <XAxis type="number" />
                             <YAxis dataKey="name" type="category" />
-                            <Tooltip />
-                            <Bar dataKey="value">
-                                <LabelList dataKey="value" position="right" />
+                            <Tooltip cursor={{ fill: "#f0fdf4" }} />
+                            <Bar dataKey="value" radius={[4, 4, 4, 4]}>
+                                <LabelList dataKey="value" position="right" style={{ fill: "#444" }} />
                                 {categoryData.map((entry, index) => (
                                     <Cell key={`bar-${index}`} fill={entry.fill} />
                                 ))}
@@ -84,18 +123,23 @@ export default function SalesReport() {
                     </ResponsiveContainer>
                 </div>
 
-                {/* Pie Chart */}
-                <div className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Top 5 Products</h2>
-                    <ResponsiveContainer width="100%" height={250}>
+                {/* PIE CHART */}
+                <div className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-2xl transition border border-gray-200">
+                    <h2 className="text-lg font-bold text-gray-700 mb-4 flex items-center gap-2">
+                        <Tag className="w-5 h-5 text-indigo-600" />
+                        Top 5 Products
+                    </h2>
+
+                    <ResponsiveContainer width="100%" height={260}>
                         <PieChart>
                             <Pie
                                 data={topProducts}
                                 dataKey="value"
                                 nameKey="name"
-                                outerRadius={70}
-                                innerRadius={40}
-                                label
+                                outerRadius={80}
+                                innerRadius={45}
+                                labelLine={false}
+                                label={({ name }) => name}
                             >
                                 {topProducts.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.fill} />
@@ -103,17 +147,18 @@ export default function SalesReport() {
                             </Pie>
                         </PieChart>
                     </ResponsiveContainer>
-                    <ul className="mt-4 text-sm space-y-1 text-gray-800">
+
+                    <div className="mt-4 space-y-1">
                         {topProducts.map((item, index) => (
-                            <li key={index} className="flex items-center gap-2">
+                            <div key={index} className="flex items-center gap-2 text-sm text-gray-700">
                                 <span
-                                    className="w-3 h-3 inline-block rounded-full"
+                                    className="w-3 h-3 rounded-full"
                                     style={{ backgroundColor: item.fill }}
                                 />
                                 {item.name}
-                            </li>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
                 </div>
             </div>
         </div>
