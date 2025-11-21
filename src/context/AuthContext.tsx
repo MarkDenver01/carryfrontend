@@ -95,12 +95,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // 🚪 Manual logout
   const logout = () => {
-    localStorage.removeItem("jwtToken");
-    localStorage.removeItem("authorized_role");
-    localStorage.removeItem("authorized_username");
-    localStorage.removeItem("authorized_admin_info");
-    setUser(null);
-    navigate("/login");
+    //localStorage.removeItem("jwtToken");
+    //localStorage.removeItem("authorized_role");
+    //localStorage.removeItem("authorized_username");
+    //localStorage.removeItem("authorized_admin_info");
+    //setUser(null);
+    //navigate("/login");
   };
 
   // ⏰ Auto-logout when JWT expires
