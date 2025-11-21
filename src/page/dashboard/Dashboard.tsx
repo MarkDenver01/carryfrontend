@@ -135,7 +135,6 @@ const Dashboard: React.FC = () => {
           </p>
         </div>
 
-        {/* Toggle */}
         <button
           onClick={() => setIsDarkMode(!isDarkMode)}
           className="flex items-center gap-2 px-3 py-2 rounded-full border border-gray-300 dark:border-slate-700 bg-white dark:bg-slate-900 shadow hover:shadow-lg"
@@ -247,26 +246,6 @@ const Dashboard: React.FC = () => {
         ))}
       </motion.div>
 
-      {/* SYSTEM HEALTH SUMMARY */}
-      <SectionWrapper title="System Health Summary">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <HealthCard label="API Response Time" value="120ms" status="Optimal" />
-          <HealthCard label="Database Ping" value="42ms" status="Stable" />
-          <HealthCard label="SMS Gateway" value="89ms" status="Normal" />
-          <HealthCard label="System Uptime" value="99.98%" status="Healthy" />
-        </div>
-      </SectionWrapper>
-
-      {/* ADMIN ACTIVITY SUMMARY */}
-      <SectionWrapper title="Admin Activity Summary">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <HealthCard label="Admin Accounts" value="2" status="All Active" />
-          <HealthCard label="Sub Admin Accounts" value="4" status="No Issues" />
-          <HealthCard label="Roles Assigned" value="6" status="Verified" />
-          <HealthCard label="Active Permissions" value="18" status="Normal" />
-        </div>
-      </SectionWrapper>
-
       {/* INVENTORY ALERTS */}
       <SectionWrapper title="Inventory Alerts">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -295,39 +274,6 @@ const Dashboard: React.FC = () => {
           <PerformanceCard label="Orders Today" value="32" />
           <PerformanceCard label="New Users" value="6" />
           <PerformanceCard label="Driver Availability" value="82%" />
-        </div>
-      </SectionWrapper>
-
-      {/* LOGS */}
-      <SectionWrapper title="Recent Activity Logs">
-        <div className="space-y-3 text-sm">
-          <LogItem
-            icon="✔"
-            text='Admin Denver added product "Milo 1KG"'
-            time="4:32 PM"
-          />
-          <LogItem
-            icon="✔"
-            text='Sub Admin Anne updated "Pancit Canton" stock'
-            time="4:12 PM"
-          />
-          <LogItem
-            icon="❗"
-            text="SMS Gateway Timeout — retrying..."
-            time="3:55 PM"
-            type="warning"
-          />
-          <LogItem
-            icon="✔"
-            text="Login success – Admin Denver"
-            time="3:50 PM"
-          />
-          <LogItem
-            icon="❌"
-            text="Login failed – wrong password attempt"
-            time="3:46 PM"
-            type="error"
-          />
         </div>
       </SectionWrapper>
 
@@ -401,31 +347,6 @@ function DashboardStatCard({
 }
 
 /* ============================
-   HEALTH CARD
-============================ */
-function HealthCard({
-  label,
-  value,
-  status,
-}: {
-  label: string;
-  value: string;
-  status: string;
-}) {
-  return (
-    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700">
-      <p className="text-sm text-gray-600 dark:text-gray-300">{label}</p>
-      <p className="text-xl font-bold mt-1 text-gray-900 dark:text-white">
-        {value}
-      </p>
-      <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
-        {status}
-      </p>
-    </div>
-  );
-}
-
-/* ============================
    ALERT CARD
 ============================ */
 function AlertCard({
@@ -461,41 +382,9 @@ function PerformanceCard({
   return (
     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-xl">
       <p className="text-sm text-blue-700 dark:text-blue-300">{label}</p>
-      <p className="text-2xl font-bold mt-1 text-blue-900 dark:text-blue-200">
+      <p className="text-2xl font-bold mt-1 text-blue-900">
         {value}
       </p>
-    </div>
-  );
-}
-
-/* ============================
-   LOG ITEM
-============================ */
-function LogItem({
-  icon,
-  text,
-  time,
-  type = "info",
-}: {
-  icon: string;
-  text: string;
-  time: string;
-  type?: "info" | "warning" | "error";
-}) {
-  const color =
-    type === "warning"
-      ? "text-amber-500"
-      : type === "error"
-      ? "text-red-500"
-      : "text-emerald-500";
-
-  return (
-    <div className="flex items-start gap-3">
-      <span className={`text-lg ${color}`}>{icon}</span>
-      <div>
-        <p className="text-gray-800 dark:text-gray-200">{text}</p>
-        <p className="text-xs text-gray-500 dark:text-gray-400">{time}</p>
-      </div>
     </div>
   );
 }
