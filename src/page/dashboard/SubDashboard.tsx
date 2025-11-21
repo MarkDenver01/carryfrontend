@@ -75,10 +75,9 @@ export default function SubDashboard() {
         ⚠️ Reminder: Prioritize packing and dispatching pending orders today.
       </div>
 
-      {/* FIRST GRID SECTION */}
+      {/* MAIN GRID SECTION */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
 
-        {/* Pending Orders */}
         <Card
           bg="bg-green-600"
           iconBg="bg-green-100 text-green-500"
@@ -87,7 +86,6 @@ export default function SubDashboard() {
           label="Pending Orders"
         />
 
-        {/* To Pack */}
         <Card
           bg="bg-blue-700"
           iconBg="bg-blue-100 text-blue-600"
@@ -96,7 +94,6 @@ export default function SubDashboard() {
           label="To Pack Today"
         />
 
-        {/* To Dispatch */}
         <Card
           bg="bg-amber-500"
           iconBg="bg-yellow-200 text-amber-700"
@@ -105,7 +102,6 @@ export default function SubDashboard() {
           label="To Dispatch"
         />
 
-        {/* Active Drivers */}
         <Card
           bg="bg-indigo-700"
           iconBg="bg-indigo-100 text-indigo-600"
@@ -113,21 +109,6 @@ export default function SubDashboard() {
           value="4"
           label="Active Drivers"
         />
-      </div>
-
-      {/* ACTIVITY FEED */}
-      <div className="p-4 bg-white dark:bg-slate-900 rounded-lg shadow border border-gray-200 dark:border-slate-700">
-        <h2 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200">
-          Recent Activity
-        </h2>
-
-        <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-2">
-          <li>✔ Packed order <strong>#1022</strong></li>
-          <li>✔ Marked order <strong>#1018</strong> as dispatched</li>
-          <li>✔ Assigned driver to order <strong>#1015</strong></li>
-          <li>✔ Updated product stock <strong>Pancit Canton</strong></li>
-          <li>❗ Customer reported wrong item on order <strong>#1009</strong></li>
-        </ul>
       </div>
 
       {/* DIVIDER */}
