@@ -97,26 +97,43 @@ const Login: React.FC = () => {
       const response: LoginResponse = await login({ email, password });
       setAuth(response);
 
-      if (response.role !== "ADMIN") {
-        Swal.fire({
-          icon: "error",
-          title: "Access Denied",
-          text: "Non-admin roles cannot log in.",
-          ...getSwalTheme(),
-        });
-        return;
-      }
 
-      Swal.fire({
-        icon: "success",
-         title: `Hi ${response.username ?? "Admin"}!`,
-        text: "Login successful.",
-        confirmButtonText: "PROCEED",
-        ...getSwalTheme(),
-      }).then((res) => {
-        if (res.isConfirmed) navigate("/dashboard", { replace: true });
-      });
-    } catch {
+
+      if (response.role === 'ADMIN') {
+        Swal.fire({
+          icon: "success",
+          title: `Hi ${response.username} (Super Admin)! Your login is successful.`,
+          text: "Tap proceed to continue.",
+          confirmButtonText: "PROCEED",
+          ...getSwalTheme(),
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate("/dashboard", { replace: true });
+          }
+        });
+      } else if (response.role === 'SUB_ADMIN') {
+          Swal.fire({
+            icon: "success",
+            title: `Hi ${response.username} (Admin)! Your login is successful.`,
+            text: "Tap proceed to continue.",
+            confirmButtonText: "PROCEED",
+            ...getSwalTheme(),
+          }).then((result) => {
+            if (result.isConfirmed) {
+              navigate("/dashboard", { replace: true });
+            }
+          });
+      } else {
+          Swal.fire({
+            icon: "error",
+            title: "Access Denied",
+            text: `Non-administrator role is prohibited to login.`,
+            confirmButtonText: "CLOSE",
+            ...getSwalTheme(),
+          });
+      }
+    } catch (err) {
+      console.error(err);
       Swal.fire({
         icon: "error",
         title: "Login Failed",

@@ -1,14 +1,18 @@
-import { Routes, Route, useLocation } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { Routes, Route, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useAuth } from "../../context/AuthContext";
 
-import AppSidebar from "../../components/Sidebar.tsx";
-import Topbar from "../../components/Topbar.tsx";
+import AppSidebar from '../../components/Sidebar.tsx';
+import Topbar from '../../components/Topbar.tsx';
+import ProtectedRoute from "../../components/ProtectedRoute";
 
-import DashboardPage from "../../page/dashboard/Dashboard.tsx";
-import ProductsPage from "../../page/product/Products.tsx";
-import ProductMonitoring from "../../page/product/sub/ProductMonitoring.tsx";
-import ProductRecommendation from "../../page/product/sub/ProductRecommendation.tsx";
-import ProductPriceMonitoring from "../../page/product/sub/ProductRates.tsx";
+import DashboardPage from '../../page/dashboard/Dashboard.tsx';
+import SubDashboardPage from '../../page/dashboard/SubDashboard.tsx';
+
+import ProductsPage from '../../page/product/Products.tsx';
+import ProductMonitoring from '../../page/product/sub/ProductMonitoring.tsx';
+import ProductRecommendation from '../../page/product/sub/ProductRecommendation.tsx';
+import ProductPriceMonitoring from '../../page/product/sub/ProductRates.tsx';
 import ProductCategoryManagement from "../../page/product/sub/ProductCategoryManagement.tsx";
 
 import AnalyticsPage from "../../page/analytics/Analytics.tsx";
@@ -29,9 +33,12 @@ import CategoryProvider from "../../context/CategoryContext";
 import { RecommendationRuleProvider } from "../../context/RecommendationRulesContext";
 
 export default function DashboardLayout() {
-  const [collapsed, setCollapsed] = useState(false);
-  const [pageTitle, setPageTitle] = useState("Dashboard");
-  const location = useLocation();
+    const { user } = useAuth();
+    const role = user?.role;
+
+    const [collapsed, setCollapsed] = useState(false);
+    const [pageTitle, setPageTitle] = useState('Dashboard');
+    const location = useLocation();
 
   useEffect(() => {
     const path = location.pathname;
@@ -42,90 +49,178 @@ export default function DashboardLayout() {
     else setPageTitle("Dashboard");
   }, [location.pathname]);
 
-  return (
-    <div className="flex h-screen bg-gray-100">
+    return (
+        <div className="flex h-screen bg-gray-200">
+            <AppSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-      {/* ========================== SIDEBAR ========================== */}
-      <div
-        className={`
-          fixed top-0 left-0 h-screen z-50
-          transition-all duration-300
-          backdrop-blur-xl shadow-lg
-        `}
-      >
-        <AppSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      </div>
+            <div className={`flex-1 flex flex-col transition-all duration-300 ${collapsed ? 'ml-20' : 'ml-64'}`}>
+                <Topbar pageTitle={pageTitle} />
 
-      {/* ============================ MAIN WRAPPER ============================ */}
-      <div
-        className={`flex-1 flex flex-col ml-0 transition-all duration-300 
-        ${collapsed ? "md:ml-20" : "md:ml-64"}`}
-      >
+                <main className="p-4 overflow-y-auto flex-1">
+                    <CategoryProvider>
+                        <ProductsProvider>
+                            <PricesProvider>
+                                <RecommendationRuleProvider>
+                                    <Routes>
 
-        {/* ============================== TOPBAR ============================== */}
-        <div className="sticky top-0 z-40">
-          <Topbar pageTitle={pageTitle} />
+                                        {/* LANDING DASHBOARD PER ROLE */}
+                                        <Route
+                                            path=""
+                                            element={
+                                                role === "ADMIN" ? (
+                                                    <ProtectedRoute requiredRole="ADMIN">
+                                                        <DashboardPage />
+                                                    </ProtectedRoute>
+                                                ) : (
+                                                    <ProtectedRoute requiredRole="SUB_ADMIN">
+                                                        <SubDashboardPage />
+                                                    </ProtectedRoute>
+                                                )
+                                            }
+                                        />
+
+                                        {/* ---------------------- */}
+                                        {/* ADMIN EXCLUSIVE ROUTES */}
+                                        {/* ---------------------- */}
+                                        <Route
+                                            path="analytics/customers"
+                                            element={
+                                                <ProtectedRoute requiredRole="ADMIN">
+                                                    <CustomerReport />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        <Route
+                                            path="analytics/sales"
+                                            element={
+                                                <ProtectedRoute requiredRole="ADMIN">
+                                                    <SalesReport />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        {/* -------------------------- */}
+                                        {/* SUB ADMIN EXCLUSIVE ROUTES */}
+                                        {/* -------------------------- */}
+                                        <Route
+                                            path="products"
+                                            element={
+                                                <ProtectedRoute requiredRole="SUB_ADMIN">
+                                                    <ProductsPage />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        <Route
+                                            path="products/monitoring"
+                                            element={
+                                                <ProtectedRoute requiredRole="SUB_ADMIN">
+                                                    <ProductMonitoring />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        <Route
+                                            path="products/recommendation"
+                                            element={
+                                                <ProtectedRoute requiredRole="SUB_ADMIN">
+                                                    <ProductRecommendation />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        <Route
+                                            path="products/rates"
+                                            element={
+                                                <ProtectedRoute requiredRole="SUB_ADMIN">
+                                                    <ProductPriceMonitoring />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        <Route
+                                            path="products/categories"
+                                            element={
+                                                <ProtectedRoute requiredRole="SUB_ADMIN">
+                                                    <ProductCategoryManagement />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        <Route
+                                            path="analytics/products"
+                                            element={
+                                                <ProtectedRoute requiredRole="SUB_ADMIN">
+                                                    <ProductReport />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        <Route
+                                            path="users"
+                                            element={
+                                                <ProtectedRoute requiredRole="SUB_ADMIN">
+                                                    <UsersPage />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        <Route
+                                            path="delivery/orders"
+                                            element={
+                                                <ProtectedRoute requiredRole="SUB_ADMIN">
+                                                    <OrdersPage />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        <Route
+                                            path="delivery/riders"
+                                            element={
+                                                <ProtectedRoute requiredRole="SUB_ADMIN">
+                                                    <RidersPage />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        <Route
+                                            path="delivery/add-riders"
+                                                element={
+                                                    <ProtectedRoute requiredRole="SUB_ADMIN">
+                                                        <AddDriverPage />
+                                                    </ProtectedRoute>
+                                            }
+                                        />
+
+                                        {/* ------------------------------ */}
+                                        {/* ROUTES ACCESSIBLE BY BOTH ROLES */}
+                                        {/* ------------------------------ */}
+                                        <Route
+                                            path="analytics"
+                                            element={
+                                                <ProtectedRoute>
+                                                    <AnalyticsPage />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                        <Route
+                                            path="delivery"
+                                            element={
+                                                <ProtectedRoute>
+                                                    <DeliveryPage />
+                                                </ProtectedRoute>
+                                            }
+                                        />
+
+                                    </Routes>
+                                </RecommendationRuleProvider>
+                            </PricesProvider>
+                        </ProductsProvider>
+                    </CategoryProvider>
+                </main>
+            </div>
         </div>
-
-        {/* ============================ PAGE CONTENT ============================ */}
-        <main
-          className="
-            p-6 flex-1 overflow-y-auto 
-            bg-gradient-to-br from-gray-50 to-gray-100
-          "
-        >
-          <CategoryProvider>
-            <ProductsProvider>
-              <PricesProvider>
-                <RecommendationRuleProvider>
-                  <div
-                    className="
-                      mx-auto 
-                      max-w-[1600px] 
-                      bg-white rounded-2xl shadow-md 
-                      p-6 
-                      border border-gray-200
-                      transition-all duration-300
-                    "
-                  >
-                    <Routes>
-                      <Route path="" element={<DashboardPage />} />
-
-                      {/* Product Management */}
-                      <Route path="products" element={<ProductsPage />} />
-                      <Route path="products/monitoring" element={<ProductMonitoring />} />
-                      <Route
-                        path="products/recommendation"
-                        element={<ProductRecommendation />}
-                      />
-                      <Route path="products/rates" element={<ProductPriceMonitoring />} />
-                      <Route
-                        path="products/categories"
-                        element={<ProductCategoryManagement />}
-                      />
-
-                      {/* Analytics */}
-                      <Route path="analytics" element={<AnalyticsPage />} />
-                      <Route path="analytics/customers" element={<CustomerReport />} />
-                      <Route path="analytics/sales" element={<SalesReport />} />
-                      <Route path="analytics/products" element={<ProductReport />} />
-
-                      {/* Customers / Membership */}
-                      <Route path="users" element={<UsersPage />} />
-
-                      {/* Delivery */}
-                      <Route path="delivery" element={<DeliveryPage />} />
-                      <Route path="delivery/orders" element={<OrdersPage />} />
-                      <Route path="delivery/riders" element={<RidersPage />} />
-                      <Route path="delivery/add-rider" element={<AddDriverPage />} />
-                    </Routes>
-                  </div>
-                </RecommendationRuleProvider>
-              </PricesProvider>
-            </ProductsProvider>
-          </CategoryProvider>
-        </main>
-      </div>
-    </div>
-  );
+    );
 }
