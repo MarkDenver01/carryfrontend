@@ -72,7 +72,7 @@ const initialOrders: Order[] = [
     id: "202407556403",
     name: "Ana Rodriguez",
     address: "Barangay 2, Sto. Tomas, Batangas",
-    products: ["Lucky Me Pancit Canton x10", "Coke 1.5L x2"],
+    products: ["Lucky Me Pancit Canton x20", "Coke 1.5L x2"],
     total: 780,
     status: "In Transit",
     priority: "Scheduled",
