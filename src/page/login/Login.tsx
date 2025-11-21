@@ -109,7 +109,7 @@ const Login: React.FC = () => {
 
       Swal.fire({
         icon: "success",
-        title: `Hi ${response.username}!`,
+         title: `Hi ${response.username ?? "Admin"}!`,
         text: "Login successful.",
         confirmButtonText: "PROCEED",
         ...getSwalTheme(),
