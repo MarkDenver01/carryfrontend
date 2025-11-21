@@ -104,24 +104,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // ⏰ Auto-logout when JWT expires
-  useEffect(() => {
-    if (!user?.jwtExpirationTime) return;
+  // useEffect(() => {
+  //   if (!user?.jwtExpirationTime) return;
 
-    const checkExpiration = () => {
-      const now = new Date().getTime();
-      const exp = new Date(user.jwtExpirationTime).getTime();
+  //   const checkExpiration = () => {
+  //     const now = new Date().getTime();
+  //     const exp = new Date(user.jwtExpirationTime).getTime();
 
-      if (!exp || isNaN(exp)) return; // ignore invalid or missing exp
-      if (now >= exp) logout();
+  //     if (!exp || isNaN(exp)) return; // ignore invalid or missing exp
+  //     if (now >= exp) logout();
 
-    };
+  //   };
 
-    // Check every 30 seconds
-    const interval = setInterval(checkExpiration, 30_000);
-    checkExpiration(); // run once immediately
+  //   // Check every 30 seconds
+  //   const interval = setInterval(checkExpiration, 30_000);
+  //   checkExpiration(); // run once immediately
 
-    return () => clearInterval(interval);
-  }, [user]);
+  //   return () => clearInterval(interval);
+  // }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, isAuthenticated: !!user, logout, setAuth }}>
