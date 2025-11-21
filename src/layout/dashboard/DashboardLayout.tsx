@@ -184,6 +184,15 @@ export default function DashboardLayout() {
                                             }
                                         />
 
+                                        <Route
+                                            path="delivery/add-riders"
+                                                element={
+                                                    <ProtectedRoute requiredRole="SUB_ADMIN">
+                                                        <AddDriverPage />
+                                                    </ProtectedRoute>
+                                            }
+                                        />
+
                                         {/* ------------------------------ */}
                                         {/* ROUTES ACCESSIBLE BY BOTH ROLES */}
                                         {/* ------------------------------ */}
