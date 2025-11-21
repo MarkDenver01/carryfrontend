@@ -108,7 +108,7 @@ const Login: React.FC = () => {
           ...getSwalTheme(),
         }).then((result) => {
           if (result.isConfirmed) {
-            navigate("/dashboard", { replace: true });
+            navigate("dashboard", { replace: true });
           }
         });
       } else if (response.role === 'SUB_ADMIN') {
@@ -120,7 +120,7 @@ const Login: React.FC = () => {
             ...getSwalTheme(),
           }).then((result) => {
             if (result.isConfirmed) {
-              navigate("/dashboard", { replace: true });
+              navigate("dashboard", { replace: true });
             }
           });
       } else {

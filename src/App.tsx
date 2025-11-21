@@ -34,7 +34,7 @@ function App(): JSX.Element {
                 <Routes>
                     <Route path="/" element={<Login />} />
                     <Route
-                        path="/dashboard/*"
+                        path="dashboard/*"
                         element={
                             <ProtectedRoute>
                                 <DashboardLayout />
