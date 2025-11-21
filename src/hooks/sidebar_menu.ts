@@ -1,16 +1,16 @@
-    import {
-        LayoutDashboard,
-        Boxes,
-        Search,
-        Star,
-        BarChart2,
-        Users,
-        ShoppingCart,
-        Truck,
-        UserCheck,
-        Currency,
-    } from "lucide-react";
-    import type { SidebarMenuSection } from "../types/sidebar.ts";
+import {
+    LayoutDashboard,
+    Boxes,
+    Search,
+    Star,
+    BarChart2,
+    Users,
+    ShoppingCart,
+    Truck,
+    UserCheck,
+    Currency,
+} from "lucide-react";
+import type { SidebarMenuSection } from "../types/sidebar";
 
 export const sidebarMenu: SidebarMenuSection[] = [
     {
@@ -26,7 +26,6 @@ export const sidebarMenu: SidebarMenuSection[] = [
 
     {
         section: "Product",
-        role: "SUB_ADMIN",
         items: [
             {
                 label: "Product Management",
@@ -94,7 +93,6 @@ export const sidebarMenu: SidebarMenuSection[] = [
 
     {
         section: "Operations",
-        role: "SUB_ADMIN",
         items: [
             {
                 label: "Customer Membership",
@@ -105,7 +103,6 @@ export const sidebarMenu: SidebarMenuSection[] = [
             {
                 label: "Delivery Management",
                 icon: Truck,
-                role: "SUB_ADMIN",
                 children: [
                     {
                         label: "Orders",
@@ -114,7 +111,7 @@ export const sidebarMenu: SidebarMenuSection[] = [
                         role: "SUB_ADMIN",
                     },
                     {
-                        label: "Available Driver",
+                        label: "Available Drivers",
                         icon: Truck,
                         path: "/dashboard/delivery/riders",
                         role: "SUB_ADMIN",
