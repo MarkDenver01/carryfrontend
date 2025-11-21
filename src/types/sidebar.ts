@@ -5,6 +5,7 @@ export interface SidebarMenuItem {
     icon: LucideIcon;
     path?: string;
     children?: SidebarMenuItem[];
+    role?: "ADMIN" | "SUB_ADMIN";
 }
 
 export interface SidebarMenuSection {
