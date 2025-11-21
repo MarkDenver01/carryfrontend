@@ -96,13 +96,13 @@ export async function updateProductStatus(
 
 /** Fetch all product prices */
 export async function getAllPrices(): Promise<ProductPriceDTO[]> {
-  const response = await api.get("/admin/api/price/all");
+  const response = await api.get("/user/public/api/price/all");
   return response.data?.data ?? response.data;
 }
 
 /** Add product price */
 export async function addPriceForm(price: Partial<ProductPrice>): Promise<ProductPriceDTO> {
-  const response = await api.post("/admin/api/price/add", price);
+  const response = await api.post("/user/public/api/price/add", price);
   return response.data?.data ?? response.data;
 }
 
@@ -111,13 +111,13 @@ export async function updatePriceForm(
   priceId: number,
   price: Partial<ProductPrice>
 ): Promise<ProductPriceDTO> {
-  const response = await api.put(`/admin/api/price/update/${priceId}`, price);
+  const response = await api.put(`/user/public/api/price/update/${priceId}`, price);
   return response.data?.data ?? response.data;
 }
 
 /** Delete product price */
 export async function deletePriceById(priceId: number): Promise<void> {
-  await api.delete(`/admin/api/price/delete/${priceId}`);
+  await api.delete(`/user/public/api/price/delete/${priceId}`);
 }
 
 /**

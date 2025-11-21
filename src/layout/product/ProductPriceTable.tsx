@@ -107,6 +107,7 @@ export default function ProductPriceTable() {
             <tr>
               <th className="p-3 border">Product Image</th>
               <th className="p-3 border">Product Name</th>
+              <th className="p-3 border">Product Description</th>
               <th className="p-3 border">Category</th>
               <th className="p-3 border">Size</th>
               <th className="p-3 border">Price (₱)</th>
@@ -131,6 +132,7 @@ export default function ProductPriceTable() {
                     />
                   </td>
                   <td className="p-3 border font-medium">{p.productName}</td>
+                  <td className="p-3 border font-medium">{p.productDescription}</td>
                   <td className="p-3 border">{p.categoryName}</td>
                   <td className="p-3 border">{p.productSize}</td>
                   <td className="p-3 border">₱{p.basePrice.toFixed(2)}</td>
@@ -162,7 +164,7 @@ export default function ProductPriceTable() {
             ) : (
               <tr>
                 <td
-                  colSpan={7}
+                  colSpan={8}
                   className="text-center text-gray-500 py-4 border"
                 >
                   No product price records found.

@@ -53,6 +53,17 @@ export default function SidebarDeliveryMenu({ collapsed }: Props) {
                         <Truck size={14} />
                         Available Riders
                     </button>
+                        <button
+                        onClick={() => navigate('/dashboard/delivery/add-rider')}
+                        className={`flex items-center gap-1 px-2 py-1 rounded w-full text-left hover:bg-white/10 ${
+                            location.pathname === '/dashboard/delivery/add-rider'
+                                ? 'bg-white/10 text-white font-semibold'
+                                : ''
+                        }`}
+                    >
+                        <Truck size={14} />
+                        Register Driver
+                    </button>
                 </div>
             )}
         </div>

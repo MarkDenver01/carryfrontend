@@ -6,6 +6,7 @@ export interface ProductPriceDTO {
 
   // Product details from relationship
   productName: string;
+  productDescription: string;
   productCode: string;
   productImgUrl: string;
   productSize: string;

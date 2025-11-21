@@ -101,11 +101,16 @@
                             path: "/dashboard/delivery/orders",
                         },
                         {
-                            label: "Available Riders",
+                            label: "Available Driver",
                             icon: Truck,
                             path: "/dashboard/delivery/riders",
                         },
-                    ],
+                         {
+                        label: "Add Driver",
+                        icon: Truck,
+                        path: "/dashboard/delivery/add-rider",
+                    },
+                ],
                 },
             ],
         },

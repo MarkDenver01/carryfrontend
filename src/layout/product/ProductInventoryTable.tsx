@@ -33,7 +33,7 @@ export default function ProductInventoryTable() {
   const [editTarget, setEditTarget] = useState<Product | null>(null);
 
   // ✅ Modal state for viewing recommendations
-  const [viewModal, setViewModal] = useState(false);
+  const [viewModal, setViewModal] = useState(false);   
   const [recommendations, setRecommendations] = useState<RecommendationRuleDTO[]>([]);
 
   const [currentPage, setCurrentPage] = useState(1);

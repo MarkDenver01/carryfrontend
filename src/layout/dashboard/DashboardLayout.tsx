@@ -15,16 +15,17 @@ import ProductRecommendation from '../../page/product/sub/ProductRecommendation.
 import ProductPriceMonitoring from '../../page/product/sub/ProductRates.tsx';
 import ProductCategoryManagement from "../../page/product/sub/ProductCategoryManagement.tsx";
 
-import AnalyticsPage from '../../page/analytics/Analytics.tsx';
-import CustomerReport from '../../page/analytics/sub/CustomerReport.tsx';
-import SalesReport from '../../page/analytics/sub/SalesReport.tsx';
-import ProductReport from '../../page/analytics/sub/ProductReport.tsx';
+import AnalyticsPage from "../../page/analytics/Analytics.tsx";
+import CustomerReport from "../../page/analytics/sub/CustomerReport.tsx";
+import SalesReport from "../../page/analytics/sub/SalesReport.tsx";
+import ProductReport from "../../page/analytics/sub/ProductReport.tsx";
 
-import UsersPage from '../../page/customer/Users.tsx';
+import UsersPage from "../../page/customer/Users.tsx";
 
-import DeliveryPage from '../../page/delivery/Delivery.tsx';
-import OrdersPage from '../../page/delivery/sub/Orders.tsx';
-import RidersPage from '../../page/delivery/sub/Riders.tsx';
+import DeliveryPage from "../../page/delivery/Delivery.tsx";
+import OrdersPage from "../../page/delivery/sub/Orders.tsx";
+import RidersPage from "../../page/delivery/sub/Riders.tsx";
+import AddDriverPage from "../../page/delivery/AddDriver.tsx";
 
 import { ProductsProvider } from "../../context/ProductsContext";
 import { PricesProvider } from "../../context/PricesContext";
@@ -39,14 +40,14 @@ export default function DashboardLayout() {
     const [pageTitle, setPageTitle] = useState('Dashboard');
     const location = useLocation();
 
-    useEffect(() => {
-        const path = location.pathname;
-        if (path.includes('/products')) setPageTitle('Product Management');
-        else if (path.includes('/analytics')) setPageTitle('Analytics Dashboard');
-        else if (path.includes('/delivery')) setPageTitle('Delivery Management');
-        else if (path.includes('/users')) setPageTitle('Customer Membership');
-        else setPageTitle('Dashboard');
-    }, [location.pathname]);
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes("/products")) setPageTitle("Product Management");
+    else if (path.includes("/analytics")) setPageTitle("Analytics Dashboard");
+    else if (path.includes("/delivery")) setPageTitle("Delivery Management");
+    else if (path.includes("/users")) setPageTitle("Customer Membership");
+    else setPageTitle("Dashboard");
+  }, [location.pathname]);
 
     return (
         <div className="flex h-screen bg-gray-200">
