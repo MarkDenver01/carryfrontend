@@ -10,5 +10,6 @@ export interface SidebarMenuItem {
 
 export interface SidebarMenuSection {
     section: string;
+    role?: "ADMIN" | "SUB_ADMIN";
     items: SidebarMenuItem[];
 }

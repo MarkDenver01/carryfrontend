@@ -26,6 +26,7 @@ export const sidebarMenu: SidebarMenuSection[] = [
 
     {
         section: "Product",
+        role: "SUB_ADMIN",
         items: [
             {
                 label: "Product Management",
@@ -93,6 +94,7 @@ export const sidebarMenu: SidebarMenuSection[] = [
 
     {
         section: "Operations",
+        role: "SUB_ADMIN",
         items: [
             {
                 label: "Customer Membership",
