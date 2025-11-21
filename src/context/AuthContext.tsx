@@ -1,5 +1,5 @@
 import { createContext, useState, useContext, type ReactNode } from "react";
-import { useNavigate } from "react-router-dom";
+//import { useNavigate } from "react-router-dom";
 import type { LoginResponse } from "../libs/models/login";
 import type { UserResponse } from "../libs/models/user";
 
@@ -40,7 +40,7 @@ const parseJwtTimestamps = (token: string): { issuedAt: string; expiration: stri
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const navigate = useNavigate();
+  //const navigate = useNavigate();
 
   // ✅ Initialize user from localStorage
   const [user, setUser] = useState<LoginResponse | null>(() => {
