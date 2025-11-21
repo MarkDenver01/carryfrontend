@@ -105,7 +105,7 @@
                             icon: Truck,
                             path: "/dashboard/delivery/riders",
                         },
-                         {
+                        {
                         label: "Add Driver",
                         icon: Truck,
                         path: "/dashboard/delivery/add-rider",
