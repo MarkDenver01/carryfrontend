@@ -111,10 +111,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const now = new Date().getTime();
       const exp = new Date(user.jwtExpirationTime).getTime();
 
-      if (exp && now >= exp) {
-        console.warn("⚠️ JWT expired, logging out automatically.");
-        logout();
-      }
+      if (!exp || isNaN(exp)) return; // ignore invalid or missing exp
+      if (now >= exp) logout();
+
     };
 
     // Check every 30 seconds
