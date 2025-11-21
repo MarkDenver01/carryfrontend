@@ -247,7 +247,7 @@ const Dashboard: React.FC = () => {
         ))}
       </motion.div>
 
-      {/** SYSTEM HEALTH SUMMARY (Option A) */}
+      {/* SYSTEM HEALTH SUMMARY */}
       <SectionWrapper title="System Health Summary">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <HealthCard label="API Response Time" value="120ms" status="Optimal" />
@@ -257,7 +257,7 @@ const Dashboard: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/** ADMIN ACTIVITY SUMMARY (Option B) */}
+      {/* ADMIN ACTIVITY SUMMARY */}
       <SectionWrapper title="Admin Activity Summary">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <HealthCard label="Admin Accounts" value="2" status="All Active" />
@@ -267,7 +267,7 @@ const Dashboard: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/** INVENTORY ALERTS (Option C) */}
+      {/* INVENTORY ALERTS */}
       <SectionWrapper title="Inventory Alerts">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <AlertCard
@@ -288,7 +288,7 @@ const Dashboard: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/** STORE PERFORMANCE SNAPSHOT (Option D) */}
+      {/* STORE PERFORMANCE */}
       <SectionWrapper title="Store Performance Snapshot">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <PerformanceCard label="Today's Revenue" value="₱12,450" />
@@ -357,7 +357,9 @@ function SectionWrapper({
       animate={{ opacity: 1, y: 0 }}
       className="p-5 bg-white dark:bg-slate-900 rounded-xl shadow-lg border border-gray-200 dark:border-slate-700"
     >
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
+      <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">
+        {title}
+      </h3>
       {children}
     </motion.div>
   );
@@ -412,9 +414,13 @@ function HealthCard({
 }) {
   return (
     <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700">
-      <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
-      <p className="text-xl font-bold mt-1">{value}</p>
-      <p className="text-xs text-emerald-500 mt-1">{status}</p>
+      <p className="text-sm text-gray-600 dark:text-gray-300">{label}</p>
+      <p className="text-xl font-bold mt-1 text-gray-900 dark:text-white">
+        {value}
+      </p>
+      <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-1">
+        {status}
+      </p>
     </div>
   );
 }
@@ -433,9 +439,11 @@ function AlertCard({
 }) {
   return (
     <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-300 dark:border-red-700 rounded-xl">
-      <p className="text-sm text-red-700 dark:text-red-400">{label}</p>
-      <p className="text-xl font-bold mt-1">{value}</p>
-      <p className="text-xs text-red-500 dark:text-red-300 mt-1">{desc}</p>
+      <p className="text-sm text-red-700 dark:text-red-300">{label}</p>
+      <p className="text-xl font-bold mt-1 text-red-800 dark:text-red-200">
+        {value}
+      </p>
+      <p className="text-xs text-red-600 dark:text-red-400 mt-1">{desc}</p>
     </div>
   );
 }
@@ -452,8 +460,10 @@ function PerformanceCard({
 }) {
   return (
     <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-700 rounded-xl">
-      <p className="text-sm text-blue-700 dark:text-blue-400">{label}</p>
-      <p className="text-2xl font-bold mt-1">{value}</p>
+      <p className="text-sm text-blue-700 dark:text-blue-300">{label}</p>
+      <p className="text-2xl font-bold mt-1 text-blue-900 dark:text-blue-200">
+        {value}
+      </p>
     </div>
   );
 }
@@ -483,8 +493,8 @@ function LogItem({
     <div className="flex items-start gap-3">
       <span className={`text-lg ${color}`}>{icon}</span>
       <div>
-        <p>{text}</p>
-        <p className="text-xs text-gray-400">{time}</p>
+        <p className="text-gray-800 dark:text-gray-200">{text}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{time}</p>
       </div>
     </div>
   );
