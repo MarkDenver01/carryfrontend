@@ -30,6 +30,7 @@ export const sidebarMenu: SidebarMenuSection[] = [
             {
                 label: "Product Management",
                 icon: Boxes,
+                role: "SUB_ADMIN",
                 children: [
                     {
                         label: "Product Categories",
@@ -102,6 +103,7 @@ export const sidebarMenu: SidebarMenuSection[] = [
             {
                 label: "Delivery Management",
                 icon: Truck,
+                role: "SUB_ADMIN",
                 children: [
                     {
                         label: "Orders",
