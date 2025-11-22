@@ -29,6 +29,8 @@ const Dashboard: React.FC = () => {
     typeof window !== "undefined" && localStorage.getItem("darkMode") === "true"
   );
 
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+
   // Apply dark mode
   useEffect(() => {
     localStorage.setItem("darkMode", isDarkMode.toString());
@@ -52,6 +54,14 @@ const Dashboard: React.FC = () => {
     const interval = setInterval(updateTime, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCursorPos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   const stats: StatConfig[] = [
     {
@@ -116,7 +126,28 @@ const Dashboard: React.FC = () => {
           ? "bg-slate-950 text-slate-100"
           : "bg-slate-50 text-slate-900"
       }`}
+      onMouseMove={handleMouseMove}
     >
+      {/* CURSOR-BASED SPOTLIGHT */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 -z-30"
+        style={{
+          background: `radial-gradient(600px at ${cursorPos.x}px ${cursorPos.y}px, rgba(255,255,255,0.12), transparent 70%)`,
+        }}
+        animate={{ opacity: [0.7, 1, 0.8] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* FOLLOW GLOW */}
+      <motion.div
+        className="pointer-events-none absolute h-40 w-40 rounded-full bg-emerald-400/18 blur-3xl -z-20"
+        animate={{
+          x: cursorPos.x - 80,
+          y: cursorPos.y - 80,
+        }}
+        transition={{ type: "spring", stiffness: 40, damping: 20 }}
+      />
+
       {/* AMBIENT EDGE GLOW */}
       <div className="pointer-events-none fixed inset-x-0 bottom-0 h-40 -z-30 bg-gradient-to-t from-emerald-500/10 via-transparent to-transparent" />
 
@@ -172,7 +203,11 @@ const Dashboard: React.FC = () => {
         </div>
 
         <motion.button
-          whileHover={{ x: 2, y: -2, scale: 1.03 }}
+          whileHover={{
+            x: 2,
+            y: -2,
+            scale: 1.03,
+          }}
           whileTap={{ scale: 0.97 }}
           onClick={() => setIsDarkMode(!isDarkMode)}
           className="relative flex items-center gap-2 px-3 py-2 rounded-full border border-slate-300/70 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/70 shadow-[0_8px_30px_rgba(15,23,42,0.18)] hover:shadow-[0_12px_40px_rgba(15,23,42,0.25)] backdrop-blur-xl text-xs font-medium transition-all overflow-hidden group"
@@ -198,13 +233,18 @@ const Dashboard: React.FC = () => {
       {/* WELCOME / SNAPSHOT CARD */}
       <motion.div
         initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
+        animate={{ opacity: 1, y: 0, scale: [1, 1.01, 1] }}
+        transition={{
+          duration: 0.5,
+          ease: "easeOut",
+          scale: { duration: 10, repeat: Infinity, ease: "easeInOut" },
+        }}
         className="relative overflow-hidden rounded-2xl border border-emerald-400/35 bg-gradient-to-r from-emerald-600 via-emerald-600 to-emerald-500 text-white shadow-[0_20px_60px_-15px_rgba(4,120,87,0.75)] px-6 py-5 md:px-7 md:py-6 backdrop-blur-2xl group"
       >
-        {/* Gloss + sheen sweep */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.20),transparent_65%)]" />
-        <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.25),transparent)] translate-x-[-200%] group-hover:translate-x-[200%]" />
+        {/* Gloss + film-like layer */}
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.12),transparent)] opacity-80" />
+        {/* Shine sweep on hover */}
+        <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.3),transparent)] translate-x-[-200%] group-hover:translate-x-[200%]" />
 
         <div className="flex flex-col md:flex-row justify-between gap-8 relative z-10">
           {/* LEFT SIDE */}
@@ -272,8 +312,16 @@ const Dashboard: React.FC = () => {
           <div className="w-full md:w-64">
             <motion.div
               initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.35 }}
+              animate={{
+                opacity: 1,
+                y: 0,
+                scale: [1, 1.01, 1],
+              }}
+              transition={{
+                duration: 0.35,
+                ease: "easeOut",
+                scale: { duration: 12, repeat: Infinity, ease: "easeInOut" },
+              }}
               className="relative h-full border border-white/25 bg-white/12 rounded-xl px-4 py-3 backdrop-blur-2xl shadow-[0_16px_40px_rgba(4,120,87,0.6)] overflow-hidden"
             >
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.25),transparent_55%)]" />
@@ -395,11 +443,14 @@ function SectionWrapper({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="relative p-6 rounded-xl border border-slate-200/85 dark:border-slate-700/85 bg-white/80 dark:bg-slate-900/75 backdrop-blur-xl shadow-[0_18px_55px_rgba(15,23,42,0.28)] overflow-hidden group"
+      className="relative p-6 rounded-xl border border-slate-200/85 dark:border-slate-700/85 bg-white/80 dark:bg-slate-900/75 backdrop-blur-xl shadow-[0_18px_55px_rgba(15,23,42,0.28)] overflow-hidden group transform-gpu"
     >
-      {/* halo border */}
+      {/* subtle fog top/bottom */}
+      <div className="pointer-events-none absolute top-0 left-0 w-full h-10 bg-gradient-to-b from-white/10 dark:from-slate-900/30 to-transparent" />
+      <div className="pointer-events-none absolute bottom-0 left-0 w-full h-10 bg-gradient-to-t from-white/10 dark:from-slate-900/30 to-transparent" />
+
+      {/* halo border + spotlight */}
       <div className="pointer-events-none absolute inset-0 rounded-xl border border-white/10 dark:border-white/5" />
-      {/* spotlight hover */}
       <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-[radial-gradient(circle_at_top_left,rgba(248,250,252,0.45),transparent_60%)]" />
 
       <div className="relative flex items-center justify-between mb-4">
@@ -408,6 +459,7 @@ function SectionWrapper({
             <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
             {title}
           </span>
+          <div className="w-20 h-[3px] bg-gradient-to-r from-emerald-400 via-green-500 to-transparent rounded-full" />
         </div>
       </div>
 
@@ -440,10 +492,12 @@ function DashboardStatCard({
       whileHover={{
         y: -6,
         scale: 1.03,
+        rotateX: -4,
+        rotateY: 4,
         boxShadow:
           "0 22px 65px rgba(15,23,42,0.32), 0 0 25px rgba(52,211,153,0.35)",
       }}
-      className={`relative flex flex-col gap-4 p-5 rounded-2xl shadow-[0_18px_50px_rgba(15,23,42,0.28)] bg-gradient-to-br ${gradient} text-white overflow-hidden group`}
+      className={`relative flex flex-col gap-4 p-5 rounded-2xl shadow-[0_18px_50px_rgba(15,23,42,0.28)] bg-gradient-to-br ${gradient} text-white overflow-hidden group transform-gpu perspective-[1000px]`}
     >
       {/* glossy & shine sweep */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.3),transparent_60%)] opacity-90 pointer-events-none" />
@@ -452,7 +506,7 @@ function DashboardStatCard({
       <div className="relative flex items-start gap-3">
         <motion.div
           whileHover={{ rotate: 5, scale: 1.08 }}
-          className={`p-3 rounded-xl ${iconBg} shadow-md shadow-black/30`}
+          className={`p-3 rounded-xl ${iconBg} shadow-md shadow-black/30 mix-blend-screen`}
         >
           {icon}
         </motion.div>
@@ -492,8 +546,8 @@ function AlertCard({
 }) {
   return (
     <motion.div
-      whileHover={{ y: -4, scale: 1.02 }}
-      className="p-4 rounded-xl border border-red-200/80 dark:border-red-700/80 bg-red-50/80 dark:bg-red-900/25 backdrop-blur-md shadow-[0_14px_38px_rgba(127,29,29,0.35)]"
+      whileHover={{ y: -4, scale: 1.02, rotateX: -3, rotateY: 3 }}
+      className="p-4 rounded-xl border border-red-200/80 dark:border-red-700/80 bg-red-50/80 dark:bg-red-900/25 backdrop-blur-md shadow-[0_14px_38px_rgba(127,29,29,0.35)] transform-gpu"
     >
       <p className="text-sm font-medium text-red-800 dark:text-red-200">
         {label}
@@ -518,8 +572,8 @@ function PerformanceCard({
 }) {
   return (
     <motion.div
-      whileHover={{ y: -4, scale: 1.02 }}
-      className="p-4 rounded-xl border border-sky-200/80 dark:border-sky-700/80 bg-sky-50/80 dark:bg-sky-900/25 backdrop-blur-md shadow-[0_14px_38px_rgba(30,64,175,0.35)]"
+      whileHover={{ y: -4, scale: 1.02, rotateX: -3, rotateY: 3 }}
+      className="p-4 rounded-xl border border-sky-200/80 dark:border-sky-700/80 bg-sky-50/80 dark:bg-sky-900/25 backdrop-blur-md shadow-[0_14px_38px_rgba(30,64,175,0.35)] transform-gpu"
     >
       <p className="text-sm font-medium text-sky-800 dark:text-sky-200">
         {label}
