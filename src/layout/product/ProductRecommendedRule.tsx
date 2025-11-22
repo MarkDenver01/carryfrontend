@@ -164,7 +164,7 @@ export default function RecommendationRulesPage() {
 
         <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
           <Sparkles className="w-4 h-4 text-emerald-400" />
-          Manage AI-based suggested product relationships.
+          Manage Ruled-Based Recommendation product relationships.
         </div>
 
         <div className="mt-3 h-[3px] w-32 bg-gradient-to-r from-emerald-400 via-cyan-400 to-transparent rounded-full" />
