@@ -30,6 +30,7 @@ const Login: React.FC = () => {
   const [clock, setClock] = useState({ time: "", date: "" });
   const [isInputFocused, setIsInputFocused] = useState(false);
   const [tipIndex, setTipIndex] = useState(0);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   const navigate = useNavigate();
   const { setAuth } = useAuth();
@@ -97,9 +98,7 @@ const Login: React.FC = () => {
       const response: LoginResponse = await login({ email, password });
       setAuth(response);
 
-
-
-      if (response.role === 'ADMIN') {
+      if (response.role === "ADMIN") {
         Swal.fire({
           icon: "success",
           title: `Hi ${response.username} (Super Admin)! Your login is successful.`,
@@ -111,26 +110,26 @@ const Login: React.FC = () => {
             navigate("dashboard", { replace: true });
           }
         });
-      } else if (response.role === 'SUB_ADMIN') {
-          Swal.fire({
-            icon: "success",
-            title: `Hi ${response.username} (Admin)! Your login is successful.`,
-            text: "Tap proceed to continue.",
-            confirmButtonText: "PROCEED",
-            ...getSwalTheme(),
-          }).then((result) => {
-            if (result.isConfirmed) {
-              navigate("dashboard", { replace: true });
-            }
-          });
+      } else if (response.role === "SUB_ADMIN") {
+        Swal.fire({
+          icon: "success",
+          title: `Hi ${response.username} (Admin)! Your login is successful.`,
+          text: "Tap proceed to continue.",
+          confirmButtonText: "PROCEED",
+          ...getSwalTheme(),
+        }).then((result) => {
+          if (result.isConfirmed) {
+            navigate("dashboard", { replace: true });
+          }
+        });
       } else {
-          Swal.fire({
-            icon: "error",
-            title: "Access Denied",
-            text: `Non-administrator role is prohibited to login.`,
-            confirmButtonText: "CLOSE",
-            ...getSwalTheme(),
-          });
+        Swal.fire({
+          icon: "error",
+          title: "Access Denied",
+          text: `Non-administrator role is prohibited to login.`,
+          confirmButtonText: "CLOSE",
+          ...getSwalTheme(),
+        });
       }
     } catch (err) {
       console.error(err);
@@ -155,23 +154,74 @@ const Login: React.FC = () => {
   const handleInputFocus = () => setIsInputFocused(true);
   const handleInputBlur = () => setIsInputFocused(false);
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCursorPos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
+
   return (
     <div
-      className="relative min-h-screen w-full bg-cover bg-center bg-no-repeat flex items-center justify-center"
+      className="relative min-h-screen w-full flex items-center justify-center overflow-hidden"
       style={{
         backgroundImage: `url('/assets/admin_bg.jpg')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
       }}
+      onMouseMove={handleMouseMove}
     >
-      {/* Global overlay */}
+      {/* Global overlay (subtle, no text blur) */}
       <div
-        className={`absolute inset-0 backdrop-blur-[2px] transition-colors duration-300 z-0 ${
-          isInputFocused ? "bg-black/40" : "bg-white/25"
+        className={`absolute inset-0 transition-colors duration-300 z-0 ${
+          isInputFocused ? "bg-black/55" : "bg-black/40"
         }`}
       />
 
-      {/* Floating grocery icons */}
+      {/* HUD GRID BACKGROUND */}
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-40 mix-blend-soft-light">
+        <div className="w-full h-full bg-[linear-gradient(to_right,rgba(148,163,184,0.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.18)_1px,transparent_1px)] bg-[size:46px_46px]" />
+      </div>
+
+      {/* SCANLINE OVERLAY */}
+      <div className="pointer-events-none absolute inset-0 -z-10 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" />
+
+      {/* CURSOR-BASED SPOTLIGHT */}
       <motion.div
-        className="absolute left-10 top-16 text-green-800/30"
+        className="pointer-events-none absolute inset-0 -z-10"
+        style={{
+          background: `radial-gradient(520px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.30), transparent 70%)`,
+        }}
+        animate={{ opacity: [0.7, 1, 0.8] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      {/* FLOATING BLOBS */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <motion.div
+          className="absolute -top-24 -left-20 h-64 w-64 bg-emerald-500/28 blur-3xl"
+          animate={{
+            x: [0, 30, 10, -10, 0],
+            y: [0, 10, 25, 10, 0],
+            borderRadius: ["45%", "60%", "50%", "65%", "45%"],
+          }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -bottom-24 right-10 h-72 w-72 bg-emerald-400/22 blur-3xl"
+          animate={{
+            x: [0, -20, -10, 10, 0],
+            y: [0, -15, -5, -10, 0],
+            borderRadius: ["55%", "70%", "60%", "75%", "55%"],
+          }}
+          transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
+      {/* Floating grocery icons (hologram style) */}
+      <motion.div
+        className="absolute left-10 top-16 text-emerald-300/40"
         animate={{ y: [0, -12, 0] }}
         transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
       >
@@ -179,7 +229,7 @@ const Login: React.FC = () => {
       </motion.div>
 
       <motion.div
-        className="absolute right-16 bottom-24 text-green-800/30"
+        className="absolute right-16 bottom-24 text-emerald-300/40"
         animate={{ y: [0, 14, 0] }}
         transition={{ duration: 7, repeat: Infinity, ease: "easeInOut" }}
       >
@@ -187,7 +237,7 @@ const Login: React.FC = () => {
       </motion.div>
 
       <motion.div
-        className="absolute left-1/2 bottom-10 text-green-800/25"
+        className="absolute left-1/2 bottom-10 text-emerald-300/30"
         animate={{ y: [0, -10, 0] }}
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       >
@@ -196,105 +246,130 @@ const Login: React.FC = () => {
 
       {/* Scanner Line */}
       <motion.div
-        className="absolute top-1/2 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-green-400/80 to-transparent opacity-60"
+        className="absolute top-1/2 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-60"
         animate={{ x: ["-20%", "20%", "-20%"] }}
         transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* Card */}
+      {/* Card container */}
       <div className="relative z-20 w-full px-4 sm:px-6">
+        {/* Glow shadow under card */}
         <div className="mx-auto max-w-4xl pointer-events-none">
-          <div className="mx-auto h-6 w-3/4 rounded-full bg-green-500/40 blur-2xl opacity-70" />
+          <div className="mx-auto h-6 w-3/4 rounded-full bg-emerald-500/40 blur-2xl opacity-70" />
         </div>
 
+        {/* MAIN CARD (HUD STYLE) */}
         <motion.div
-          initial={{ opacity: 0, y: 30, scale: 0.98 }}
+          initial={{ opacity: 0, y: 28, scale: 0.97 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="
-            relative mx-auto mt-3 max-w-4xl 
-            rounded-3xl bg-white/90 backdrop-blur-2xl
-            border border-white/70 shadow-[0_20px_50px_rgba(0,0,0,0.35)]
-            ring-1 ring-white/70
+            relative mx-auto mt-2 max-w-4xl 
+            rounded-[26px] 
+            bg-slate-950/85 
+            border border-emerald-500/35 
+            shadow-[0_24px_80px_rgba(15,23,42,0.85)]
             overflow-hidden
           "
         >
+          {/* HUD brackets */}
+          <div className="pointer-events-none absolute inset-0">
+            <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
+            <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
+            <div className="absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-emerald-400/80" />
+            <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-400/80" />
+          </div>
+
+          {/* Subtle top glossy strip */}
+          <div className="absolute inset-x-0 top-0 h-10 bg-gradient-to-b from-white/10 via-transparent to-transparent pointer-events-none" />
+
           {/* Top bar */}
-          <div className="flex items-center justify-between px-6 py-3 border-b border-gray-200/70 bg-white/80">
-            <div className="flex items-center gap-3 text-xs sm:text-sm text-gray-600">
-              <span className="inline-flex h-2 w-2 rounded-full bg-green-500 mr-1" />
-              <span className="font-semibold text-gray-800 uppercase tracking-wide">
-                Grocery Admin System
+          <div className="flex items-center justify-between px-6 py-3 border-b border-emerald-500/30 bg-slate-950/90">
+            <div className="flex items-center gap-3 text-xs sm:text-sm text-emerald-100">
+              <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 mr-1 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
+              <span className="font-semibold uppercase tracking-wide text-emerald-100">
+                CarryGrocer Admin Console
               </span>
-              <span className="hidden sm:inline text-gray-400">
-                • Operational Dashboard Access
+              <span className="hidden sm:inline text-emerald-300/80">
+                • Secure Operations Access
               </span>
-              <span className="hidden sm:inline-flex items-center rounded-full bg-emerald-100 text-emerald-700 text-[0.65rem] font-semibold px-2 py-0.5 uppercase tracking-wide">
+              <span className="hidden sm:inline-flex items-center rounded-full bg-emerald-900/70 text-emerald-300 text-[0.65rem] font-semibold px-2 py-0.5 uppercase tracking-wide border border-emerald-500/60">
                 Admin Role
               </span>
             </div>
-            <div className="text-right text-xs sm:text-sm text-gray-700 font-mono">
+            <div className="text-right text-xs sm:text-sm text-emerald-100 font-mono">
               <div>{clock.time}</div>
-              <div className="text-[0.7rem] sm:text-[0.75rem] text-gray-500">
+              <div className="text-[0.7rem] sm:text-[0.75rem] text-emerald-300/80">
                 {clock.date}
               </div>
             </div>
           </div>
 
+          {/* Content grid */}
           <div className="grid grid-cols-1 md:grid-cols-5">
-            {/* Left Panel */}
-            <div className="md:col-span-2 border-b md:border-b-0 md:border-r border-gray-200/70 bg-gradient-to-br from-green-700 via-green-600 to-green-500 text-white p-6 sm:p-7 flex flex-col justify-between">
-              <div>
+            {/* LEFT PANEL (Info / Brand) */}
+            <div className="md:col-span-2 border-b md:border-b-0 md:border-r border-emerald-500/30 bg-gradient-to-br from-emerald-700 via-emerald-600 to-emerald-500 text-white p-6 sm:p-7 flex flex-col justify-between relative overflow-hidden">
+              {/* decorative gradient lines */}
+              <div className="pointer-events-none absolute inset-0 opacity-60">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.20),transparent_55%)]" />
+                <motion.div
+                  className="absolute -left-10 top-10 h-40 w-40 bg-white/10"
+                  animate={{ x: [0, 30, 10, -10, 0], rotate: [0, 6, -3, 4, 0] }}
+                  transition={{ duration: 18, repeat: Infinity }}
+                />
+              </div>
+
+              <div className="relative">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="h-11 w-11 flex items-center justify-center rounded-2xl bg-white/15 shadow-lg">
+                  <div className="h-11 w-11 flex items-center justify-center rounded-2xl bg-white/15 shadow-lg shadow-emerald-900/60">
                     <HiShoppingCart size={24} className="text-white" />
                   </div>
                   <div>
                     <h2 className="text-lg sm:text-xl font-bold leading-tight">
                       CarryGrocer
                     </h2>
-                    <p className="text-xs sm:text-sm text-white/80">
+                    <p className="text-xs sm:text-sm text-emerald-100/90">
                       Retail & Inventory Management Portal
                     </p>
                   </div>
                 </div>
 
-                <p className="text-xs sm:text-sm text-white/85 mb-4 leading-relaxed">
+                <p className="text-xs sm:text-sm text-emerald-50/95 mb-4 leading-relaxed">
                   Secure access for administrators to oversee checkout lanes,
                   inventory levels, pricing, and delivery operations across the
-                  store.
+                  store network.
                 </p>
 
-                <ul className="space-y-2 text-xs sm:text-sm text-white/90">
+                <ul className="space-y-2 text-xs sm:text-sm text-emerald-50/95">
                   <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
-                    Monitor orders, drivers, and product inventory
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(167,243,208,0.9)]" />
+                    Monitor orders, drivers, and product inventory in real time
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
-                    Real-time analytics for store performance
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(167,243,208,0.9)]" />
+                    Track store performance and demand analytics
                   </li>
                   <li className="flex items-center gap-2">
-                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />
-                    Role-based secure administrator access
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(167,243,208,0.9)]" />
+                    Role-based secure access for Admin & Super Admin
                   </li>
                 </ul>
               </div>
 
-              <div className="mt-6 pt-4 border-t border-white/25 text-[0.7rem] sm:text-xs text-white/80 flex items-center justify-between gap-2">
+              <div className="relative mt-6 pt-4 border-t border-emerald-300/35 text-[0.7rem] sm:text-xs text-emerald-50/90 flex items-center justify-between gap-2">
                 <span>Authorized Personnel Only</span>
-                <span className="uppercase tracking-wide font-semibold">
-                  Admin Access
+                <span className="uppercase tracking-[0.18em] font-semibold text-emerald-100">
+                  ADMIN ACCESS
                 </span>
               </div>
             </div>
 
-            {/* Right Form */}
-            <div className="md:col-span-3 p-6 sm:p-8 bg-white/90">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-1 text-center md:text-left">
+            {/* RIGHT PANEL (Form) */}
+            <div className="md:col-span-3 p-6 sm:p-8 bg-slate-950/90 text-slate-50">
+              <h1 className="text-2xl sm:text-3xl font-bold text-emerald-100 mb-1 text-center md:text-left">
                 Admin Login
               </h1>
-              <p className="text-gray-500 text-sm mb-4 text-center md:text-left">
+              <p className="text-emerald-200/80 text-sm mb-4 text-center md:text-left">
                 Sign in with your administrator credentials
               </p>
 
@@ -303,15 +378,15 @@ const Login: React.FC = () => {
                 {systemStatus.map((item) => (
                   <div
                     key={item.label}
-                    className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-1 border border-gray-200"
+                    className="inline-flex items-center gap-1 rounded-full bg-slate-900/70 px-2 py-1 border border-emerald-500/50"
                   >
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${item.color}`}
+                      className={`h-1.5 w-1.5 rounded-full ${item.color} shadow-[0_0_10px_rgba(52,211,153,0.9)]`}
                     />
-                    <span className="font-semibold text-gray-700">
+                    <span className="font-semibold text-emerald-100">
                       {item.label}:
                     </span>
-                    <span className="text-gray-600">{item.status}</span>
+                    <span className="text-emerald-200/90">{item.status}</span>
                   </div>
                 ))}
               </div>
@@ -319,12 +394,12 @@ const Login: React.FC = () => {
               <form className="space-y-5" onSubmit={handleLogin}>
                 {/* Email */}
                 <div>
-                  <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1 block">
+                  <label className="text-xs sm:text-sm font-medium text-emerald-100 mb-1 block">
                     Email Address
                   </label>
 
                   <div className="relative group">
-                    <HiUser className="absolute left-3 top-2.5 text-gray-500 group-focus-within:text-green-700 transition" />
+                    <HiUser className="absolute left-3 top-2.5 text-emerald-300 group-focus-within:text-emerald-400 transition" />
                     <input
                       type="email"
                       required
@@ -335,9 +410,10 @@ const Login: React.FC = () => {
                       placeholder="admin@store.com"
                       className="
                         w-full pl-10 pr-3 py-2.5 rounded-lg 
-                        bg-white/80 border border-gray-300 
-                        text-gray-800 text-sm
-                        focus:ring-2 focus:ring-green-600 focus:border-green-600
+                        bg-slate-900/80 border border-emerald-600/60 
+                        text-emerald-50 text-sm
+                        focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400
+                        outline-none
                         transition
                       "
                     />
@@ -347,18 +423,18 @@ const Login: React.FC = () => {
                 {/* Password */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs sm:text-sm font-medium text-gray-700">
+                    <label className="text-xs sm:text-sm font-medium text-emerald-100">
                       Password
                     </label>
                     {capsLockOn && (
-                      <span className="text-[0.7rem] text-amber-600 font-medium">
+                      <span className="text-[0.7rem] text-amber-400 font-medium">
                         CAPS LOCK is ON
                       </span>
                     )}
                   </div>
 
                   <div className="relative group">
-                    <HiLockClosed className="absolute left-3 top-2.5 text-gray-500 group-focus-within:text-green-700 transition" />
+                    <HiLockClosed className="absolute left-3 top-2.5 text-emerald-300 group-focus-within:text-emerald-400 transition" />
 
                     <input
                       type={showPassword ? "text" : "password"}
@@ -372,9 +448,10 @@ const Login: React.FC = () => {
                       placeholder="••••••••"
                       className="
                         w-full pl-10 pr-10 py-2.5 rounded-lg 
-                        bg-white/80 border border-gray-300 
-                        text-gray-800 text-sm
-                        focus:ring-2 focus:ring-green-600 focus:border-green-600
+                        bg-slate-900/80 border border-emerald-600/60 
+                        text-emerald-50 text-sm
+                        focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400
+                        outline-none
                         transition
                       "
                     />
@@ -382,7 +459,7 @@ const Login: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-2.5 text-gray-500 hover:text-green-700 transition"
+                      className="absolute right-3 top-2.5 text-emerald-300 hover:text-emerald-100 transition"
                     >
                       {showPassword ? <HiEyeOff /> : <HiEye />}
                     </button>
@@ -401,25 +478,25 @@ const Login: React.FC = () => {
                       />
                       <div
                         className="
-                          h-4 w-8 rounded-full bg-gray-300 
-                          peer-checked:bg-green-600 transition-all
+                          h-4 w-8 rounded-full bg-slate-700 
+                          peer-checked:bg-emerald-500 transition-all
                         "
                       />
                       <div
                         className="
-                          absolute top-[-2px] left-[-2px] h-6 w-6 rounded-full bg-white 
-                          border border-gray-300 shadow-sm
-                          peer-checked:translate-x-4 peer-checked:border-green-600
+                          absolute top-[-2px] left-[-2px] h-6 w-6 rounded-full bg-slate-900 
+                          border border-slate-500 shadow-sm
+                          peer-checked:translate-x-4 peer-checked:border-emerald-400
                           transition-transform
                         "
                       />
                     </div>
-                    <span className="text-xs sm:text-sm text-gray-700">
+                    <span className="text-xs sm:text-sm text-emerald-100">
                       Remember this device
                     </span>
                   </label>
 
-                  <span className="text-xs text-gray-500 sm:text-right">
+                  <span className="text-xs text-emerald-300/80 sm:text-right">
                     For security, always log out when using shared terminals.
                   </span>
                 </div>
@@ -437,23 +514,27 @@ const Login: React.FC = () => {
                   disabled={loading}
                   className="
                     w-full py-2.5 sm:py-3 
-                    bg-gradient-to-br from-green-600 to-green-700
-                    hover:from-green-700 hover:to-green-800
+                    bg-gradient-to-br from-emerald-500 to-emerald-600
+                    hover:from-emerald-500 hover:to-emerald-400
                     text-white text-sm sm:text-base font-semibold rounded-lg 
-                    shadow-lg hover:shadow-green-400/40 
+                    shadow-lg hover:shadow-[0_0_30px_rgba(34,197,94,0.7)]
                     transition-all
+                    border border-emerald-400/80
+                    focus:outline-none
                   "
                 >
                   {loading ? "Logging in..." : "Login"}
                 </Button>
 
-                <div className="mt-2 text-[0.7rem] sm:text-xs text-gray-500 flex items-center gap-2">
-                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-green-500" />
+                <div className="mt-2 text-[0.7rem] sm:text-xs text-emerald-200/90 flex items-center gap-2">
+                  <span className="inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
                   <span>{tips[tipIndex]}</span>
                 </div>
 
-                <div className="mt-3 text-[0.7rem] sm:text-xs text-gray-500 flex flex-col sm:flex-row justify-between gap-1">
-                  <span>© {new Date().getFullYear()} Grocery Admin System</span>
+                <div className="mt-3 text-[0.7rem] sm:text-xs text-emerald-300/90 flex flex-col sm:flex-row justify-between gap-1">
+                  <span>
+                    © {new Date().getFullYear()} Grocery Admin System
+                  </span>
                   <span>Version 1.0 • Carry Guide Admin</span>
                 </div>
               </form>
