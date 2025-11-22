@@ -279,7 +279,7 @@ export default function Orders() {
         </motion.h1>
 
         <p className="text-gray-500 text-sm max-w-xl">
-          Real-time{" "}
+          Monitor{" "}
           <span className="font-medium text-emerald-700">
             delivery & orders control center
           </span>

@@ -16,6 +16,7 @@ import {
   MoreVertical,
 } from "lucide-react";
 import { Dropdown, DropdownItem } from "flowbite-react";
+import { motion } from "framer-motion";
 
 type RiderStatus = "Available" | "On Delivery" | "Offline" | "Not Available";
 type SortOption = "Name" | "Status" | "Deliveries" | "Rating";
@@ -95,21 +96,33 @@ export default function Riders() {
   const [sortBy, setSortBy] = useState<SortOption>("Name");
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [cursorPos, setCursorPos] = useState<{ x: number; y: number }>({
+    x: 0,
+    y: 0,
+  });
 
   const [riders] = useState<Rider[]>(initialRiders);
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCursorPos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
+
   const getStatusStyles = (status: RiderStatus) => {
-    if (status === "Available") return "bg-green-100 text-green-700";
-    if (status === "On Delivery") return "bg-orange-100 text-orange-700";
-    if (status === "Offline") return "bg-gray-100 text-gray-700";
-    return "bg-red-100 text-red-700";
+    if (status === "Available") return "bg-emerald-100 text-emerald-700";
+    if (status === "On Delivery") return "bg-amber-100 text-amber-700";
+    if (status === "Offline") return "bg-slate-100 text-slate-700";
+    return "bg-rose-100 text-rose-700";
   };
 
   const getStatusDot = (status: RiderStatus) => {
-    if (status === "Available") return "text-green-500";
-    if (status === "On Delivery") return "text-orange-500";
-    if (status === "Offline") return "text-gray-400";
-    return "text-red-500";
+    if (status === "Available") return "text-emerald-500";
+    if (status === "On Delivery") return "text-amber-500";
+    if (status === "Offline") return "text-slate-400";
+    return "text-rose-500";
   };
 
   const openProfile = (rider: Rider) => {
@@ -122,23 +135,16 @@ export default function Riders() {
   const filteredRiders = useMemo(() => {
     let data = riders.filter(
       (rider) =>
-        rider.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        rider.name.toLowerCase().includes(searchTerm.toLowerCase().trim()) &&
         (statusFilter === "All" || rider.status === statusFilter)
     );
 
     data = [...data].sort((a, b) => {
-      if (sortBy === "Name") {
-        return a.name.localeCompare(b.name);
-      }
-      if (sortBy === "Status") {
-        return a.status.localeCompare(b.status);
-      }
-      if (sortBy === "Deliveries") {
+      if (sortBy === "Name") return a.name.localeCompare(b.name);
+      if (sortBy === "Status") return a.status.localeCompare(b.status);
+      if (sortBy === "Deliveries")
         return b.completedDeliveries - a.completedDeliveries;
-      }
-      if (sortBy === "Rating") {
-        return b.rating - a.rating;
-      }
+      if (sortBy === "Rating") return b.rating - a.rating;
       return 0;
     });
 
@@ -147,434 +153,587 @@ export default function Riders() {
 
   const totalRiders = riders.length;
   const availableCount = riders.filter((r) => r.status === "Available").length;
-  const onDeliveryCount = riders.filter((r) => r.status === "On Delivery").length;
+  const onDeliveryCount = riders.filter(
+    (r) => r.status === "On Delivery"
+  ).length;
   const offlineCount = riders.filter((r) => r.status === "Offline").length;
 
   return (
-    <div className="p-6 flex flex-col gap-8">
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
+      onMouseMove={handleMouseMove}
+    >
+      {/* ---------- GLOBAL HUD BACKDROP ---------- */}
+      <div className="pointer-events-none absolute inset-0 -z-30">
+        {/* Grid background */}
+        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
-      {/* HEADER */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-500 rounded-2xl shadow-xl p-6 text-white">
-        <h1 className="text-3xl font-bold tracking-tight">Riders Management</h1>
-        <p className="text-emerald-100 text-sm mt-1 opacity-90">
-          Monitor active riders, availability, performance, and assignments.
+        {/* Scanlines */}
+        <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.85)_0px,rgba(15,23,42,0.85)_1px,transparent_1px,transparent_3px)]" />
+
+        {/* Ambient blobs */}
+        <motion.div
+          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/28 blur-3xl"
+          animate={{
+            x: [0, 20, 10, -5, 0],
+            y: [0, 10, 20, 5, 0],
+            borderRadius: ["45%", "60%", "55%", "65%", "45%"],
+          }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/24 blur-3xl"
+          animate={{
+            x: [0, -15, -25, -10, 0],
+            y: [0, -10, -20, -5, 0],
+            borderRadius: ["50%", "65%", "55%", "70%", "50%"],
+          }}
+          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
+      {/* Cursor spotlight */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 -z-20"
+        style={{
+          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)`,
+        }}
+        animate={{ opacity: [0.7, 1, 0.85] }}
+        transition={{ duration: 8, repeat: Infinity }}
+      />
+
+      {/* ---------- PAGE HEADER ---------- */}
+      <div className="relative flex flex-col gap-3">
+        <motion.h1
+          initial={{ opacity: 0, x: -18 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4 }}
+          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent"
+        >
+          Riders Management
+        </motion.h1>
+
+        <p className="text-gray-500 text-sm max-w-xl">
+          Live{" "}
+          <span className="font-medium text-emerald-700">
+            rider performance & availability
+          </span>{" "}
+          dashboard to track assignments, workload, and status.
         </p>
+
+        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* STATUS TABS */}
-      <div className="flex gap-3 overflow-x-auto pb-1">
-        {["All", "Available", "On Delivery", "Offline", "Not Available"].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setStatusFilter(tab as "All" | RiderStatus)}
-            className={`px-4 py-2 rounded-full text-sm font-semibold border transition whitespace-nowrap
-              ${
-                statusFilter === tab
-                  ? "bg-emerald-600 text-white border-emerald-600 shadow"
-                  : "bg-white border-gray-300 text-gray-700 hover:bg-gray-100"
-              }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
+      {/* ---------- MAIN HUD CONTAINER ---------- */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="relative rounded-[26px] border border-emerald-500/30 bg-white/90 shadow-[0_22px_70px_rgba(15,23,42,0.40)] overflow-hidden"
+      >
+        {/* HUD corner brackets */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
+          <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
+          <div className="absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-emerald-400/80" />
+          <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-400/80" />
+        </div>
 
-      {/* SUMMARY CARDS */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {[
-          {
-            label: "Available Riders",
-            value: availableCount,
-            icon: Activity,
-            color: "text-green-700",
-            bg: "bg-green-50",
-          },
-          {
-            label: "On Delivery",
-            value: onDeliveryCount,
-            icon: Briefcase,
-            color: "text-orange-700",
-            bg: "bg-orange-50",
-          },
-          {
-            label: "Offline",
-            value: offlineCount,
-            icon: CalendarClock,
-            color: "text-gray-700",
-            bg: "bg-gray-50",
-          },
-          {
-            label: "Total Riders",
-            value: totalRiders,
-            icon: MoreVertical,
-            color: "text-blue-700",
-            bg: "bg-blue-50",
-          },
-        ].map((card) => (
-          <div
-            key={card.label}
-            className="bg-white rounded-xl p-5 shadow-lg border border-gray-100 hover:shadow-xl transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className={`w-10 h-10 rounded-xl flex items-center justify-center ${card.bg}`}
+        <div className="relative flex flex-col gap-8 p-5 md:p-6 lg:p-7">
+          {/* Scanner line */}
+          <motion.div
+            className="pointer-events-none absolute top-10 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-70"
+            animate={{ x: ["-20%", "20%", "-20%"] }}
+            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+          />
+
+          {/* ---------- STATUS TABS + SUMMARY ---------- */}
+          <div className="flex flex-col gap-6">
+            {/* TABS */}
+            <div className="flex flex-wrap gap-3 overflow-x-auto pb-1">
+              {[
+                "All",
+                "Available",
+                "On Delivery",
+                "Offline",
+                "Not Available",
+              ].map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() =>
+                    setStatusFilter(tab as "All" | RiderStatus)
+                  }
+                  className={`px-4 py-2 rounded-full text-xs sm:text-sm font-semibold border transition whitespace-nowrap
+                    ${
+                      statusFilter === tab
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-400/50"
+                        : "bg-white/90 border-gray-300 text-gray-700 hover:bg-emerald-50"
+                    }`}
+                >
+                  {tab}
+                </button>
+              ))}
+            </div>
+
+            {/* SUMMARY CARDS */}
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <RiderSummaryCard
+                icon={<Activity className="w-7 h-7" />}
+                label="Available Riders"
+                value={availableCount.toString()}
+                accent="Ready to accept new orders"
+                color="emerald"
+              />
+              <RiderSummaryCard
+                icon={<Briefcase className="w-7 h-7" />}
+                label="On Delivery"
+                value={onDeliveryCount.toString()}
+                accent="Currently delivering orders"
+                color="amber"
+              />
+              <RiderSummaryCard
+                icon={<CalendarClock className="w-7 h-7" />}
+                label="Offline Riders"
+                value={offlineCount.toString()}
+                accent="Currently off-duty or inactive"
+                color="slate"
+              />
+              <RiderSummaryCard
+                icon={<MoreVertical className="w-7 h-7" />}
+                label="Total Riders"
+                value={totalRiders.toString()}
+                accent="Overall capacity in fleet"
+                color="indigo"
+              />
+            </section>
+          </div>
+
+          {/* FILTERS ROW */}
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            {/* Left filters group */}
+            <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
+              {/* Status Dropdown */}
+              <Dropdown
+                dismissOnClick
+                renderTrigger={() => (
+                  <button className="flex items-center gap-2 border border-emerald-500 bg-emerald-50 text-emerald-900 font-semibold text-xs sm:text-sm px-4 py-2 rounded-full shadow hover:bg-emerald-100 transition">
+                    Status: {statusFilter}
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                )}
               >
-                <card.icon className={`w-5 h-5 ${card.color}`} />
-              </div>
-              <div>
-                <p className="text-xs font-medium text-gray-500">
-                  {card.label}
-                </p>
-                <p className="text-2xl font-bold mt-1 text-gray-900">
-                  {card.value}
-                </p>
-              </div>
+                {[
+                  "All",
+                  "Available",
+                  "On Delivery",
+                  "Offline",
+                  "Not Available",
+                ].map((s) => (
+                  <DropdownItem
+                    key={s}
+                    onClick={() => setStatusFilter(s as any)}
+                  >
+                    {s}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
+
+              {/* Sort dropdown */}
+              <Dropdown
+                dismissOnClick
+                renderTrigger={() => (
+                  <button className="flex items-center gap-2 border border-gray-300 bg-white text-gray-800 font-medium text-xs sm:text-sm px-4 py-2 rounded-full shadow-sm hover:bg-gray-50 transition">
+                    Sort by: {sortBy}
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                )}
+              >
+                {["Name", "Status", "Deliveries", "Rating"].map((opt) => (
+                  <DropdownItem
+                    key={opt}
+                    onClick={() => setSortBy(opt as SortOption)}
+                  >
+                    {opt}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
+            </div>
+
+            {/* Search */}
+            <div className="relative w-full max-w-xs">
+              <input
+                type="text"
+                placeholder="Search rider..."
+                className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* FILTERS ROW */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-
-        {/* Left filters group */}
-        <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
-
-          {/* Status Dropdown (optional, kasi may tabs na) */}
-          <Dropdown
-            dismissOnClick
-            renderTrigger={() => (
-              <button className="flex items-center gap-2 border border-emerald-500 bg-emerald-50 text-emerald-900 font-semibold text-sm px-4 py-2 rounded-full shadow hover:bg-emerald-100 transition">
-                Status: {statusFilter}
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            )}
-          >
-            {["All", "Available", "On Delivery", "Offline", "Not Available"].map(
-              (s) => (
-                <DropdownItem key={s} onClick={() => setStatusFilter(s as any)}>
-                  {s}
-                </DropdownItem>
-              )
-            )}
-          </Dropdown>
-
-          {/* Sort dropdown */}
-          <Dropdown
-            dismissOnClick
-            label=""
-            renderTrigger={() => (
-              <button className="flex items-center gap-2 border border-gray-300 bg-white text-gray-800 font-medium text-sm px-4 py-2 rounded-full shadow-sm hover:bg-gray-50 transition">
-                Sort by: {sortBy}
-                <ChevronDown className="w-4 h-4" />
-              </button>
-            )}
-          >
-            {["Name", "Status", "Deliveries", "Rating"].map((opt) => (
-              <DropdownItem
-                key={opt}
-                onClick={() => setSortBy(opt as SortOption)}
-              >
-                {opt}
-              </DropdownItem>
-            ))}
-          </Dropdown>
-        </div>
-
-        {/* Search */}
-        <div className="relative w-full max-w-xs">
-          <input
-            type="text"
-            placeholder="Search rider..."
-            className="w-full border border-gray-300 rounded-xl px-4 py-2 pl-11 shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
-        </div>
-      </div>
-
-      {/* TABLE */}
-      <div className="overflow-x-auto rounded-xl shadow-xl border border-gray-200">
-        <table className="min-w-full text-sm bg-white table-fixed">
-          <thead className="bg-gray-100 text-gray-700 sticky top-0 shadow">
-            <tr>
-              {[
-                "Rider",
-                "Contact",
-                "Status",
-                "Rating",
-                "Completed",
-                "Orders Today",
-                "Last Assigned",
-                "Actions",
-              ].map((h) => (
-                <th key={h} className="p-4 text-left font-semibold border-b">
-                  {h}
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {filteredRiders.length > 0 ? (
-              filteredRiders.map((rider, index) => (
-                <tr
-                  key={index}
-                  className="hover:bg-emerald-50 transition border-b last:border-none"
-                >
-
-                  {/* Rider */}
-                  <td className="p-4 align-middle">
-                    <div className="flex items-center gap-3">
-                      <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-semibold text-lg">
-                        {rider.name.charAt(0)}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-gray-800">
-                          {rider.name}
-                        </p>
-                        <span className="text-gray-400 text-xs">
-                          {rider.id}
-                        </span>
-                        <p className="flex items-center gap-1 text-[11px] text-gray-500 mt-1">
-                          <MapPin className="w-3 h-3 text-emerald-500" />
-                          {rider.homeBase}
-                        </p>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Contact */}
-                  <td className="p-4 align-middle">
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <Phone className="w-4 h-4 text-emerald-500" />
-                      {rider.contact}
-                    </div>
-                  </td>
-
-                  {/* Status */}
-                  <td className="p-4 align-middle">
-                    <span
-                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyles(
-                        rider.status
-                      )}`}
+          {/* ---------- TABLE ---------- */}
+          <div className="overflow-x-auto rounded-xl shadow-[0_18px_55px_rgba(15,23,42,0.18)] border border-gray-200 bg-slate-50/70">
+            <table className="min-w-full text-sm bg-white table-fixed">
+              <thead className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-slate-100 sticky top-0 shadow">
+                <tr>
+                  {[
+                    "Rider",
+                    "Contact",
+                    "Status",
+                    "Rating",
+                    "Completed",
+                    "Orders Today",
+                    "Last Assigned",
+                    "Actions",
+                  ].map((h) => (
+                    <th
+                      key={h}
+                      className="p-4 text-left font-semibold border-b text-xs md:text-sm"
                     >
-                      <CircleDot
-                        className={`w-3 h-3 ${getStatusDot(rider.status)}`}
-                      />
-                      {rider.status}
-                    </span>
-                    <p className="text-[11px] text-gray-500 mt-1">
-                      {rider.lastActive}
-                    </p>
-                  </td>
-
-                  {/* Rating */}
-                  <td className="p-4 align-middle">
-                    <div className="flex items-center gap-1 text-yellow-500">
-                      <Star className="w-4 h-4 fill-yellow-400" />
-                      <span className="font-semibold text-gray-800">
-                        {rider.rating.toFixed(1)}
-                      </span>
-                    </div>
-                  </td>
-
-                  {/* Completed Deliveries */}
-                  <td className="p-4 align-middle text-gray-800 font-medium">
-                    {rider.completedDeliveries}
-                  </td>
-
-                  {/* Orders Today */}
-                  <td className="p-4 align-middle">
-                    <p className="font-medium text-gray-700">
-                      {rider.ordersToday}
-                    </p>
-                    <div className="mt-1 w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                      <div
-                        className="h-2 bg-emerald-500"
-                        style={{ width: `${rider.workload}%` }}
-                      />
-                    </div>
-                    <p className="text-[11px] text-gray-500 mt-0.5">
-                      Workload: {rider.workload}%
-                    </p>
-                  </td>
-
-                  {/* Last Assigned */}
-                  <td className="p-4 align-middle">
-                    <div className="flex items-center gap-2 text-gray-700">
-                      <CalendarClock className="w-4 h-4 text-gray-500" />
-                      {rider.lastAssigned}
-                    </div>
-                  </td>
-
-                  {/* ACTION BUTTONS */}
-                  <td className="p-4 align-middle">
-                    <div className="flex items-center justify-center gap-2">
-
-                      {/* View Profile */}
-                      <button
-                        className="w-9 h-9 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition shadow-sm flex items-center justify-center"
-                        onClick={() => openProfile(rider)}
-                      >
-                        <Eye className="w-4 h-4" />
-                      </button>
-
-                      {/* Assign (stub for now) */}
-                      <button className="w-9 h-9 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition shadow-sm flex items-center justify-center">
-                        <Plus className="w-4 h-4" />
-                      </button>
-
-                      {/* Edit */}
-                      <button className="w-9 h-9 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition shadow-sm flex items-center justify-center">
-                        <Pencil className="w-4 h-4" />
-                      </button>
-
-                      {/* Delete */}
-                      <button className="w-9 h-9 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition shadow-sm flex items-center justify-center">
-                        <Trash className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+                      {h}
+                    </th>
+                  ))}
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={8}
-                  className="text-center p-5 text-gray-500 bg-gray-50"
-                >
-                  No riders found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
 
-      {/* RIDER PROFILE DRAWER */}
+              <tbody>
+                {filteredRiders.length > 0 ? (
+                  filteredRiders.map((rider, index) => (
+                    <tr
+                      key={index}
+                      className="hover:bg-emerald-50/70 transition border-b last:border-none"
+                    >
+                      {/* Rider */}
+                      <td className="p-4 align-middle">
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-semibold text-lg">
+                            {rider.name.charAt(0)}
+                          </div>
+                          <div>
+                            <p className="font-semibold text-gray-800">
+                              {rider.name}
+                            </p>
+                            <span className="text-gray-400 text-xs">
+                              {rider.id}
+                            </span>
+                            <p className="flex items-center gap-1 text-[11px] text-gray-500 mt-1">
+                              <MapPin className="w-3 h-3 text-emerald-500" />
+                              {rider.homeBase}
+                            </p>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Contact */}
+                      <td className="p-4 align-middle">
+                        <div className="flex items-center gap-2 text-gray-700 text-xs md:text-sm">
+                          <Phone className="w-4 h-4 text-emerald-500" />
+                          {rider.contact}
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="p-4 align-middle">
+                        <span
+                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyles(
+                            rider.status
+                          )}`}
+                        >
+                          <CircleDot
+                            className={`w-3 h-3 ${getStatusDot(
+                              rider.status
+                            )}`}
+                          />
+                          {rider.status}
+                        </span>
+                        <p className="text-[11px] text-gray-500 mt-1">
+                          {rider.lastActive}
+                        </p>
+                      </td>
+
+                      {/* Rating */}
+                      <td className="p-4 align-middle">
+                        <div className="flex items-center gap-1 text-yellow-500">
+                          <Star className="w-4 h-4 fill-yellow-400" />
+                          <span className="font-semibold text-gray-800">
+                            {rider.rating.toFixed(1)}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Completed Deliveries */}
+                      <td className="p-4 align-middle text-gray-800 font-medium">
+                        {rider.completedDeliveries}
+                      </td>
+
+                      {/* Orders Today + Workload bar */}
+                      <td className="p-4 align-middle">
+                        <p className="font-medium text-gray-700 text-sm">
+                          {rider.ordersToday}
+                        </p>
+                        <div className="mt-1 w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-2 bg-emerald-500"
+                            style={{ width: `${rider.workload}%` }}
+                          />
+                        </div>
+                        <p className="text-[11px] text-gray-500 mt-0.5">
+                          Workload: {rider.workload}%
+                        </p>
+                      </td>
+
+                      {/* Last Assigned */}
+                      <td className="p-4 align-middle">
+                        <div className="flex items-center gap-2 text-gray-700 text-xs md:text-sm">
+                          <CalendarClock className="w-4 h-4 text-gray-500" />
+                          {rider.lastAssigned}
+                        </div>
+                      </td>
+
+                      {/* ACTION BUTTONS */}
+                      <td className="p-4 align-middle">
+                        <div className="flex items-center justify-center gap-2">
+                          {/* View Profile */}
+                          <button
+                            className="w-9 h-9 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition shadow-sm flex items-center justify-center"
+                            onClick={() => openProfile(rider)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+
+                          {/* Assign stub */}
+                          <button className="w-9 h-9 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition shadow-sm flex items-center justify-center">
+                            <Plus className="w-4 h-4" />
+                          </button>
+
+                          {/* Edit */}
+                          <button className="w-9 h-9 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition shadow-sm flex items-center justify-center">
+                            <Pencil className="w-4 h-4" />
+                          </button>
+
+                          {/* Delete */}
+                          <button className="w-9 h-9 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition shadow-sm flex items-center justify-center">
+                            <Trash className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={8}
+                      className="text-center p-5 text-gray-500 bg-gray-50 text-sm"
+                    >
+                      No riders found. Try adjusting status or search keyword.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* ---------- RIDER PROFILE DRAWER ---------- */}
       {isProfileOpen && selectedRider && (
         <div className="fixed inset-0 z-40 flex">
           {/* Overlay */}
           <div
-            className="flex-1 bg-black/40"
+            className="flex-1 bg-slate-950/70 backdrop-blur-sm"
             onClick={closeProfile}
           />
+
           {/* Drawer */}
-          <div className="w-full max-w-md bg-white shadow-2xl p-6 overflow-y-auto">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h2 className="text-lg font-bold text-gray-900">
-                  Rider Profile
-                </h2>
-                <p className="text-xs text-gray-500">{selectedRider.id}</p>
-              </div>
-              <button
-                className="text-gray-400 hover:text-gray-600"
-                onClick={closeProfile}
-              >
-                ✕
-              </button>
-            </div>
+          <motion.div
+            initial={{ x: 320, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 320, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50 shadow-[0_25px_80px_rgba(15,23,42,0.9)] p-6 border-l border-emerald-500/40 overflow-y-auto"
+          >
+            {/* Glow overlay */}
+            <div className="pointer-events-none absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.45),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.45),transparent_55%)]" />
 
-            {/* Profile Header */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-200 to-teal-200 text-emerald-800 flex items-center justify-center font-bold text-xl">
-                {selectedRider.name.charAt(0)}
+            <div className="relative z-10">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-50">
+                    Rider Profile
+                  </h2>
+                  <p className="text-[11px] text-slate-400">
+                    {selectedRider.id}
+                  </p>
+                </div>
+                <button
+                  className="text-slate-400 hover:text-slate-200 text-sm px-2 py-1 rounded-full bg-slate-800/80 border border-slate-600/70"
+                  onClick={closeProfile}
+                >
+                  ✕
+                </button>
               </div>
-              <div>
-                <p className="font-semibold text-gray-900">
-                  {selectedRider.name}
-                </p>
-                <p className="text-xs text-gray-500 flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-emerald-500" />
-                  {selectedRider.homeBase}
-                </p>
-                <div className="flex items-center gap-2 mt-1">
-                  <span
-                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold ${getStatusStyles(
-                      selectedRider.status
-                    )}`}
-                  >
-                    <CircleDot
-                      className={`w-3 h-3 ${getStatusDot(selectedRider.status)}`}
-                    />
-                    {selectedRider.status}
-                  </span>
-                  <span className="inline-flex items-center gap-1 text-[11px] text-gray-500">
-                    <CalendarClock className="w-3 h-3" />
-                    {selectedRider.lastActive}
-                  </span>
+
+              {/* Profile Header */}
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-300 to-teal-300 text-emerald-950 flex items-center justify-center font-bold text-xl shadow-lg shadow-emerald-500/40">
+                  {selectedRider.name.charAt(0)}
+                </div>
+                <div>
+                  <p className="font-semibold text-slate-50">
+                    {selectedRider.name}
+                  </p>
+                  <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                    <MapPin className="w-3 h-3 text-emerald-400" />
+                    {selectedRider.homeBase}
+                  </p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span
+                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold ${getStatusStyles(
+                        selectedRider.status
+                      )}`}
+                    >
+                      <CircleDot
+                        className={`w-3 h-3 ${getStatusDot(
+                          selectedRider.status
+                        )}`}
+                      />
+                      {selectedRider.status}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
+                      <CalendarClock className="w-3 h-3" />
+                      {selectedRider.lastActive}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <div className="border rounded-lg p-3 bg-gray-50">
-                <p className="text-[11px] text-gray-500">Rating</p>
-                <div className="flex items-center gap-1 mt-1 text-yellow-500">
-                  <Star className="w-4 h-4 fill-yellow-400" />
-                  <span className="font-semibold text-gray-800">
-                    {selectedRider.rating.toFixed(1)}
-                  </span>
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
+                  <p className="text-[11px] text-slate-400">Rating</p>
+                  <div className="flex items-center gap-1 mt-1 text-yellow-400">
+                    <Star className="w-4 h-4 fill-yellow-400" />
+                    <span className="font-semibold text-slate-50">
+                      {selectedRider.rating.toFixed(1)}
+                    </span>
+                  </div>
+                </div>
+                <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
+                  <p className="text-[11px] text-slate-400">Deliveries</p>
+                  <p className="font-semibold text-slate-50 mt-1">
+                    {selectedRider.completedDeliveries}
+                  </p>
+                </div>
+                <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
+                  <p className="text-[11px] text-slate-400">Today&apos;s Load</p>
+                  <p className="font-semibold text-slate-50 mt-1">
+                    {selectedRider.ordersToday} orders
+                  </p>
                 </div>
               </div>
-              <div className="border rounded-lg p-3 bg-gray-50">
-                <p className="text-[11px] text-gray-500">Deliveries</p>
-                <p className="font-semibold text-gray-800 mt-1">
-                  {selectedRider.completedDeliveries}
+
+              {/* Workload bar */}
+              <div className="mb-4">
+                <p className="text-[11px] text-slate-400 mb-1">Workload</p>
+                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                  <div
+                    className="h-2 bg-emerald-400"
+                    style={{ width: `${selectedRider.workload}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-slate-400 mt-1">
+                  {selectedRider.workload}% estimated load for today
                 </p>
               </div>
-              <div className="border rounded-lg p-3 bg-gray-50">
-                <p className="text-[11px] text-gray-500">Today&apos;s Load</p>
-                <p className="font-semibold text-gray-800 mt-1">
-                  {selectedRider.ordersToday} orders
+
+              {/* Contact info */}
+              <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70 mb-4">
+                <p className="text-[11px] text-slate-400 mb-1">Contact</p>
+                <p className="flex items-center gap-2 text-sm text-slate-100">
+                  <Phone className="w-4 h-4 text-emerald-400" />
+                  {selectedRider.contact}
+                </p>
+                <p className="flex items-center gap-2 text-[11px] text-slate-400 mt-2">
+                  <CalendarClock className="w-3 h-3 text-slate-400" />
+                  Last assigned: {selectedRider.lastAssigned}
+                </p>
+              </div>
+
+              {/* Notes / Future extension */}
+              <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/80 mb-2">
+                <p className="text-[11px] text-slate-400 mb-1">
+                  Notes / Next Actions
+                </p>
+                <p className="text-xs text-slate-200">
+                  Connect this profile drawer to your Riders API later to show
+                  license details, infractions, shift schedule, or assigned
+                  delivery history for this rider.
                 </p>
               </div>
             </div>
-
-            {/* Workload bar */}
-            <div className="mb-4">
-              <p className="text-[11px] text-gray-500 mb-1">Workload</p>
-              <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                <div
-                  className="h-2 bg-emerald-500"
-                  style={{ width: `${selectedRider.workload}%` }}
-                />
-              </div>
-              <p className="text-[11px] text-gray-500 mt-1">
-                {selectedRider.workload}% estimated load for today
-              </p>
-            </div>
-
-            {/* Contact info */}
-            <div className="border rounded-lg p-3 bg-white mb-4">
-              <p className="text-[11px] text-gray-500 mb-1">Contact</p>
-              <p className="flex items-center gap-2 text-sm text-gray-700">
-                <Phone className="w-4 h-4 text-emerald-500" />
-                {selectedRider.contact}
-              </p>
-              <p className="flex items-center gap-2 text-[11px] text-gray-500 mt-2">
-                <CalendarClock className="w-3 h-3 text-gray-500" />
-                Last assigned: {selectedRider.lastAssigned}
-              </p>
-            </div>
-
-            {/* Future extension area */}
-            <div className="border rounded-lg p-3 bg-slate-50 mb-2">
-              <p className="text-[11px] text-gray-500 mb-1">
-                Notes / Next Actions (placeholder)
-              </p>
-              <p className="text-xs text-gray-600">
-                You can connect this profile drawer to your Riders API later to
-                show license details, documents, infractions, or schedule.
-              </p>
-            </div>
-          </div>
+          </motion.div>
         </div>
       )}
-    </div>
+    </motion.div>
+  );
+}
+
+/* ============================================================
+   SUB COMPONENTS
+============================================================ */
+
+function RiderSummaryCard({
+  icon,
+  label,
+  value,
+  accent,
+  color = "emerald",
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  accent: string;
+  color: "emerald" | "amber" | "slate" | "indigo";
+}) {
+  const colors: Record<typeof color, string> = {
+    emerald: "from-emerald-500 to-emerald-700",
+    amber: "from-amber-500 to-amber-700",
+    slate: "from-slate-600 to-slate-800",
+    indigo: "from-indigo-500 to-indigo-700",
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{
+        y: -6,
+        scale: 1.03,
+        boxShadow: "0 22px 60px rgba(15,23,42,0.35)",
+      }}
+      transition={{ duration: 0.35 }}
+      className={`relative p-5 rounded-2xl border border-white/40 text-white bg-gradient-to-br ${colors[color]} shadow-xl overflow-hidden`}
+    >
+      <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.5),transparent_55%)]" />
+      <div className="relative flex items-center gap-3">
+        <div className="p-3 bg-white/15 rounded-xl flex items-center justify-center">
+          {icon}
+        </div>
+
+        <div>
+          <p className="text-[0.7rem] uppercase tracking-[0.16em] text-white/80">
+            {label}
+          </p>
+          <p className="text-2xl md:text-3xl font-bold leading-tight">
+            {value}
+          </p>
+          <p className="text-[0.7rem] text-white/80 mt-1">{accent}</p>
+        </div>
+      </div>
+    </motion.div>
   );
 }
