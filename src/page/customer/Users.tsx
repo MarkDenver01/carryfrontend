@@ -188,37 +188,7 @@ export default function MembershipOverviewPage() {
         animate={{ opacity: [0.7, 1, 0.85] }}
         transition={{ duration: 8, repeat: Infinity }}
       />
-
-      {/* ---------- PAGE HEADER ---------- */}
-      <div className="relative flex flex-col gap-3">
-        <motion.h1
-          initial={{ opacity: 0, x: -18 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4 }}
-          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent"
-        >
-          Membership Overview
-        </motion.h1>
-
-        <p className="text-gray-500 text-sm max-w-xl">
-          Hybrid loyalty dashboard for{" "}
-          <span className="font-medium text-emerald-700">
-            corporate & rewards members
-          </span>
-          . Monitor membership health, tiers, and points activity at a glance.
-        </p>
-
-        <div className="flex flex-wrap items-center gap-2 mt-1 text-xs">
-          <span className="px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700">
-            Hybrid: Corporate + Rewards Experience
-          </span>
-          <span className="px-3 py-1 rounded-full bg-slate-900 text-slate-100 text-[0.7rem] border border-emerald-500/50">
-            Real-time membership HUD
-          </span>
-        </div>
-
-        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
-      </div>
+     
 
       {/* ---------- MAIN HUD CONTAINER ---------- */}
       <motion.div
