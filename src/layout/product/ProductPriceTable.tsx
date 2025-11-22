@@ -155,7 +155,7 @@ export default function ProductPriceTable() {
                 Live Pricing Channel
               </span>
               <span className="text-[0.7rem] text-slate-500">
-                Adjust base prices and monitor stocks in real-time.
+                Adjust base prices.
               </span>
             </div>
             <Button

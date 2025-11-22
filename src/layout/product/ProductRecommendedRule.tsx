@@ -185,7 +185,7 @@ export default function RecommendationRulesPage() {
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
               Rule Engine
             </span>
-            <span className="text-[0.7rem]">Define AI-driven product relationships</span>
+            <span className="text-[0.7rem]">Define Ruled-Based product relationships</span>
           </div>
 
           <Button
