@@ -125,7 +125,7 @@ export default function ProductPriceTable() {
           </span>
           <span className="flex items-center gap-1 text-slate-500">
             <Sparkles className="w-4 h-4 text-emerald-400" />
-            Manage product prices, stocks, and recommendations.
+            Manage product prices.
           </span>
         </div>
 
