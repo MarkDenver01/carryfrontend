@@ -108,64 +108,76 @@ const Dashboard: React.FC = () => {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: "easeOut" }}
+      transition={{ duration: 0.55, ease: "easeOut" }}
       className={`relative overflow-hidden p-6 md:p-8 flex flex-col gap-8 transition-colors duration-500 ${
         isDarkMode
           ? "bg-slate-950 text-slate-100"
           : "bg-slate-50 text-slate-900"
       }`}
     >
+      {/* AMBIENT EDGE GLOW */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-0 h-40 -z-30 bg-gradient-to-t from-emerald-500/10 via-transparent to-transparent" />
 
-      {/* AMBIENT LIGHT OVERLAY */}
-      <div className="pointer-events-none absolute inset-0 -z-20 bg-[radial-gradient(circle_at_30%_20%,rgba(52,211,153,0.12),transparent_60%)] dark:bg-[radial-gradient(circle_at_30%_20%,rgba(16,185,129,0.18),transparent_65%)]" />
+      {/* GLOBAL AMBIENT LIGHT */}
+      <div className="pointer-events-none absolute inset-0 -z-20 bg-[radial-gradient(circle_at_5%_0%,rgba(52,211,153,0.18),transparent_55%),radial-gradient(circle_at_95%_0%,rgba(56,189,248,0.18),transparent_55%)]" />
 
-      {/* FLOATING PARALLAX BLOBS */}
+      {/* FLOATING / MORPHING BLOBS */}
       <div className="pointer-events-none absolute inset-0 -z-10">
         <motion.div
-          className="absolute -top-28 -left-20 h-80 w-80 rounded-full bg-emerald-400/20 blur-3xl"
-          animate={{ x: [0, 30, 0], y: [0, 20, 0] }}
-          transition={{ duration: 22, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-32 -left-24 h-80 w-80 bg-emerald-400/25 blur-3xl"
+          animate={{
+            x: [0, 30, 10, -10, 0],
+            y: [0, 10, 25, 10, 0],
+            borderRadius: ["45%", "60%", "50%", "65%", "45%"],
+          }}
+          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
         />
-
         <motion.div
-          className="absolute top-1/4 -right-24 h-96 w-96 rounded-full bg-sky-400/20 blur-3xl"
-          animate={{ x: [0, -40, 0], y: [0, -25, 0] }}
-          transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
+          className="absolute top-1/3 -right-28 h-96 w-96 bg-sky-400/20 blur-3xl"
+          animate={{
+            x: [0, -40, -20, 10, 0],
+            y: [0, -10, -25, -10, 0],
+            borderRadius: ["50%", "65%", "55%", "70%", "50%"],
+          }}
+          transition={{ duration: 28, repeat: Infinity, ease: "easeInOut" }}
         />
-
         <motion.div
-          className="absolute bottom-[-5rem] left-1/3 h-80 w-80 rounded-full bg-emerald-500/20 blur-3xl"
-          animate={{ x: [0, 20, -20, 0], y: [0, -10, 10, 0] }}
-          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+          className="absolute bottom-[-4rem] left-1/3 h-80 w-80 bg-emerald-500/18 blur-3xl"
+          animate={{
+            x: [0, 20, -10, -20, 0],
+            y: [0, -15, -5, -10, 0],
+            borderRadius: ["55%", "70%", "60%", "75%", "55%"],
+          }}
+          transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
-      {/* HEADER */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      {/* HEADER BAR */}
+      <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          {/* GRADIENT TEXT HEADER */}
           <motion.h1
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.35 }}
-            className="text-2xl md:text-3xl font-semibold bg-gradient-to-r from-emerald-500 to-emerald-700 bg-clip-text text-transparent"
+            className="text-2xl md:text-3xl font-semibold bg-gradient-to-r from-emerald-400 via-emerald-500 to-emerald-700 bg-clip-text text-transparent"
           >
             Dashboard Overview
           </motion.h1>
-
           <p className="mt-1 text-xs md:text-sm text-slate-500 dark:text-slate-400">
             CarryGrocer • Super Admin Panel
           </p>
+          <div className="mt-1 h-[2px] w-10 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full animate-pulse" />
         </div>
 
-        {/* DARK MODE TOGGLE */}
         <motion.button
-          whileTap={{ scale: 0.96 }}
-          className="flex items-center gap-2 px-3 py-2 rounded-full border border-slate-300/70 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/70 shadow-sm hover:shadow-md backdrop-blur-md text-xs font-medium transition-all"
+          whileHover={{ x: 2, y: -2, scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
           onClick={() => setIsDarkMode(!isDarkMode)}
+          className="relative flex items-center gap-2 px-3 py-2 rounded-full border border-slate-300/70 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/70 shadow-[0_8px_30px_rgba(15,23,42,0.18)] hover:shadow-[0_12px_40px_rgba(15,23,42,0.25)] backdrop-blur-xl text-xs font-medium transition-all overflow-hidden group"
         >
+          <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.25),transparent_55%)]" />
           {isDarkMode ? (
             <>
               <Sun size={16} className="text-yellow-400" />
@@ -180,39 +192,38 @@ const Dashboard: React.FC = () => {
         </motion.button>
       </div>
 
-      {/* SECTION DIVIDER */}
-      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-slate-300 to-transparent dark:via-slate-700" />
+      {/* TOP DIVIDER */}
+      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-slate-300/80 to-transparent dark:via-slate-700/80" />
 
-      {/* WELCOME CARD */}
+      {/* WELCOME / SNAPSHOT CARD */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative overflow-hidden rounded-2xl border border-emerald-500/25 bg-gradient-to-r from-emerald-600 via-emerald-600 to-emerald-500 text-white shadow-xl px-6 py-5 md:px-7 md:py-6 backdrop-blur-xl"
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="relative overflow-hidden rounded-2xl border border-emerald-400/35 bg-gradient-to-r from-emerald-600 via-emerald-600 to-emerald-500 text-white shadow-[0_20px_60px_-15px_rgba(4,120,87,0.75)] px-6 py-5 md:px-7 md:py-6 backdrop-blur-2xl group"
       >
-        {/* Gloss overlay */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.15),transparent_70%)]" />
+        {/* Gloss + sheen sweep */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.20),transparent_65%)]" />
+        <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.25),transparent)] translate-x-[-200%] group-hover:translate-x-[200%]" />
 
         <div className="flex flex-col md:flex-row justify-between gap-8 relative z-10">
-
           {/* LEFT SIDE */}
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-2">
               <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
+                initial={{ scale: 0.85, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ duration: 0.3 }}
-                className="h-11 w-11 rounded-xl bg-white/20 flex items-center justify-center shadow-lg shadow-emerald-900/40 backdrop-blur-sm"
+                className="h-11 w-11 rounded-xl bg-white/20 flex items-center justify-center shadow-lg shadow-emerald-900/50 backdrop-blur-sm"
               >
                 <ShoppingCart size={22} />
               </motion.div>
-
               <div>
-                <p className="text-[0.65rem] uppercase tracking-[0.15em] text-white/70">
+                <p className="text-[0.65rem] uppercase tracking-[0.18em] text-white/70">
                   CarryGrocer Super Admin
                 </p>
-
                 <motion.h2
-                  initial={{ opacity: 0, x: -8 }}
+                  initial={{ opacity: 0, x: -6 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.3 }}
                   className="text-lg md:text-xl font-semibold"
@@ -226,31 +237,30 @@ const Dashboard: React.FC = () => {
               Here’s your operational snapshot for today.
             </p>
 
-            {/* TIME INFO */}
+            {/* TIME ROW */}
             <div className="flex flex-wrap items-center gap-3 text-[0.7rem] md:text-xs text-white/90">
               <span>📅 {dateLabel}</span>
               <span className="opacity-70">•</span>
               <span>⏰ {currentTime}</span>
               <span className="opacity-70">•</span>
-
               <span className="inline-flex items-center gap-1">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse shadow-[0_0_8px_rgba(52,211,153,0.9)]"></span>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
                 Updated{" "}
                 {secondsSinceUpdate <= 1 ? "just now" : `${secondsSinceUpdate}s ago`}
               </span>
             </div>
 
-            {/* SYSTEM STATUS */}
+            {/* SYSTEM STATUS PILL ROW */}
             <div className="mt-3 flex flex-wrap gap-2 text-[0.7rem] md:text-xs">
               {systemStatus.map((item) => (
                 <motion.div
-                  whileHover={{ scale: 1.03, y: -1 }}
                   key={item.label}
+                  whileHover={{ scale: 1.04, y: -1 }}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 bg-white/10 backdrop-blur-md shadow-sm"
                 >
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${item.color} shadow-[0_0_10px_rgba(52,211,153,0.9)]`}
-                  ></span>
+                  />
                   <span className="font-semibold">{item.label}</span>
                   <span>{item.value}</span>
                 </motion.div>
@@ -258,19 +268,25 @@ const Dashboard: React.FC = () => {
             </div>
           </div>
 
-          {/* WEATHER */}
+          {/* WEATHER CARD */}
           <div className="w-full md:w-64">
-            <div className="h-full border border-white/20 bg-white/10 rounded-xl px-4 py-3 backdrop-blur-md shadow-lg">
-              <div className="flex items-center justify-between">
-                <p className="text-[0.7rem] uppercase tracking-[0.12em] text-white/70">
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.35 }}
+              className="relative h-full border border-white/25 bg-white/12 rounded-xl px-4 py-3 backdrop-blur-2xl shadow-[0_16px_40px_rgba(4,120,87,0.6)] overflow-hidden"
+            >
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.25),transparent_55%)]" />
+              <div className="flex items-center justify-between relative z-10">
+                <p className="text-[0.7rem] uppercase tracking-[0.14em] text-white/75">
                   Weather
                 </p>
-                <span className="text-[0.7rem] text-white/80">
+                <span className="text-[0.7rem] text-white/85">
                   Tanauan, Batangas
                 </span>
               </div>
 
-              <div className="flex justify-between items-center mt-3">
+              <div className="flex justify-between items-center mt-3 relative z-10">
                 <div>
                   <p className="text-3xl font-semibold leading-none text-white">
                     28°C
@@ -279,31 +295,36 @@ const Dashboard: React.FC = () => {
                     Cloudy • Humid
                   </p>
                 </div>
-
                 <motion.div
-                  animate={{ y: [0, -6, 0] }}
-                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  animate={{ y: [0, -4, 0], rotate: [-2, 2, -2] }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    ease: "easeInOut",
+                  }}
                   className="text-4xl"
                 >
                   🌥️
                 </motion.div>
               </div>
 
-              <p className="text-[0.7rem] mt-3 text-white/90">
-                Best delivery window: <span className="font-semibold">4 PM – 8 PM</span>
+              <p className="text-[0.7rem] mt-3 text-white/90 relative z-10">
+                Best delivery window:{" "}
+                <span className="font-semibold">4 PM – 8 PM</span>
               </p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </motion.div>
 
-      {/* SECTION DIVIDER */}
-      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-slate-300 to-transparent dark:via-slate-700" />
+      {/* MID DIVIDER */}
+      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-slate-300/80 to-transparent dark:via-slate-700/80" />
 
-      {/* STATS */}
+      {/* STATS GRID */}
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
         className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5"
       >
         {stats.map((s, index) => (
@@ -342,12 +363,14 @@ const Dashboard: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/* TABLE */}
+      {/* TABLE SECTION */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        className="p-5 bg-white/80 dark:bg-slate-900/60 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 backdrop-blur-md"
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="relative p-5 rounded-xl border border-slate-200/85 dark:border-slate-700/85 bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-[0_18px_55px_rgba(15,23,42,0.35)] overflow-hidden group"
       >
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(148,163,184,0.12),transparent_55%)] opacity-80" />
         <DashboardTable />
       </motion.div>
     </motion.div>
@@ -368,22 +391,29 @@ function SectionWrapper({
 }) {
   return (
     <motion.section
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className="p-6 rounded-xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 bg-white/80 dark:bg-slate-900/70 backdrop-blur-md"
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, amount: 0.2 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="relative p-6 rounded-xl border border-slate-200/85 dark:border-slate-700/85 bg-white/80 dark:bg-slate-900/75 backdrop-blur-xl shadow-[0_18px_55px_rgba(15,23,42,0.28)] overflow-hidden group"
     >
-      <div className="flex items-center justify-between mb-4">
-        {/* SECTION LABEL CHIP */}
-        <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300">
-          {title}
-        </span>
+      {/* halo border */}
+      <div className="pointer-events-none absolute inset-0 rounded-xl border border-white/10 dark:border-white/5" />
+      {/* spotlight hover */}
+      <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-[radial-gradient(circle_at_top_left,rgba(248,250,252,0.45),transparent_60%)]" />
+
+      <div className="relative flex items-center justify-between mb-4">
+        <div className="flex flex-col gap-1">
+          <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-medium text-slate-600 dark:text-slate-300 inline-flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
+            {title}
+          </span>
+        </div>
       </div>
 
-      {/* Divider line inside section */}
-      <div className="h-[1px] w-full bg-gradient-to-r from-transparent via-slate-300 to-transparent dark:via-slate-700 mb-4" />
+      <div className="relative h-[1px] w-full bg-gradient-to-r from-transparent via-slate-300/90 to-transparent dark:via-slate-700/90 mb-4" />
 
-      {children}
+      <div className="relative">{children}</div>
     </motion.section>
   );
 }
@@ -404,33 +434,35 @@ function DashboardStatCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3, delay: 0.04 * index }}
+      transition={{ duration: 0.4, delay: 0.05 * index }}
       whileHover={{
-        y: -4,
-        scale: 1.02,
-        boxShadow: "0 18px 50px rgba(15, 23, 42, 0.25)",
+        y: -6,
+        scale: 1.03,
+        boxShadow:
+          "0 22px 65px rgba(15,23,42,0.32), 0 0 25px rgba(52,211,153,0.35)",
       }}
-      className={`relative flex flex-col gap-4 p-5 rounded-2xl shadow-lg bg-gradient-to-br ${gradient} text-white overflow-hidden`}
+      className={`relative flex flex-col gap-4 p-5 rounded-2xl shadow-[0_18px_50px_rgba(15,23,42,0.28)] bg-gradient-to-br ${gradient} text-white overflow-hidden group`}
     >
-      {/* Animated glossy overlay */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.25),transparent_60%)] opacity-90 pointer-events-none" />
+      {/* glossy & shine sweep */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.3),transparent_60%)] opacity-90 pointer-events-none" />
+      <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.4),transparent)] translate-x-[-200%] group-hover:translate-x-[200%]" />
 
       <div className="relative flex items-start gap-3">
         <motion.div
-          whileHover={{ rotate: 6, scale: 1.08 }}
-          className={`p-3 rounded-xl ${iconBg} shadow-md`}
+          whileHover={{ rotate: 5, scale: 1.08 }}
+          className={`p-3 rounded-xl ${iconBg} shadow-md shadow-black/30`}
         >
           {icon}
         </motion.div>
 
         <div>
-          <p className="text-xs opacity-80">{title}</p>
-          <p className="text-3xl font-extrabold mt-1">
+          <p className="text-xs opacity-85">{title}</p>
+          <p className="text-3xl font-extrabold mt-1 tracking-tight">
             <motion.span
               key={displayValue}
-              initial={{ opacity: 0, y: 6 }}
+              initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.25 }}
             >
@@ -441,7 +473,7 @@ function DashboardStatCard({
         </div>
       </div>
 
-      <p className="relative text-xs opacity-85 mt-1">Updated a moment ago</p>
+      <p className="relative text-xs opacity-90 mt-1">Updated a moment ago</p>
     </motion.div>
   );
 }
@@ -460,16 +492,16 @@ function AlertCard({
 }) {
   return (
     <motion.div
-      whileHover={{ y: -3, scale: 1.01 }}
-      className="p-4 rounded-xl border border-red-200/70 dark:border-red-700/70 bg-red-50/70 dark:bg-red-900/20 backdrop-blur-md shadow"
+      whileHover={{ y: -4, scale: 1.02 }}
+      className="p-4 rounded-xl border border-red-200/80 dark:border-red-700/80 bg-red-50/80 dark:bg-red-900/25 backdrop-blur-md shadow-[0_14px_38px_rgba(127,29,29,0.35)]"
     >
-      <p className="text-sm font-medium text-red-800 dark:text-red-300">
+      <p className="text-sm font-medium text-red-800 dark:text-red-200">
         {label}
       </p>
-      <p className="text-2xl font-bold mt-1 text-red-900 dark:text-red-200">
+      <p className="text-2xl font-bold mt-1 text-red-900 dark:text-red-100">
         {value}
       </p>
-      <p className="text-xs mt-1 text-red-700 dark:text-red-400">{desc}</p>
+      <p className="text-xs mt-1 text-red-700 dark:text-red-300">{desc}</p>
     </motion.div>
   );
 }
@@ -486,13 +518,13 @@ function PerformanceCard({
 }) {
   return (
     <motion.div
-      whileHover={{ y: -3, scale: 1.01 }}
-      className="p-4 rounded-xl border border-sky-200/70 dark:border-sky-700/70 bg-sky-50/70 dark:bg-sky-900/20 backdrop-blur-md shadow"
+      whileHover={{ y: -4, scale: 1.02 }}
+      className="p-4 rounded-xl border border-sky-200/80 dark:border-sky-700/80 bg-sky-50/80 dark:bg-sky-900/25 backdrop-blur-md shadow-[0_14px_38px_rgba(30,64,175,0.35)]"
     >
-      <p className="text-sm font-medium text-sky-800 dark:text-sky-300">
+      <p className="text-sm font-medium text-sky-800 dark:text-sky-200">
         {label}
       </p>
-      <p className="text-2xl font-bold mt-1 text-slate-900 dark:text-slate-100">
+      <p className="text-2xl font-bold mt-1 text-slate-900 dark:text-slate-50">
         {value}
       </p>
     </motion.div>
