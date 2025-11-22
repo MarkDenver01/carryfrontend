@@ -1,10 +1,11 @@
 import { useState, useMemo } from "react";
-import { Pagination } from "flowbite-react"; // ✅ FIXED — removed unused Button
+import { Button, Pagination } from "flowbite-react";
 import Swal from "sweetalert2";
-import { Search, Pencil, XCircle } from "lucide-react";
+import { Search } from "lucide-react";
 
 import ProductCategoryFormModal from "../../../components/product/ProductCategoryFormModal";
 import { useCategoryContext } from "../../../context/CategoryContext";
+import { Pencil, XCircle } from "lucide-react";
 
 type SortField = "categoryName" | "categoryDescription";
 type SortOrder = "asc" | "desc";
@@ -80,15 +81,15 @@ export default function ProductCategoryManagement() {
           Product Categories
         </h2>
 
-        <button
+        <Button
           onClick={() => {
             setEditTarget(null);
             setShowModal(true);
           }}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-5 py-2 rounded-full shadow-md transition"
+          className="!bg-emerald-600 hover:!bg-emerald-700 text-white font-semibold px-5 py-2 rounded-full shadow-md"
         >
           + Add Category
-        </button>
+        </Button>
       </div>
 
       {/* SEARCH INPUT */}
@@ -107,7 +108,7 @@ export default function ProductCategoryManagement() {
         <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
       </div>
 
-      {/* TABLE */}
+      {/* TABLE WRAPPER */}
       <div className="w-full overflow-x-auto pb-2">
         <table className="min-w-[1000px] w-full border border-gray-300 text-sm text-left text-gray-700 rounded-lg overflow-hidden">
 
