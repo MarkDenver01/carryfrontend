@@ -150,48 +150,30 @@ export default function ProductInventoryTable() {
       transition={{ duration: 0.45, ease: "easeOut" }}
       className="relative p-6 md:p-8 overflow-hidden"
     >
-      {/* ===== HYBRID IRON-MAN HUD BACKGROUND ===== */}
+      {/* ===== SUBTLE HUD BACKGROUND (CLEAN, NOT OA) ===== */}
       <div className="pointer-events-none absolute inset-0 -z-20">
-        {/* Grid */}
-        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.18)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        {/* Soft grid */}
+        <div className="w-full h-full opacity-30 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.14)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.14)_1px,transparent_1px)] bg-[size:42px_42px]" />
 
-        {/* Scanlines */}
-        <div className="absolute inset-0 opacity-[0.06] bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.96)_0px,rgba(15,23,42,0.96)_1px,transparent_1px,transparent_3px)]" />
+        {/* Very soft vignette */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_65%)]" />
 
-        {/* Ambient blobs */}
+        {/* Ambient blobs (toned down) */}
         <motion.div
-          className="absolute -top-24 -left-20 h-72 w-72 bg-emerald-500/26 blur-3xl"
+          className="absolute -top-24 -left-20 h-64 w-64 bg-emerald-400/20 blur-3xl"
           animate={{
-            x: [0, 24, 12, -10, 0],
-            y: [0, 14, 26, 8, 0],
-            borderRadius: ["45%", "60%", "55%", "70%", "45%"],
-          }}
-          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute -bottom-28 right-[-4rem] h-80 w-80 bg-cyan-400/26 blur-3xl"
-          animate={{
-            x: [0, -26, -38, -12, 0],
-            y: [0, -14, -24, -8, 0],
-            borderRadius: ["50%", "68%", "62%", "74%", "50%"],
+            x: [0, 18, 8, -8, 0],
+            y: [0, 10, 20, 6, 0],
           }}
           transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
         />
-
-        {/* Arc reactor rings (Iron-Man-ish) */}
         <motion.div
-          className="absolute -top-10 right-6 h-32 w-32 rounded-full border border-emerald-300/40"
+          className="absolute -bottom-24 right-[-3rem] h-72 w-72 bg-cyan-400/18 blur-3xl"
           animate={{
-            rotate: [0, 360],
+            x: [0, -20, -30, -10, 0],
+            y: [0, -8, -18, -4, 0],
           }}
-          transition={{ duration: 26, repeat: Infinity, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute -top-4 right-10 h-20 w-20 rounded-full border border-cyan-300/60 border-dashed"
-          animate={{
-            rotate: [360, 0],
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+          transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
@@ -201,48 +183,45 @@ export default function ProductInventoryTable() {
           initial={{ opacity: 0, x: -15 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-300 to-cyan-400 bg-clip-text text-transparent"
+          className="text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-500 via-emerald-400 to-cyan-400 bg-clip-text text-transparent"
         >
           Product Inventory Monitoring
         </motion.h2>
 
-        <div className="mt-2 flex flex-wrap items-center gap-2 text-[0.75rem] text-slate-500">
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-emerald-300/70 bg-emerald-50 text-emerald-700 font-semibold tracking-wide">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.95)]" />
-            INVENTORY CORE
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[0.8rem] text-slate-500">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 font-semibold">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
+            Inventory Overview
           </span>
           <span className="flex items-center gap-1 text-slate-500">
             <Sparkles className="w-4 h-4 text-emerald-400" />
-            Real-time view of products, stock, and recommendation rules.
+            Monitor products, stock status, and recommendations at a glance.
           </span>
         </div>
 
-        <div className="mt-3 h-[3px] w-32 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
+        <div className="mt-3 h-[3px] w-28 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* ===== MAIN PANEL (HYBRID HUD CARD) ===== */}
+      {/* ===== MAIN CARD (CLEAN HYBRID HUD) ===== */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
-        className="relative rounded-[24px] border border-emerald-500/35 bg-gradient-to-br from-white/96 via-slate-50/98 to-emerald-50/70 shadow-[0_22px_70px_rgba(15,23,42,0.45)] backdrop-blur-xl p-5 md:p-6 overflow-hidden"
+        className="relative rounded-[24px] border border-emerald-200/80 bg-gradient-to-br from-white/96 via-slate-50/98 to-emerald-50/60 shadow-[0_18px_55px_rgba(15,23,42,0.28)] backdrop-blur-xl p-5 md:p-6 overflow-hidden"
       >
-        {/* HUD corner brackets */}
+        {/* Minimal corner accents (very subtle) */}
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-300/80" />
-          <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-cyan-300/80" />
-          <div className="absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-cyan-300/80" />
-          <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-300/80" />
+          <div className="absolute top-3 left-3 h-4 w-4 border-t border-l border-emerald-200/80" />
+          <div className="absolute top-3 right-3 h-4 w-4 border-t border-r border-emerald-200/80" />
+          <div className="absolute bottom-3 left-3 h-4 w-4 border-b border-l border-emerald-200/80" />
+          <div className="absolute bottom-3 right-3 h-4 w-4 border-b border-r border-emerald-200/80" />
         </div>
-
-        {/* Inner halo */}
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.15),transparent_60%)]" />
 
         <div className="relative flex flex-col gap-5">
           {/* TOP ROW: badge + Add Product */}
           <div className="flex justify-between items-center mb-2">
             <div className="flex flex-col gap-1 text-xs text-slate-500">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 font-semibold">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
                 Live Inventory Channel
               </span>
               <span className="text-[0.7rem] text-slate-500">
@@ -255,7 +234,7 @@ export default function ProductInventoryTable() {
                 setEditTarget(null);
                 setShowModal(true);
               }}
-              className="rounded-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-400 text-white font-semibold shadow-[0_14px_35px_rgba(45,212,191,0.65)] hover:brightness-110 border border-emerald-300/80"
+              className="rounded-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-400 text-white font-semibold shadow-[0_10px_28px_rgba(45,212,191,0.55)] hover:brightness-110 border border-emerald-300/80"
             >
               + Add Product
             </Button>
@@ -268,8 +247,8 @@ export default function ProductInventoryTable() {
               <input
                 type="text"
                 placeholder="Search by name or code..."
-                className="w-full border border-emerald-300 rounded-full px-4 py-2 pl-10 shadow-sm 
-                        focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white/90 text-sm text-slate-800 placeholder:text-slate-400"
+                className="w-full border border-emerald-200 rounded-full px-4 py-2 pl-10 shadow-sm 
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white/95 text-sm text-slate-800 placeholder:text-slate-400"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -285,11 +264,11 @@ export default function ProductInventoryTable() {
               label=""
               renderTrigger={() => (
                 <button
-                  className="flex items-center gap-2 border border-emerald-400/80 bg-emerald-50 
+                  className="flex items-center gap-2 border border-emerald-300 bg-emerald-50 
                           text-emerald-900 font-semibold text-xs md:text-sm px-4 py-1.5 rounded-full shadow-sm 
-                          hover:shadow-[0_0_18px_rgba(16,185,129,0.35)] transition"
+                          hover:shadow-md transition"
                 >
-                  <span className="text-[0.72rem] uppercase tracking-[0.16em] text-emerald-700/90">
+                  <span className="text-[0.7rem] uppercase tracking-[0.16em] text-emerald-700/90">
                     Status
                   </span>
                   <span className="text-xs md:text-sm">
@@ -309,28 +288,16 @@ export default function ProductInventoryTable() {
             </Dropdown>
           </div>
 
-          {/* PRODUCT TABLE – HOLOGRAM WRAPPER AROUND CHILD COMPONENT */}
+          {/* PRODUCT TABLE – CLEAN GLASS WRAPPER (NO SLIDING BAR) */}
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
-            className="relative w-full overflow-x-auto pb-3 rounded-2xl border border-emerald-300/50 
-                       bg-white/96 shadow-[0_16px_45px_rgba(15,23,42,0.25)] backdrop-blur-xl"
+            className="relative w-full overflow-x-auto pb-3 rounded-2xl border border-emerald-200/80 
+                       bg-white/98 shadow-[0_14px_40px_rgba(15,23,42,0.18)]"
           >
-            {/* Subtle scanlines on table panel */}
-            <div className="pointer-events-none absolute inset-0 opacity-[0.05] 
-                            bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.7)_0px,rgba(15,23,42,0.7)_1px,transparent_1px,transparent_3px)]" />
-
-            {/* Hologram sweep */}
-            <motion.div
-              className="pointer-events-none absolute inset-0 opacity-0 
-                         bg-[linear-gradient(120deg,transparent,rgba(52,211,153,0.35),transparent)]"
-              animate={{
-                opacity: [0, 0.45, 0],
-                translateX: ["-200%", "200%"],
-              }}
-              transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-            />
+            {/* ❗Removed: sliding hologram bar / sweep */}
+            {/* ❗Kept it clean and simple for better readability */}
 
             <div className="relative">
               <ProductTable
