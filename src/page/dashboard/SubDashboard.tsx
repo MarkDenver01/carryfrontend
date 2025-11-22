@@ -1,3 +1,5 @@
+import React, { useState, useEffect } from "react";
+import type { MouseEvent as ReactMouseEvent } from "react";
 import {
   ShoppingCart,
   ClipboardCheck,
@@ -5,8 +7,6 @@ import {
   Truck,
   ArrowRight,
 } from "lucide-react";
-
-import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import DashboardTable from "../../layout/dashboard/DashboardTableLayout.tsx";
 
@@ -48,7 +48,7 @@ export default function SubDashboard() {
     return "Good evening";
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+  const handleMouseMove = (e: ReactMouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setCursorPos({
       x: e.clientX - rect.left,
@@ -64,7 +64,7 @@ export default function SubDashboard() {
       onMouseMove={handleMouseMove}
       className="relative p-6 md:p-8 flex flex-col gap-8 md:gap-10 overflow-hidden"
     >
-      {/* HUD GRID BACKGROUND */}
+      {/* ========== HUD BACKGROUND (GRID + SCANLINES + BLOBS) ========== */}
       <div className="pointer-events-none absolute inset-0 -z-30">
         {/* Grid */}
         <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.18)_1px,transparent_1px)] bg-[size:40px_40px]" />
@@ -80,31 +80,40 @@ export default function SubDashboard() {
             y: [0, 10, 20, 5, 0],
             borderRadius: ["45%", "60%", "55%", "65%", "45%"],
           }}
-          transition={{ duration: 22, repeat: Infinity }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
         />
-
         <motion.div
-          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-blue-400/24 blur-3xl"
+          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/24 blur-3xl"
           animate={{
             x: [0, -20, -30, -10, 0],
             y: [0, -10, -25, -5, 0],
             borderRadius: ["55%", "70%", "60%", "65%", "55%"],
           }}
-          transition={{ duration: 24, repeat: Infinity }}
+          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
         />
+
+        {/* Micro glowing indicators */}
+        <motion.div
+          className="absolute top-10 right-10 flex gap-2 text-emerald-400/70"
+          animate={{ opacity: [0.4, 1, 0.6] }}
+          transition={{ duration: 3, repeat: Infinity }}
+        >
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(16,185,129,0.9)]" />
+          <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 shadow-[0_0_6px_rgba(34,211,238,0.9)]" />
+        </motion.div>
       </div>
 
       {/* Cursor spotlight */}
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
-          background: `radial-gradient(500px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.25), transparent 70%)`,
+          background: `radial-gradient(520px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.24), transparent 70%)`,
         }}
-        animate={{ opacity: [0.7, 1, 0.8] }}
-        transition={{ duration: 8, repeat: Infinity }}
+        animate={{ opacity: [0.7, 1, 0.82] }}
+        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* HEADER */}
+      {/* ========== PAGE HEADER (MATCHED CONCEPT W/ REPORTS) ========== */}
       <div className="relative">
         <motion.h1
           initial={{ opacity: 0, x: -15 }}
@@ -115,9 +124,19 @@ export default function SubDashboard() {
           Sub Admin Dashboard
         </motion.h1>
 
-        <div className="flex items-center gap-3 mt-1">
-          <span className="px-3 py-1 text-xs font-semibold bg-blue-100 text-blue-600 rounded-full border border-blue-300">
+        <div className="mt-1 flex flex-wrap items-center gap-2">
+          {/* Holographic role badge */}
+          <motion.span
+            whileHover={{ scale: 1.05, rotateX: -6 }}
+            className="relative inline-flex items-center gap-1 px-3 py-1 text-[0.7rem] font-semibold rounded-full border border-emerald-300/70 bg-gradient-to-r from-emerald-50 via-white to-emerald-100 text-emerald-700 shadow-[0_8px_22px_rgba(16,185,129,0.35)] overflow-hidden"
+          >
+            <span className="absolute inset-0 opacity-0 bg-[linear-gradient(120deg,transparent,rgba(16,185,129,0.5),transparent)] translate-x-[-120%] group-hover:translate-x-[120%]" />
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.9)]" />
             SUB ADMIN
+          </motion.span>
+
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Operations overview for daily order handling.
           </span>
         </div>
 
@@ -129,72 +148,124 @@ export default function SubDashboard() {
           📅 {currentDate} • ⏰ {currentTime}
         </p>
 
-        <div className="mt-3 h-[3px] w-20 bg-gradient-to-r from-emerald-400 to-transparent rounded-full" />
+        {/* Header underline glow */}
+        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* SCANNER BAR */}
+      {/* Dual scanner bars (HUD effect) */}
       <motion.div
-        className="pointer-events-none absolute left-0 top-[140px] w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-80"
+        className="pointer-events-none absolute left-0 top-[148px] w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-80"
         animate={{ x: ["-30%", "30%", "-30%"] }}
-        transition={{ duration: 4.8, repeat: Infinity }}
+        transition={{ duration: 4.8, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="pointer-events-none absolute left-0 top-[156px] w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-300/80 to-transparent opacity-70"
+        animate={{ x: ["30%", "-30%", "30%"] }}
+        transition={{ duration: 6.2, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* NOTIFICATION BANNER */}
+      {/* ========== MAIN HUD CONTAINER ========== */}
       <motion.div
-        initial={{ opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.35 }}
-        className="p-3 bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-300 rounded-lg text-sm border border-yellow-300 dark:border-yellow-700 shadow-md"
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="relative rounded-[26px] border border-emerald-500/30 bg-white/95 dark:bg-slate-950/90 shadow-[0_22px_70px_rgba(15,23,42,0.5)] overflow-hidden mt-1"
       >
-        ⚠️ Reminder: Prioritize packing and dispatching pending orders today.
-      </motion.div>
+        {/* HUD corner brackets */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
+          <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
+          <div className="absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-emerald-400/80" />
+          <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-400/80" />
+        </div>
 
-      {/* STAT CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5 mt-1">
-        <SubCard
-          gradient="from-emerald-600 to-green-700"
-          iconBg="bg-green-100 text-green-500"
-          Icon={ShoppingCart}
-          value="8"
-          label="Pending Orders"
-        />
+        {/* Inner subtle halo */}
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_60%)]" />
 
-        <SubCard
-          gradient="from-blue-700 to-blue-900"
-          iconBg="bg-blue-100 text-blue-600"
-          Icon={Package}
-          value="12"
-          label="To Pack Today"
-        />
+        <div className="relative flex flex-col gap-6 p-5 md:p-6">
+          {/* Notification Banner */}
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="flex items-start gap-3 p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/35 border border-yellow-300/80 dark:border-yellow-700/80 shadow-sm"
+          >
+            <span className="mt-0.5 text-lg">⚠️</span>
+            <div>
+              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-200">
+                Operational Reminder
+              </p>
+              <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-0.5">
+                Prioritize packing and dispatching pending orders today to avoid
+                delivery delays.
+              </p>
+            </div>
+          </motion.div>
 
-        <SubCard
-          gradient="from-amber-500 to-amber-700"
-          iconBg="bg-yellow-200 text-amber-700"
-          Icon={ClipboardCheck}
-          value="5"
-          label="To Dispatch"
-        />
+          {/* STAT CARDS GRID */}
+          <section className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-5">
+            <SubStatCard
+              gradient="from-emerald-600 to-green-700"
+              iconBg="bg-emerald-100 text-emerald-600"
+              Icon={ShoppingCart}
+              value="8"
+              label="Pending Orders"
+              helper="Awaiting processing"
+            />
+            <SubStatCard
+              gradient="from-blue-700 to-blue-900"
+              iconBg="bg-blue-100 text-blue-600"
+              Icon={Package}
+              value="12"
+              label="To Pack Today"
+              helper="Prioritize before cutoff"
+            />
+            <SubStatCard
+              gradient="from-amber-500 to-amber-700"
+              iconBg="bg-amber-100 text-amber-700"
+              Icon={ClipboardCheck}
+              value="5"
+              label="To Dispatch"
+              helper="Ready for handoff"
+            />
+            <SubStatCard
+              gradient="from-indigo-700 to-indigo-900"
+              iconBg="bg-indigo-100 text-indigo-600"
+              Icon={Truck}
+              value="4"
+              label="Active Drivers"
+              helper="Currently on-route"
+            />
+          </section>
 
-        <SubCard
-          gradient="from-indigo-700 to-indigo-900"
-          iconBg="bg-indigo-100 text-indigo-600"
-          Icon={Truck}
-          value="4"
-          label="Active Drivers"
-        />
-      </div>
+          {/* Divider */}
+          <div className="relative h-px w-full bg-gradient-to-r from-transparent via-gray-300/90 dark:via-slate-700/90 to-transparent mt-1" />
 
-      {/* DIVIDER */}
-      <div className="relative h-px w-full bg-gradient-to-r from-transparent via-gray-400/80 to-transparent mt-2" />
+          {/* TABLE SECTION */}
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="relative rounded-2xl border border-gray-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/90 shadow-[0_18px_55px_rgba(15,23,42,0.35)] p-4 md:p-5 backdrop-blur-xl overflow-hidden"
+          >
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="text-sm md:text-base font-semibold text-gray-900 dark:text-gray-100">
+                  Order Activity
+                </h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Live overview of current orders handled by Sub Admin.
+                </p>
+              </div>
+              <div className="hidden md:flex items-center gap-2 text-[0.7rem] text-gray-500 dark:text-gray-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
+                <span>Data synced</span>
+              </div>
+            </div>
 
-      {/* TABLE */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        className="p-5 bg-white dark:bg-slate-900 rounded-xl shadow-[0_18px_55px_rgba(15,23,42,0.25)] border border-gray-200 dark:border-slate-700 backdrop-blur-xl"
-      >
-        <DashboardTable />
+            <DashboardTable />
+          </motion.div>
+        </div>
       </motion.div>
     </motion.div>
   );
@@ -204,21 +275,25 @@ export default function SubDashboard() {
    SUB ADMIN STAT CARD (GOD MODE)
 ============================================================ */
 
-function SubCard({
+type SubStatCardProps = {
+  gradient: string;
+  iconBg: string;
+  Icon: React.ElementType;
+  value: string | number;
+  label: string;
+  helper?: string;
+};
+
+function SubStatCard({
   gradient,
   iconBg,
   Icon,
   value,
   label,
-}: {
-  gradient: string;
-  iconBg: string;
-  Icon: any;
-  value: string | number;
-  label: string;
-}) {
+  helper,
+}: SubStatCardProps) {
   return (
-    <motion.div
+    <motion.article
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{
@@ -226,34 +301,52 @@ function SubCard({
         scale: 1.03,
         rotateX: -4,
         rotateY: 4,
-        boxShadow: "0 25px 60px rgba(15,23,42,0.35)",
+        boxShadow:
+          "0 25px 65px rgba(15,23,42,0.38), 0 0 25px rgba(52,211,153,0.35)",
       }}
-      transition={{ duration: 0.35 }}
-      className={`relative p-5 rounded-2xl border border-white/20 text-white bg-gradient-to-br ${gradient} shadow-xl transform-gpu overflow-hidden`}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className={`relative flex flex-col gap-3 p-4 rounded-2xl border border-white/25 text-white bg-gradient-to-br ${gradient} shadow-xl transform-gpu overflow-hidden group`}
     >
-      {/* shine */}
+      {/* Shine + hologram sweep */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.32),transparent_60%)] opacity-80" />
+      <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.45),transparent)] translate-x-[-200%] group-hover:translate-x-[200%]" />
 
-      <div className="relative flex items-center gap-4">
-        <div className={`p-3 rounded-xl ${iconBg}`}>
-          <Icon size={44} />
-        </div>
-
-        <div>
-          <p className="text-xs text-white/80">{label}</p>
-          <p className="text-4xl font-extrabold">{value}</p>
+      {/* Top label strip */}
+      <div className="relative flex items-center justify-between text-[0.7rem] text-white/80">
+        <span className="px-2 py-0.5 rounded-full bg-black/20 border border-white/20">
+          Sub Admin Metric
+        </span>
+        <div className="flex gap-1 items-center">
+          <span className="h-1 w-1 rounded-full bg-emerald-300 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
+          <span className="h-1 w-1 rounded-full bg-emerald-100/80" />
         </div>
       </div>
 
-      <div className="relative flex justify-end mt-4">
-        <button className="group flex items-center gap-1 text-sm text-white/90">
+      <div className="relative flex items-center gap-3 mt-1">
+        <div className={`p-3 rounded-xl ${iconBg} shadow-md shadow-black/30`}>
+          <Icon size={40} />
+        </div>
+
+        <div>
+          <p className="text-xs text-white/90">{label}</p>
+          <p className="text-3xl font-extrabold leading-tight mt-0.5">
+            {value}
+          </p>
+          {helper && (
+            <p className="text-[0.7rem] text-white/80 mt-0.5">{helper}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="relative flex justify-end mt-1">
+        <button className="group flex items-center gap-1 text-[0.72rem] text-white/90">
           More Info
           <ArrowRight
-            size={18}
+            size={16}
             className="transition-transform group-hover:translate-x-1"
           />
         </button>
       </div>
-    </motion.div>
+    </motion.article>
   );
 }
