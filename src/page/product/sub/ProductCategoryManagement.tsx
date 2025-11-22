@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
 import { Button, Pagination } from "flowbite-react";
 import Swal from "sweetalert2";
-import { Search } from "lucide-react";
+import { Search, PlusCircle, Layers, Pencil, XCircle } from "lucide-react";
+import { motion } from "framer-motion";
 
 import ProductCategoryFormModal from "../../../components/product/ProductCategoryFormModal";
 import { useCategoryContext } from "../../../context/CategoryContext";
-import { Pencil, XCircle } from "lucide-react";
 
 type SortField = "categoryName" | "categoryDescription";
 type SortOrder = "asc" | "desc";
@@ -73,159 +73,159 @@ export default function ProductCategoryManagement() {
   };
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-200">
+    <motion.div
+      initial={{ opacity: 0, y: 22 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: "easeOut" }}
+      className="relative p-6 md:p-8 lg:p-10 min-h-[calc(100vh-6rem)] overflow-hidden"
+    >
+      {/* ☑ Background HUD */}
+      <div className="pointer-events-none absolute inset-0 -z-20 opacity-50 bg-[linear-gradient(to_right,rgba(148,163,184,0.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.18)_1px,transparent_1px)] bg-[size:42px_42px]"></div>
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 tracking-wide">
-          Product Categories
-        </h2>
+      {/* Animated Glow */}
+      <motion.div
+        className="absolute -top-32 -left-10 w-80 h-80 bg-emerald-400/25 blur-3xl -z-10"
+        animate={{
+          x: [0, 18, -10, 6, 0],
+          y: [0, -12, 14, -6, 0],
+          borderRadius: ["50%", "65%", "45%", "70%", "50%"],
+        }}
+        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+      />
 
-        <Button
-          onClick={() => {
-            setEditTarget(null);
-            setShowModal(true);
-          }}
-          className="!bg-emerald-600 hover:!bg-emerald-700 text-white font-semibold px-5 py-2 rounded-full shadow-md"
-        >
-          + Add Category
-        </Button>
-      </div>
+      {/* MAIN CARD */}
+      <motion.div
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.35 }}
+        className="relative bg-white/95 backdrop-blur-xl shadow-[0_0_60px_rgba(16,185,129,0.25)] border border-emerald-500/30 rounded-2xl p-6 md:p-8"
+      >
+        {/* Decorative Corners */}
+        <div className="pointer-events-none absolute top-3 left-3 w-6 h-6 border-t-2 border-l-2 border-emerald-400/70"></div>
+        <div className="pointer-events-none absolute top-3 right-3 w-6 h-6 border-t-2 border-r-2 border-emerald-400/70"></div>
+        <div className="pointer-events-none absolute bottom-3 left-3 w-6 h-6 border-b-2 border-l-2 border-emerald-400/70"></div>
+        <div className="pointer-events-none absolute bottom-3 right-3 w-6 h-6 border-b-2 border-r-2 border-emerald-400/70"></div>
 
-      {/* SEARCH INPUT */}
-      <div className="relative w-full max-w-sm mb-6">
-        <input
-          type="text"
-          placeholder="Search category..."
-          className="w-full border border-gray-300 rounded-full px-4 py-2 pl-11 shadow-sm 
-                     focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-gray-50"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
-        />
-        <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
-      </div>
+        {/* HEADER */}
+        <div className="flex justify-between items-center mb-8">
+          <div className="flex items-center gap-3">
+            <Layers className="w-9 h-9 text-emerald-600" />
+            <h2 className="text-3xl font-bold tracking-tight text-gray-900">
+              Product Categories
+            </h2>
+          </div>
 
-      {/* TABLE WRAPPER */}
-      <div className="w-full overflow-x-auto pb-2">
-        <table className="min-w-[1000px] w-full border border-gray-300 text-sm text-left text-gray-700 rounded-lg overflow-hidden">
+          <button
+            onClick={() => {
+              setEditTarget(null);
+              setShowModal(true);
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-700 text-white font-semibold rounded-xl shadow-lg transition"
+          >
+            <PlusCircle className="w-5 h-5" /> Add Category
+          </button>
+        </div>
 
-          {/* Sticky Header */}
-          <thead className="bg-emerald-600 text-white sticky top-0 z-20 shadow-sm">
-            <tr>
-              <th
-                className="p-3 font-medium cursor-pointer select-none border border-gray-300"
-                onClick={() => handleSort("categoryName")}
-              >
-                Category Name{" "}
-                <span className="text-xs opacity-80">
-                  {getSortIcon("categoryName")}
-                </span>
-              </th>
+        {/* SEARCH */}
+        <div className="relative max-w-sm mb-6">
+          <Search className="absolute left-4 top-2.5 text-gray-500 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Search category..."
+            className="w-full border border-gray-300 rounded-xl px-4 pl-12 py-2.5 bg-gray-50 shadow-sm focus:ring-2 focus:ring-emerald-500 text-sm"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+        </div>
 
-              <th
-                className="p-3 font-medium cursor-pointer select-none border border-gray-300"
-                onClick={() => handleSort("categoryDescription")}
-              >
-                Description{" "}
-                <span className="text-xs opacity-80">
-                  {getSortIcon("categoryDescription")}
-                </span>
-              </th>
-
-              <th className="p-3 font-medium text-center border border-gray-300">
-                Actions
-              </th>
-            </tr>
-          </thead>
-
-          <tbody className="bg-white">
-            {paginated.length > 0 ? (
-              paginated.map((cat) => (
-                <tr
-                  key={cat.categoryId}
-                  className="hover:bg-emerald-50 transition"
+        {/* TABLE */}
+        <div className="overflow-x-auto rounded-xl border border-gray-300 shadow-md">
+          <table className="min-w-[1000px] w-full text-sm text-gray-700">
+            <thead className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white sticky top-0 z-20">
+              <tr>
+                <th
+                  className="p-3 cursor-pointer select-none border-r border-white/20"
+                  onClick={() => handleSort("categoryName")}
                 >
-                  <td className="p-3 border border-gray-300">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-800">
-                        {cat.categoryName}
-                      </span>
-                      <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300">
-                        Category
-                      </span>
-                    </div>
-                  </td>
+                  Name <span className="opacity-70">{getSortIcon("categoryName")}</span>
+                </th>
 
-                  <td className="p-3 border border-gray-300 text-gray-600">
-                    {cat.categoryDescription || "—"}
-                  </td>
+                <th
+                  className="p-3 cursor-pointer select-none border-r border-white/20"
+                  onClick={() => handleSort("categoryDescription")}
+                >
+                  Description{" "}
+                  <span className="opacity-70">{getSortIcon("categoryDescription")}</span>
+                </th>
 
-                  <td className="p-3 border border-gray-300 text-center">
-                    <div className="flex items-center justify-center gap-3">
+                <th className="p-3 text-center">Actions</th>
+              </tr>
+            </thead>
 
-                      {/* UPDATE */}
-                      <button
-                        className="flex items-center gap-1 px-3 py-1 text-xs text-white 
-                                   bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-sm"
-                        onClick={() => {
-                          setEditTarget(cat);
-                          setShowModal(true);
-                        }}
-                      >
-                        <Pencil className="w-4 h-4" /> Update
-                      </button>
+            <tbody>
+              {paginated.length > 0 ? (
+                paginated.map((cat) => (
+                  <tr
+                    key={cat.categoryId}
+                    className="border-b hover:bg-emerald-50/60 transition"
+                  >
+                    <td className="p-3 font-semibold">{cat.categoryName}</td>
+                    <td className="p-3 text-gray-600">
+                      {cat.categoryDescription || "—"}
+                    </td>
 
-                      {/* DELETE */}
-                      <button
-                        className="flex items-center gap-1 px-3 py-1 text-xs text-white 
-                                   bg-red-600 hover:bg-red-700 rounded-md shadow-sm"
-                        onClick={() => handleDelete(cat.categoryId)}
-                      >
-                        <XCircle className="w-4 h-4" /> Delete
-                      </button>
+                    <td className="p-3 text-center">
+                      <div className="flex justify-center gap-3">
+                        <button
+                          className="flex items-center gap-1 px-3 py-1 text-xs bg-yellow-500 hover:bg-yellow-600 text-white rounded-md shadow"
+                          onClick={() => {
+                            setEditTarget(cat);
+                            setShowModal(true);
+                          }}
+                        >
+                          <Pencil className="w-4 h-4" /> Edit
+                        </button>
 
-                    </div>
+                        <button
+                          className="flex items-center gap-1 px-3 py-1 text-xs bg-red-600 hover:bg-red-700 text-white rounded-md shadow"
+                          onClick={() => handleDelete(cat.categoryId)}
+                        >
+                          <XCircle className="w-4 h-4" /> Delete
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={3} className="p-4 text-center text-gray-500">
+                    No categories found.
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={3}
-                  className="p-4 text-center text-gray-500 border border-gray-300"
-                >
-                  No categories found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              )}
+            </tbody>
+          </table>
+        </div>
 
-      {/* PAGINATION */}
-      {totalPages > 1 && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between mt-6 text-sm text-gray-600">
+            <span>
+              Showing{" "}
+              <span className="font-semibold">
+                {(currentPage - 1) * pageSize + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-semibold">
+                {Math.min(currentPage * pageSize, sorted.length)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold">{sorted.length}</span>
+            </span>
 
-          <span>
-            Showing{" "}
-            <span className="font-semibold text-gray-800">
-              {(currentPage - 1) * pageSize + 1}
-            </span>{" "}
-            to{" "}
-            <span className="font-semibold text-gray-800">
-              {Math.min(currentPage * pageSize, sorted.length)}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold text-gray-800">
-              {sorted.length}
-            </span>{" "}
-            entries
-          </span>
-
-          <div className="flex overflow-x-auto sm:justify-center">
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
@@ -234,9 +234,8 @@ export default function ProductCategoryManagement() {
               className="shadow-sm"
             />
           </div>
-
-        </div>
-      )}
+        )}
+      </motion.div>
 
       {/* MODAL */}
       <ProductCategoryFormModal
@@ -244,6 +243,6 @@ export default function ProductCategoryManagement() {
         onClose={() => setShowModal(false)}
         editTarget={editTarget}
       />
-    </div>
+    </motion.div>
   );
 }
