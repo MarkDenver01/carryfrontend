@@ -1,21 +1,40 @@
 import { useState, useMemo } from "react";
-import { Button, Pagination, Modal, ModalHeader, ModalBody, TextInput, Label, Select } from "flowbite-react";
-import { Search, Pencil, XCircle } from "lucide-react";
+import {
+  Button,
+  Pagination,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  TextInput,
+  Label,
+  Select,
+} from "flowbite-react";
+import { Search, Pencil, XCircle, Sparkles } from "lucide-react";
 import Swal from "sweetalert2";
 import { format } from "date-fns";
+import { motion } from "framer-motion";
 
 import { useProductsContext } from "../../context/ProductsContext";
 import { useRecommendationRules } from "../../context/RecommendationRulesContext";
-import type { RecommendationRuleDTO, RecommendationRuleRequest } from "../../libs/models/product/RecommendedRule";
+import type {
+  RecommendationRuleDTO,
+  RecommendationRuleRequest,
+} from "../../libs/models/product/RecommendedRule";
 
+// =======================================================
+//     RECOMMENDATION RULES PAGE — GODLY HUD VERSION
+// =======================================================
 export default function RecommendationRulesPage() {
   const { products } = useProductsContext();
-  const { rules, addRule, updateRuleById, removeRule } = useRecommendationRules();
+  const { rules, addRule, updateRuleById, removeRule } =
+    useRecommendationRules();
 
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [showModal, setShowModal] = useState(false);
-  const [editTarget, setEditTarget] = useState<RecommendationRuleDTO | null>(null);
+  const [editTarget, setEditTarget] = useState<RecommendationRuleDTO | null>(
+    null
+  );
 
   const [form, setForm] = useState<RecommendationRuleRequest>({
     baseProductId: 0,
@@ -26,7 +45,7 @@ export default function RecommendationRulesPage() {
 
   const pageSize = 8;
 
-  // ======== FILTER + SEARCH ========
+  // FILTER
   const filtered = useMemo(() => {
     return rules.filter((r) =>
       (r.productName + r.recommendedNames.join(", "))
@@ -41,7 +60,7 @@ export default function RecommendationRulesPage() {
     currentPage * pageSize
   );
 
-  // ======== MODAL HANDLERS ========
+  // ================= MODAL CONTROL =================
   const openCreateModal = () => {
     setEditTarget(null);
     setForm({
@@ -66,11 +85,10 @@ export default function RecommendationRulesPage() {
 
   const closeModal = () => setShowModal(false);
 
-  // ======== SAVE HANDLER ========
+  // =============== SAVE HANDLER ===============
   const handleSaveRule = async () => {
     if (!form.baseProductId || form.recommendedProductIds.length === 0) {
-      await Swal.fire("Validation", "Please fill all required fields", "warning");
-      return;
+      return Swal.fire("Validation", "Please complete all fields.", "warning");
     }
 
     try {
@@ -79,19 +97,20 @@ export default function RecommendationRulesPage() {
         Swal.fire("Updated!", "Rule updated successfully.", "success");
       } else {
         await addRule(form);
-        Swal.fire("Added!", "Rule created successfully.", "success");
+        Swal.fire("Added!", "New rule saved successfully.", "success");
       }
+
       closeModal();
     } catch (err: any) {
-      Swal.fire("Error", err.message || "Failed to save rule", "error");
+      Swal.fire("Error", err.message || "Saving failed", "error");
     }
   };
 
-  // ======== DELETE HANDLER ========
+  // =============== DELETE HANDLER ===============
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: "Delete Rule?",
-      text: "This action cannot be undone.",
+      text: "This cannot be undone.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -104,156 +123,212 @@ export default function RecommendationRulesPage() {
     }
   };
 
-  // ======== UI ========
+  // =======================================================
+  // ======================== UI ============================
+  // =======================================================
   return (
-    <div className="p-6 bg-white rounded-lg shadow-md">
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Recommendation Rules
-        </h2>
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="relative p-6 md:p-8 overflow-hidden"
+    >
+      {/* ===== SUBTLE HUD BACKGROUND ===== */}
+      <div className="pointer-events-none absolute inset-0 -z-20">
+        <div className="w-full h-full opacity-30 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)] bg-[size:45px_45px]" />
 
-        <Button
-          onClick={openCreateModal}
-          className="bg-blue-600 text-white hover:bg-blue-700"
-        >
-          + Add Rule
-        </Button>
-      </div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.15),transparent_70%)]" />
 
-      {/* SEARCH */}
-      <div className="relative w-full max-w-xs mb-6">
-        <input
-          type="text"
-          placeholder="Search rule..."
-          className="w-full border border-emerald-300 rounded-full px-4 py-2 pl-10 shadow-sm 
-                     focus:outline-none focus:ring-2 focus:ring-emerald-500"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
+        <motion.div
+          className="absolute -top-24 -left-16 h-64 w-64 bg-emerald-400/20 blur-3xl"
+          animate={{ x: [0, 15, 5, -10, 0], y: [0, 12, 18, 8, 0] }}
+          transition={{ duration: 26, repeat: Infinity }}
         />
-        <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
+        <motion.div
+          className="absolute -bottom-28 right-[-3rem] h-72 w-72 bg-cyan-400/18 blur-3xl"
+          animate={{ x: [0, -20, -30, -10, 0], y: [0, -10, -18, -4, 0] }}
+          transition={{ duration: 28, repeat: Infinity }}
+        />
       </div>
 
-      {/* TABLE */}
-      <div className="w-full overflow-x-auto pb-2">
-        <table className="min-w-[1400px] border border-gray-300 text-sm text-left text-gray-700">
-          <thead className="bg-emerald-600 text-white">
-            <tr>
-              <th className="p-3 border border-gray-300 font-medium">
-                Main Product
-              </th>
-              <th className="p-3 border border-gray-300 font-medium">
-                Recommended Products
-              </th>
-              <th className="p-3 border border-gray-300 font-medium">
-                Effective Date
-              </th>
-              <th className="p-3 border border-gray-300 font-medium">
-                Expiry Date
-              </th>
-              <th className="p-3 border border-gray-300 font-medium">
-                Status
-              </th>
-              <th className="p-3 border border-gray-300 font-medium text-center">
-                Actions
-              </th>
-            </tr>
-          </thead>
+      {/* ===== PAGE HEADER ===== */}
+      <motion.div
+        initial={{ opacity: 0, x: -15 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.45 }}
+        className="mb-8"
+      >
+        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 via-emerald-500 to-cyan-400 bg-clip-text text-transparent">
+          Recommendation Rules
+        </h1>
 
-          <tbody className="bg-gray-50">
-            {paginated.length > 0 ? (
-              paginated.map((rule) => (
-                <tr key={rule.id} className="hover:bg-emerald-100 transition">
-                  <td className="p-3 border border-gray-300 font-medium">
-                    {rule.productName}
-                  </td>
-                  <td className="p-3 border border-gray-300">
-                    {rule.recommendedNames.join(", ")}
-                  </td>
-                  <td className="p-3 border border-gray-300">
-                    {rule.effectiveDate
-                      ? format(new Date(rule.effectiveDate), "yyyy-MM-dd")
-                      : "—"}
-                  </td>
-                  <td className="p-3 border border-gray-300">
-                    {rule.expiryDate
-                      ? format(new Date(rule.expiryDate), "yyyy-MM-dd")
-                      : "—"}
-                  </td>
-                  <td className="p-3 border border-gray-300 text-center">
-                    <span
-                      className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                        rule.active
-                          ? "bg-green-100 text-green-700 border border-green-300"
-                          : "bg-red-100 text-red-700 border border-red-300"
-                      }`}
-                    >
-                      {rule.active ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td className="p-3 border border-gray-300 text-center">
-                    <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                      {/* UPDATE */}
-                      <button
-                        className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
-                        onClick={() => openEditModal(rule)}
-                      >
-                        <Pencil className="w-4 h-4" /> Update
-                      </button>
+        <div className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+          <Sparkles className="w-4 h-4 text-emerald-400" />
+          Manage AI-based suggested product relationships.
+        </div>
 
-                      {/* DELETE */}
-                      <button
-                        className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md"
-                        onClick={() => handleDelete(rule.id)}
+        <div className="mt-3 h-[3px] w-32 bg-gradient-to-r from-emerald-400 via-cyan-400 to-transparent rounded-full" />
+      </motion.div>
+
+      {/* ===== MAIN HUD CARD ===== */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45 }}
+        className="relative rounded-[24px] border border-emerald-200/80 bg-gradient-to-br 
+                   from-white/98 via-slate-50/95 to-emerald-50/60 shadow-[0_18px_55px_rgba(15,23,42,0.28)] 
+                   backdrop-blur-xl p-6 overflow-hidden"
+      >
+        {/* HEADER: badge + add button */}
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex flex-col text-xs text-slate-500">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
+              Rule Engine
+            </span>
+            <span className="text-[0.7rem]">Define AI-driven product relationships</span>
+          </div>
+
+          <Button
+            onClick={openCreateModal}
+            className="rounded-full bg-gradient-to-r from-emerald-600 to-cyan-500 text-white font-semibold shadow-[0_10px_28px_rgba(45,212,191,0.45)] border border-emerald-300/70 hover:brightness-110"
+          >
+            + Add Rule
+          </Button>
+        </div>
+
+        {/* SEARCH BAR */}
+        <div className="relative w-full max-w-xs mb-5">
+          <input
+            type="text"
+            placeholder="Search rule..."
+            className="w-full border border-emerald-300 rounded-full px-4 py-2 pl-10 shadow-sm 
+                       focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white/95"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+          <Search className="absolute left-3 top-2.5 w-5 h-5 text-emerald-500" />
+        </div>
+
+        {/* =================== TABLE =================== */}
+        <motion.div
+          className="relative overflow-x-auto rounded-2xl border border-emerald-200/80 bg-white/98 shadow-[0_14px_40px_rgba(15,23,42,0.15)]"
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35 }}
+        >
+          <table className="min-w-[1400px] w-full text-sm text-slate-700">
+            <thead>
+              <tr className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-500 text-white text-xs uppercase tracking-wide">
+                <th className="p-3 border-r border-emerald-300/40">Main Product</th>
+                <th className="p-3 border-r border-emerald-300/40">Recommended Products</th>
+                <th className="p-3 border-r border-emerald-300/40">Effective Date</th>
+                <th className="p-3 border-r border-emerald-300/40">Expiry Date</th>
+                <th className="p-3 border-r border-emerald-300/40 text-center">Status</th>
+                <th className="p-3 text-center">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody className="bg-white/60">
+              {paginated.length > 0 ? (
+                paginated.map((rule) => (
+                  <motion.tr
+                    key={rule.id}
+                    whileHover={{
+                      scale: 1.006,
+                      backgroundColor: "rgba(16,185,129,0.06)",
+                    }}
+                    className="border-b border-slate-200/60 transition"
+                  >
+                    <td className="p-3 font-semibold">{rule.productName}</td>
+                    <td className="p-3">{rule.recommendedNames.join(", ")}</td>
+                    <td className="p-3">
+                      {rule.effectiveDate
+                        ? format(new Date(rule.effectiveDate), "yyyy-MM-dd")
+                        : "—"}
+                    </td>
+                    <td className="p-3">
+                      {rule.expiryDate
+                        ? format(new Date(rule.expiryDate), "yyyy-MM-dd")
+                        : "—"}
+                    </td>
+
+                    <td className="p-3 text-center">
+                      <span
+                        className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                          rule.active
+                            ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
+                            : "bg-red-100 text-red-700 border border-red-300"
+                        }`}
                       >
-                        <XCircle className="w-4 h-4" /> Delete
-                      </button>
-                    </div>
+                        {rule.active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+
+                    {/* ACTION BUTTONS */}
+                    <td className="p-3">
+                      <div className="flex justify-center gap-2">
+                        <button
+                          onClick={() => openEditModal(rule)}
+                          className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md shadow hover:shadow-lg transition"
+                        >
+                          <Pencil className="w-4 h-4" /> Update
+                        </button>
+
+                        <button
+                          onClick={() => handleDelete(rule.id)}
+                          className="flex items-center gap-1 px-3 py-1 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md shadow hover:shadow-lg transition"
+                        >
+                          <XCircle className="w-4 h-4" /> Delete
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={6}
+                    className="text-center p-4 text-slate-500 select-none"
+                  >
+                    No rules found.
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={6}
-                  className="p-4 text-center text-gray-500 border border-gray-300"
-                >
-                  No rules found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              )}
+            </tbody>
+          </table>
+        </motion.div>
 
-      {/* PAGINATION */}
-      {totalPages > 1 && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
-          <span>
-            Showing{" "}
-            <span className="font-semibold text-gray-800">
-              {(currentPage - 1) * pageSize + 1}
-            </span>{" "}
-            to{" "}
-            <span className="font-semibold text-gray-800">
-              {Math.min(currentPage * pageSize, filtered.length)}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold text-gray-800">{filtered.length}</span>{" "}
-            entries
-          </span>
+        {/* PAGINATION */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mt-5 text-sm text-slate-600">
+            <span>
+              Showing{" "}
+              <span className="font-semibold text-emerald-700">
+                {(currentPage - 1) * pageSize + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-semibold text-emerald-700">
+                {Math.min(currentPage * pageSize, filtered.length)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-emerald-700">
+                {filtered.length}
+              </span>{" "}
+              entries
+            </span>
 
-          <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            showIcons
-          />
-        </div>
-      )}
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              showIcons
+            />
+          </div>
+        )}
+      </motion.div>
 
       {/* MODAL */}
       <Modal show={showModal} size="md" popup onClose={closeModal}>
@@ -314,6 +389,7 @@ export default function RecommendationRulesPage() {
                 }
               />
             </div>
+
             <div className="flex-1">
               <Label>Expiry Date</Label>
               <TextInput
@@ -336,6 +412,6 @@ export default function RecommendationRulesPage() {
           </div>
         </ModalBody>
       </Modal>
-    </div>
+    </motion.div>
   );
 }
