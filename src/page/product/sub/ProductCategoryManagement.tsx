@@ -80,233 +80,213 @@ export default function ProductCategoryManagement() {
       transition={{ duration: 0.45, ease: "easeOut" }}
       className="relative p-6 md:p-8 overflow-hidden"
     >
-      {/* ===== HUD BACKGROUND ===== */}
+      {/* ===== SUBTLE HYBRID HUD BACKGROUND ===== */}
       <div className="pointer-events-none absolute inset-0 -z-20">
-        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:38px_38px]" />
+        {/* Grid */}
+        <div className="w-full h-full opacity-30 mix-blend-soft-light 
+            bg-[linear-gradient(to_right,rgba(148,163,184,0.14)_1px,transparent_1px),
+            linear-gradient(to_bottom,rgba(148,163,184,0.14)_1px,transparent_1px)]
+            bg-[size:42px_42px]" 
+        />
 
-        <div className="absolute inset-0 opacity-[0.06] bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.85)_0px,rgba(15,23,42,0.85)_1px,transparent_1px,transparent_3px)]" />
-
+        {/* Soft ambient blobs */}
         <motion.div
-          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/25 blur-3xl"
-          animate={{ x: [0, 20, 10, -5, 0], y: [0, 10, 20, 5, 0] }}
-          transition={{ duration: 18, repeat: Infinity }}
+          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-400/20 blur-3xl"
+          animate={{ x: [0, 18, 8, -8, 0], y: [0, 10, 20, 6, 0] }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
         />
 
         <motion.div
-          className="absolute -bottom-24 right-0 h-72 w-72 bg-cyan-400/24 blur-3xl"
-          animate={{ x: [0, -20, -35, -10, 0], y: [0, -10, -20, -5, 0] }}
-          transition={{ duration: 20, repeat: Infinity }}
+          className="absolute -bottom-24 right-[-3rem] h-72 w-72 bg-cyan-400/20 blur-3xl"
+          animate={{ x: [0, -20, -30, -10, 0], y: [0, -8, -18, -4, 0] }}
+          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
-      {/* ===== PAGE TITLE ===== */}
-      <div className="mb-8">
+      {/* ===== PAGE HEADER ===== */}
+      <div className="mb-8 relative">
         <motion.h1
           initial={{ opacity: 0, x: -15 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.45 }}
-          className="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent"
+          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r 
+            from-emerald-500 via-emerald-400 to-cyan-400 bg-clip-text text-transparent"
         >
           Product Categories
         </motion.h1>
 
-        <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
-          <Sparkles className="w-4 h-4 text-emerald-400" /> Manage and organize
-          your store’s category structure.
+        <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
+          <Sparkles className="w-4 h-4 text-emerald-400" />
+          Manage and organize your store’s category structure.
         </div>
 
-        <div className="mt-3 h-[3px] w-28 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
+        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 
+          via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* ===== HUD CONTAINER ===== */}
+      {/* ===== CONTENT CARD ===== */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
-        className="relative rounded-[24px] border border-emerald-500/30 bg-white/95 
-                   shadow-[0_18px_55px_rgba(15,23,42,0.35)] backdrop-blur-xl p-6 overflow-hidden"
+        className="relative rounded-[24px] border border-emerald-200/80 
+          bg-gradient-to-br from-white/96 via-slate-50/98 to-emerald-50/60 
+          shadow-[0_18px_55px_rgba(15,23,42,0.28)] backdrop-blur-xl p-6 overflow-hidden"
       >
-        {/* ADD CATEGORY BUTTON */}
+        {/* Light corner accents */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute top-3 left-3 h-4 w-4 border-t border-l border-emerald-200/80" />
+          <div className="absolute top-3 right-3 h-4 w-4 border-t border-r border-emerald-200/80" />
+          <div className="absolute bottom-3 left-3 h-4 w-4 border-b border-l border-emerald-200/80" />
+          <div className="absolute bottom-3 right-3 h-4 w-4 border-b border-r border-emerald-200/80" />
+        </div>
+
+        {/* Add Button */}
         <div className="flex justify-between items-center mb-6">
           <motion.button
-            whileHover={{ scale: 1.05 }}
+            whileHover={{ scale: 1.04 }}
             onClick={() => {
               setEditTarget(null);
               setShowModal(true);
             }}
-            className="px-5 py-2 rounded-full bg-gradient-to-r from-emerald-600 to-green-700 
-                       text-white font-semibold shadow-lg"
+            className="px-5 py-2 rounded-full bg-gradient-to-r from-emerald-600 
+              via-emerald-500 to-cyan-400 text-white font-semibold shadow-lg 
+              hover:brightness-110 border border-emerald-300/80"
           >
             + Add Category
           </motion.button>
         </div>
 
-        {/* ===== SEARCH BAR ===== */}
+        {/* Search */}
         <div className="relative w-full max-w-sm mb-6">
           <input
             type="text"
             placeholder="Search category…"
-            className="w-full border border-gray-300 rounded-full px-4 py-2 pl-11 shadow-sm 
-              focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-gray-50"
+            className="w-full border border-emerald-200 rounded-full px-4 py-2 pl-11 
+              shadow-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 
+              bg-white/95 text-sm text-slate-800 placeholder:text-slate-400"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
               setCurrentPage(1);
             }}
           />
-          <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
+          <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
         </div>
 
-        {/* ======================================================= */}
-        {/* =================== HOLOGRAM TABLE ===================== */}
-        {/* ======================================================= */}
+        {/* TABLE CARD */}
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.35, ease: "easeOut" }}
+          className="relative w-full overflow-x-auto pb-3 rounded-2xl 
+            border border-emerald-200/80 bg-white/98 
+            shadow-[0_14px_40px_rgba(15,23,42,0.18)]"
+        >
+          <table className="min-w-[900px] w-full text-sm text-left text-gray-700">
+            <thead className="bg-gradient-to-r from-emerald-600 
+              via-emerald-500 to-green-600 text-white sticky top-0 shadow-md">
+              <tr>
+                <th
+                  className="p-3 font-semibold cursor-pointer border border-emerald-300/40"
+                  onClick={() => handleSort("categoryName")}
+                >
+                  Category Name{" "}
+                  <span className="text-xs opacity-80">
+                    {getSortIcon("categoryName")}
+                  </span>
+                </th>
 
-        <div className="relative w-full overflow-x-auto pb-4">
+                <th
+                  className="p-3 font-semibold cursor-pointer border border-emerald-300/40"
+                  onClick={() => handleSort("categoryDescription")}
+                >
+                  Description{" "}
+                  <span className="text-xs opacity-80">
+                    {getSortIcon("categoryDescription")}
+                  </span>
+                </th>
 
-          {/* Hologram Shell */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.45, ease: "easeOut" }}
-            className="relative rounded-2xl border border-emerald-400/40 bg-white/90 
-                       dark:bg-slate-950/80 shadow-[0_18px_55px_rgba(15,23,42,0.35)] 
-                       backdrop-blur-xl overflow-hidden"
-          >
-            {/* HUD Corners */}
-            <div className="pointer-events-none absolute inset-0">
-              <div className="absolute top-2 left-2 h-4 w-4 border-t-2 border-l-2 border-emerald-300/70" />
-              <div className="absolute top-2 right-2 h-4 w-4 border-t-2 border-r-2 border-emerald-300/70" />
-              <div className="absolute bottom-2 left-2 h-4 w-4 border-b-2 border-l-2 border-emerald-300/70" />
-              <div className="absolute bottom-2 right-2 h-4 w-4 border-b-2 border-r-2 border-emerald-300/70" />
-            </div>
+                <th className="p-3 text-center font-semibold border border-emerald-300/40">
+                  Actions
+                </th>
+              </tr>
+            </thead>
 
-            {/* Scanlines */}
-            <div className="pointer-events-none absolute inset-0 opacity-[0.08] 
-                bg-[repeating-linear-gradient(to_bottom,rgba(0,0,0,0.9)_0px,rgba(0,0,0,0.9)_1px,transparent_1px,transparent_3px)]" />
-
-            {/* Hologram Sweep */}
-            <motion.div
-              className="pointer-events-none absolute inset-0 opacity-0 
-                  bg-[linear-gradient(120deg,transparent,rgba(52,211,153,0.35),transparent)]"
-              animate={{ opacity: [0, 0.5, 0], translateX: ["-200%", "200%"] }}
-              transition={{ duration: 5, repeat: Infinity }}
-            />
-
-            {/* TABLE */}
-            <table className="min-w-[1000px] w-full text-sm text-left text-gray-700 relative z-10">
-
-              {/* Header */}
-              <thead
-                className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-600 
-                           text-white sticky top-0 shadow-[0_4px_15px_rgba(16,185,129,0.4)]"
-              >
-                <tr className="text-sm">
-                  <th
-                    className="p-3 font-semibold cursor-pointer border border-emerald-300/40 
-                               select-none backdrop-blur-md"
-                    onClick={() => handleSort("categoryName")}
+            <tbody className="bg-white">
+              {paginated.length > 0 ? (
+                paginated.map((cat) => (
+                  <motion.tr
+                    key={cat.categoryId}
+                    whileHover={{
+                      backgroundColor: "rgba(16,185,129,0.12)",
+                      scale: 1.01,
+                    }}
+                    transition={{ duration: 0.2 }}
+                    className="border-b border-gray-300/40"
                   >
-                    Category Name{" "}
-                    <span className="text-xs opacity-80">
-                      {getSortIcon("categoryName")}
-                    </span>
-                  </th>
+                    <td className="p-3 border border-gray-300/40">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-gray-900">
+                          {cat.categoryName}
+                        </span>
 
-                  <th
-                    className="p-3 font-semibold cursor-pointer border border-emerald-300/40 
-                               select-none backdrop-blur-md"
-                    onClick={() => handleSort("categoryDescription")}
-                  >
-                    Description{" "}
-                    <span className="text-xs opacity-80">
-                      {getSortIcon("categoryDescription")}
-                    </span>
-                  </th>
-
-                  <th className="p-3 font-semibold text-center border border-emerald-300/40 backdrop-blur-md">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-
-              <tbody className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl">
-                {paginated.length > 0 ? (
-                  paginated.map((cat) => (
-                    <motion.tr
-                      key={cat.categoryId}
-                      whileHover={{
-                        scale: 1.01,
-                        backgroundColor: "rgba(16,185,129,0.12)",
-                      }}
-                      transition={{ duration: 0.2 }}
-                      className="border-b border-gray-300/50 hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
-                    >
-                      <td className="p-3 border border-gray-300/40">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-gray-900 dark:text-gray-100">
-                            {cat.categoryName}
-                          </span>
-
-                          <span className="px-2 py-0.5 text-xs font-semibold rounded-full 
-                                           bg-emerald-100 text-emerald-700 border 
-                                           border-emerald-300/80 shadow-[0_0_6px_rgba(16,185,129,0.35)]">
-                            Category
-                          </span>
-                        </div>
-                      </td>
-
-                      <td className="p-3 border border-gray-300/40 text-gray-700 dark:text-gray-300">
-                        {cat.categoryDescription || "—"}
-                      </td>
-
-                      <td className="p-3 border border-gray-300/40 text-center">
-                        <div className="flex justify-center gap-3">
-
-                          {/* UPDATE */}
-                          <button
-                            className="flex items-center gap-1 px-3 py-1 text-xs text-white 
-                                       bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-md
-                                       hover:shadow-[0_0_12px_rgba(234,179,8,0.7)] transition"
-                            onClick={() => {
-                              setEditTarget(cat);
-                              setShowModal(true);
-                            }}
-                          >
-                            <Pencil className="w-4 h-4" /> Update
-                          </button>
-
-                          {/* DELETE */}
-                          <button
-                            className="flex items-center gap-1 px-3 py-1 text-xs text-white 
-                                       bg-red-600 hover:bg-red-700 rounded-md shadow-md
-                                       hover:shadow-[0_0_12px_rgba(220,38,38,0.7)] transition"
-                            onClick={() => handleDelete(cat.categoryId)}
-                          >
-                            <XCircle className="w-4 h-4" /> Delete
-                          </button>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={3}
-                      className="p-4 text-center text-gray-500 border border-gray-300/40"
-                    >
-                      No categories found.
+                        <span className="px-2 py-0.5 text-xs font-semibold rounded-full 
+                          bg-emerald-100 text-emerald-700 border border-emerald-200/80">
+                          Category
+                        </span>
+                      </div>
                     </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </motion.div>
-        </div>
 
-        {/* ===== PAGINATION ===== */}
+                    <td className="p-3 border border-gray-300/40 text-slate-700">
+                      {cat.categoryDescription || "—"}
+                    </td>
+
+                    <td className="p-3 border border-gray-300/40 text-center">
+                      <div className="flex justify-center gap-3">
+                        {/* Update */}
+                        <button
+                          className="flex items-center gap-1 px-3 py-1 text-xs text-white 
+                            bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-md"
+                          onClick={() => {
+                            setEditTarget(cat);
+                            setShowModal(true);
+                          }}
+                        >
+                          <Pencil className="w-4 h-4" /> Update
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          className="flex items-center gap-1 px-3 py-1 text-xs text-white 
+                            bg-red-600 hover:bg-red-700 rounded-md shadow-md"
+                          onClick={() => handleDelete(cat.categoryId)}
+                        >
+                          <XCircle className="w-4 h-4" /> Delete
+                        </button>
+                      </div>
+                    </td>
+                  </motion.tr>
+                ))
+              ) : (
+                <tr>
+                  <td
+                    colSpan={3}
+                    className="p-4 text-center text-gray-500 border border-gray-300/40"
+                  >
+                    No categories found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </motion.div>
+
+        {/* PAGINATION */}
         {totalPages > 1 && (
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
-
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center 
+            sm:justify-between mt-6 text-sm text-gray-600"
+          >
             <span>
               Showing{" "}
               <span className="font-semibold text-gray-800">
@@ -334,7 +314,6 @@ export default function ProductCategoryManagement() {
         )}
       </motion.div>
 
-      {/* MODAL */}
       <ProductCategoryFormModal
         show={showModal}
         onClose={() => setShowModal(false)}
