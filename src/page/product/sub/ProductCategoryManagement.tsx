@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
-import { Button, Pagination } from "flowbite-react";
+import { Pagination } from "flowbite-react";
 import Swal from "sweetalert2";
-import { Search } from "lucide-react";
+import { Search, Sparkles } from "lucide-react";
+import { motion } from "framer-motion";
 
 import ProductCategoryFormModal from "../../../components/product/ProductCategoryFormModal";
 import { useCategoryContext } from "../../../context/CategoryContext";
@@ -73,159 +74,255 @@ export default function ProductCategoryManagement() {
   };
 
   return (
-    <div className="p-6 bg-white rounded-xl shadow-lg border border-gray-200">
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: "easeOut" }}
+      className="relative p-6 md:p-8 overflow-hidden"
+    >
+      {/* ===== HUD BACKGROUND ===== */}
+      <div className="pointer-events-none absolute inset-0 -z-20">
+        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:38px_38px]" />
 
-      {/* HEADER */}
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 tracking-wide">
-          Product Categories
-        </h2>
+        <div className="absolute inset-0 opacity-[0.06] bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.85)_0px,rgba(15,23,42,0.85)_1px,transparent_1px,transparent_3px)]" />
 
-        <Button
-          onClick={() => {
-            setEditTarget(null);
-            setShowModal(true);
-          }}
-          className="!bg-emerald-600 hover:!bg-emerald-700 text-white font-semibold px-5 py-2 rounded-full shadow-md"
-        >
-          + Add Category
-        </Button>
-      </div>
-
-      {/* SEARCH INPUT */}
-      <div className="relative w-full max-w-sm mb-6">
-        <input
-          type="text"
-          placeholder="Search category..."
-          className="w-full border border-gray-300 rounded-full px-4 py-2 pl-11 shadow-sm 
-                     focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-gray-50"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setCurrentPage(1);
-          }}
+        <motion.div
+          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/25 blur-3xl"
+          animate={{ x: [0, 20, 10, -5, 0], y: [0, 10, 20, 5, 0] }}
+          transition={{ duration: 18, repeat: Infinity }}
         />
-        <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
+
+        <motion.div
+          className="absolute -bottom-24 right-0 h-72 w-72 bg-cyan-400/24 blur-3xl"
+          animate={{ x: [0, -20, -35, -10, 0], y: [0, -10, -20, -5, 0] }}
+          transition={{ duration: 20, repeat: Infinity }}
+        />
       </div>
 
-      {/* TABLE WRAPPER */}
-      <div className="w-full overflow-x-auto pb-2">
-        <table className="min-w-[1000px] w-full border border-gray-300 text-sm text-left text-gray-700 rounded-lg overflow-hidden">
+      {/* ===== PAGE TITLE ===== */}
+      <div className="mb-8">
+        <motion.h1
+          initial={{ opacity: 0, x: -15 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.45 }}
+          className="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent"
+        >
+          Product Categories
+        </motion.h1>
 
-          {/* Sticky Header */}
-          <thead className="bg-emerald-600 text-white sticky top-0 z-20 shadow-sm">
-            <tr>
-              <th
-                className="p-3 font-medium cursor-pointer select-none border border-gray-300"
-                onClick={() => handleSort("categoryName")}
+        <div className="mt-1 flex items-center gap-2 text-xs text-gray-500">
+          <Sparkles className="w-4 h-4 text-emerald-400" /> Manage and organize
+          your store’s category structure.
+        </div>
+
+        <div className="mt-3 h-[3px] w-28 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
+      </div>
+
+      {/* ===== HUD CONTAINER ===== */}
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="relative rounded-[24px] border border-emerald-500/30 bg-white/95 
+                   shadow-[0_18px_55px_rgba(15,23,42,0.35)] backdrop-blur-xl p-6 overflow-hidden"
+      >
+        {/* ADD CATEGORY BUTTON */}
+        <div className="flex justify-between items-center mb-6">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            onClick={() => {
+              setEditTarget(null);
+              setShowModal(true);
+            }}
+            className="px-5 py-2 rounded-full bg-gradient-to-r from-emerald-600 to-green-700 
+                       text-white font-semibold shadow-lg"
+          >
+            + Add Category
+          </motion.button>
+        </div>
+
+        {/* ===== SEARCH BAR ===== */}
+        <div className="relative w-full max-w-sm mb-6">
+          <input
+            type="text"
+            placeholder="Search category…"
+            className="w-full border border-gray-300 rounded-full px-4 py-2 pl-11 shadow-sm 
+              focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-gray-50"
+            value={search}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }}
+          />
+          <Search className="absolute left-3 top-2.5 text-gray-500 w-5 h-5" />
+        </div>
+
+        {/* ======================================================= */}
+        {/* =================== HOLOGRAM TABLE ===================== */}
+        {/* ======================================================= */}
+
+        <div className="relative w-full overflow-x-auto pb-4">
+
+          {/* Hologram Shell */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.45, ease: "easeOut" }}
+            className="relative rounded-2xl border border-emerald-400/40 bg-white/90 
+                       dark:bg-slate-950/80 shadow-[0_18px_55px_rgba(15,23,42,0.35)] 
+                       backdrop-blur-xl overflow-hidden"
+          >
+            {/* HUD Corners */}
+            <div className="pointer-events-none absolute inset-0">
+              <div className="absolute top-2 left-2 h-4 w-4 border-t-2 border-l-2 border-emerald-300/70" />
+              <div className="absolute top-2 right-2 h-4 w-4 border-t-2 border-r-2 border-emerald-300/70" />
+              <div className="absolute bottom-2 left-2 h-4 w-4 border-b-2 border-l-2 border-emerald-300/70" />
+              <div className="absolute bottom-2 right-2 h-4 w-4 border-b-2 border-r-2 border-emerald-300/70" />
+            </div>
+
+            {/* Scanlines */}
+            <div className="pointer-events-none absolute inset-0 opacity-[0.08] 
+                bg-[repeating-linear-gradient(to_bottom,rgba(0,0,0,0.9)_0px,rgba(0,0,0,0.9)_1px,transparent_1px,transparent_3px)]" />
+
+            {/* Hologram Sweep */}
+            <motion.div
+              className="pointer-events-none absolute inset-0 opacity-0 
+                  bg-[linear-gradient(120deg,transparent,rgba(52,211,153,0.35),transparent)]"
+              animate={{ opacity: [0, 0.5, 0], translateX: ["-200%", "200%"] }}
+              transition={{ duration: 5, repeat: Infinity }}
+            />
+
+            {/* TABLE */}
+            <table className="min-w-[1000px] w-full text-sm text-left text-gray-700 relative z-10">
+
+              {/* Header */}
+              <thead
+                className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-600 
+                           text-white sticky top-0 shadow-[0_4px_15px_rgba(16,185,129,0.4)]"
               >
-                Category Name{" "}
-                <span className="text-xs opacity-80">
-                  {getSortIcon("categoryName")}
-                </span>
-              </th>
+                <tr className="text-sm">
+                  <th
+                    className="p-3 font-semibold cursor-pointer border border-emerald-300/40 
+                               select-none backdrop-blur-md"
+                    onClick={() => handleSort("categoryName")}
+                  >
+                    Category Name{" "}
+                    <span className="text-xs opacity-80">
+                      {getSortIcon("categoryName")}
+                    </span>
+                  </th>
 
-              <th
-                className="p-3 font-medium cursor-pointer select-none border border-gray-300"
-                onClick={() => handleSort("categoryDescription")}
-              >
-                Description{" "}
-                <span className="text-xs opacity-80">
-                  {getSortIcon("categoryDescription")}
-                </span>
-              </th>
+                  <th
+                    className="p-3 font-semibold cursor-pointer border border-emerald-300/40 
+                               select-none backdrop-blur-md"
+                    onClick={() => handleSort("categoryDescription")}
+                  >
+                    Description{" "}
+                    <span className="text-xs opacity-80">
+                      {getSortIcon("categoryDescription")}
+                    </span>
+                  </th>
 
-              <th className="p-3 font-medium text-center border border-gray-300">
-                Actions
-              </th>
-            </tr>
-          </thead>
-
-          <tbody className="bg-white">
-            {paginated.length > 0 ? (
-              paginated.map((cat) => (
-                <tr
-                  key={cat.categoryId}
-                  className="hover:bg-emerald-50 transition"
-                >
-                  <td className="p-3 border border-gray-300">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-gray-800">
-                        {cat.categoryName}
-                      </span>
-                      <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300">
-                        Category
-                      </span>
-                    </div>
-                  </td>
-
-                  <td className="p-3 border border-gray-300 text-gray-600">
-                    {cat.categoryDescription || "—"}
-                  </td>
-
-                  <td className="p-3 border border-gray-300 text-center">
-                    <div className="flex items-center justify-center gap-3">
-
-                      {/* UPDATE */}
-                      <button
-                        className="flex items-center gap-1 px-3 py-1 text-xs text-white 
-                                   bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-sm"
-                        onClick={() => {
-                          setEditTarget(cat);
-                          setShowModal(true);
-                        }}
-                      >
-                        <Pencil className="w-4 h-4" /> Update
-                      </button>
-
-                      {/* DELETE */}
-                      <button
-                        className="flex items-center gap-1 px-3 py-1 text-xs text-white 
-                                   bg-red-600 hover:bg-red-700 rounded-md shadow-sm"
-                        onClick={() => handleDelete(cat.categoryId)}
-                      >
-                        <XCircle className="w-4 h-4" /> Delete
-                      </button>
-
-                    </div>
-                  </td>
+                  <th className="p-3 font-semibold text-center border border-emerald-300/40 backdrop-blur-md">
+                    Actions
+                  </th>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td
-                  colSpan={3}
-                  className="p-4 text-center text-gray-500 border border-gray-300"
-                >
-                  No categories found.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+              </thead>
 
-      {/* PAGINATION */}
-      {totalPages > 1 && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
+              <tbody className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl">
+                {paginated.length > 0 ? (
+                  paginated.map((cat) => (
+                    <motion.tr
+                      key={cat.categoryId}
+                      whileHover={{
+                        scale: 1.01,
+                        backgroundColor: "rgba(16,185,129,0.12)",
+                      }}
+                      transition={{ duration: 0.2 }}
+                      className="border-b border-gray-300/50 hover:shadow-[0_0_18px_rgba(16,185,129,0.35)]"
+                    >
+                      <td className="p-3 border border-gray-300/40">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-gray-900 dark:text-gray-100">
+                            {cat.categoryName}
+                          </span>
 
-          <span>
-            Showing{" "}
-            <span className="font-semibold text-gray-800">
-              {(currentPage - 1) * pageSize + 1}
-            </span>{" "}
-            to{" "}
-            <span className="font-semibold text-gray-800">
-              {Math.min(currentPage * pageSize, sorted.length)}
-            </span>{" "}
-            of{" "}
-            <span className="font-semibold text-gray-800">
-              {sorted.length}
-            </span>{" "}
-            entries
-          </span>
+                          <span className="px-2 py-0.5 text-xs font-semibold rounded-full 
+                                           bg-emerald-100 text-emerald-700 border 
+                                           border-emerald-300/80 shadow-[0_0_6px_rgba(16,185,129,0.35)]">
+                            Category
+                          </span>
+                        </div>
+                      </td>
 
-          <div className="flex overflow-x-auto sm:justify-center">
+                      <td className="p-3 border border-gray-300/40 text-gray-700 dark:text-gray-300">
+                        {cat.categoryDescription || "—"}
+                      </td>
+
+                      <td className="p-3 border border-gray-300/40 text-center">
+                        <div className="flex justify-center gap-3">
+
+                          {/* UPDATE */}
+                          <button
+                            className="flex items-center gap-1 px-3 py-1 text-xs text-white 
+                                       bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-md
+                                       hover:shadow-[0_0_12px_rgba(234,179,8,0.7)] transition"
+                            onClick={() => {
+                              setEditTarget(cat);
+                              setShowModal(true);
+                            }}
+                          >
+                            <Pencil className="w-4 h-4" /> Update
+                          </button>
+
+                          {/* DELETE */}
+                          <button
+                            className="flex items-center gap-1 px-3 py-1 text-xs text-white 
+                                       bg-red-600 hover:bg-red-700 rounded-md shadow-md
+                                       hover:shadow-[0_0_12px_rgba(220,38,38,0.7)] transition"
+                            onClick={() => handleDelete(cat.categoryId)}
+                          >
+                            <XCircle className="w-4 h-4" /> Delete
+                          </button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan={3}
+                      className="p-4 text-center text-gray-500 border border-gray-300/40"
+                    >
+                      No categories found.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </motion.div>
+        </div>
+
+        {/* ===== PAGINATION ===== */}
+        {totalPages > 1 && (
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-gray-600">
+
+            <span>
+              Showing{" "}
+              <span className="font-semibold text-gray-800">
+                {(currentPage - 1) * pageSize + 1}
+              </span>{" "}
+              to{" "}
+              <span className="font-semibold text-gray-800">
+                {Math.min(currentPage * pageSize, sorted.length)}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-gray-800">
+                {sorted.length}
+              </span>{" "}
+              entries
+            </span>
+
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
@@ -234,9 +331,8 @@ export default function ProductCategoryManagement() {
               className="shadow-sm"
             />
           </div>
-
-        </div>
-      )}
+        )}
+      </motion.div>
 
       {/* MODAL */}
       <ProductCategoryFormModal
@@ -244,6 +340,6 @@ export default function ProductCategoryManagement() {
         onClose={() => setShowModal(false)}
         editTarget={editTarget}
       />
-    </div>
+    </motion.div>
   );
 }
