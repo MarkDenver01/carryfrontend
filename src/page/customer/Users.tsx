@@ -205,7 +205,7 @@ export default function MembershipOverviewPage() {
           <span className="font-medium text-emerald-700">
             corporate & rewards members
           </span>
-          . Monitor membership health, tiers, and points activity at a glance.
+          . Monitor membership, tiers, and points activity at a glance.
         </p>
 
        
