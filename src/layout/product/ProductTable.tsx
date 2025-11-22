@@ -13,7 +13,7 @@ interface ProductTableProps {
   toggleAvailability: (product: Product) => void;
   handleDeleteProduct: (id: number) => void;
 
-  // ✅ Replaced old modal triggers with the new unified handler
+  // unified handler
   onViewRecommendations: (product: Product) => void;
 }
 
@@ -30,41 +30,53 @@ const ProductTable: React.FC<ProductTableProps> = ({
 }) => {
   return (
     <div className="overflow-x-auto w-full">
-      <table className="min-w-[1500px] border border-gray-200 text-sm text-left text-gray-700">
-        <thead className="bg-emerald-700 text-white text-xs uppercase tracking-wide">
-          <tr className="divide-x divide-emerald-600">
+      {/* GODLY HUD TABLE */}
+      <table className="min-w-[1500px] text-sm text-left text-slate-700">
+        {/* ===== TABLE HEADER ===== */}
+        <thead>
+          <tr className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-500 
+                         text-white text-xs uppercase tracking-wide shadow 
+                         border-b border-emerald-300/40">
+
             <th className="p-3 font-semibold w-[80px]">Image</th>
+
             <th
-              className="p-3 font-semibold w-[100px] cursor-pointer"
+              className="p-3 font-semibold w-[100px] cursor-pointer select-none hover:bg-emerald-600/20 transition"
               onClick={() => handleSort("code")}
             >
               Code {getSortIcon("code")}
             </th>
+
             <th
-              className="p-3 font-semibold w-[200px] cursor-pointer"
+              className="p-3 font-semibold w-[200px] cursor-pointer select-none hover:bg-emerald-600/20 transition"
               onClick={() => handleSort("name")}
             >
               Name {getSortIcon("name")}
             </th>
+
             <th
-              className="p-3 font-semibold w-[260px] cursor-pointer"
+              className="p-3 font-semibold w-[260px] cursor-pointer select-none hover:bg-emerald-600/20 transition"
               onClick={() => handleSort("categoryName")}
             >
               Category {getSortIcon("categoryName")}
             </th>
+
             <th
-              className="p-3 font-semibold w-[350px] cursor-pointer"
+              className="p-3 font-semibold w-[350px] cursor-pointer select-none hover:bg-emerald-600/20 transition"
               onClick={() => handleSort("description")}
             >
               Description {getSortIcon("description")}
             </th>
+
             <th className="p-3 font-semibold w-[80px]">Size</th>
+
             <th
-              className="p-3 font-semibold w-[80px] cursor-pointer"
+              className="p-3 font-semibold w-[80px] cursor-pointer select-none hover:bg-emerald-600/20 transition"
               onClick={() => handleSort("stock")}
             >
               Stocks {getSortIcon("stock")}
             </th>
+
             <th className="p-3 font-semibold w-[130px]">Expiry</th>
             <th className="p-3 font-semibold w-[130px]">In Date</th>
             <th className="p-3 font-semibold w-[120px]">Status</th>
@@ -72,90 +84,103 @@ const ProductTable: React.FC<ProductTableProps> = ({
           </tr>
         </thead>
 
-        <tbody className="bg-white">
+        {/* ===== TABLE BODY ===== */}
+        <tbody className="bg-white/70 backdrop-blur-xl">
           {paginatedProducts.length > 0 ? (
             paginatedProducts.map((product, idx) => (
               <tr
                 key={product.id ?? idx}
-                className="hover:bg-gray-50 border-t border-gray-200"
+                className="border-t border-slate-200/60 
+                           hover:bg-emerald-50/60 hover:shadow-[0_4px_18px_rgba(16,185,129,0.25)]
+                           transition-all duration-200"
               >
-                {/* Image */}
-                <td className="p-2.5 w-[80px] align-middle">
+                {/* Product Image */}
+                <td className="p-3 w-[80px] align-middle">
                   <img
                     src={product.imageUrl || "/placeholder.png"}
                     alt={product.name}
-                    className="w-12 h-12 rounded object-cover border border-gray-200"
+                    className="w-12 h-12 rounded-lg object-cover border border-emerald-200 shadow-sm"
                   />
                 </td>
 
                 {/* Code */}
-                <td className="p-2.5 w-[100px] align-middle">{product.code}</td>
+                <td className="p-3 w-[100px] align-middle font-semibold text-slate-800">
+                  {product.code}
+                </td>
 
                 {/* Name */}
-                <td className="p-2.5 w-[200px] align-middle font-medium">
+                <td className="p-3 w-[200px] align-middle font-bold text-slate-900">
                   {product.name}
                 </td>
 
-                {/* Category */}
-                <td className="p-2.5 w-[260px] align-middle">
-                  <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
+                {/* Category badge */}
+                <td className="p-3 w-[260px] align-middle">
+                  <span className="px-2 py-1 text-xs rounded-full 
+                                   bg-emerald-100 text-emerald-700 
+                                   border border-emerald-300 shadow-sm">
                     {product.categoryName ?? "—"}
                   </span>
                 </td>
 
-                {/* Description (with hover tooltip) */}
-                <td className="p-2.5 w-[350px] align-middle relative group">
-                  <p className="line-clamp-3 cursor-pointer">
+                {/* Description with hover tooltip */}
+                <td className="p-3 w-[350px] align-middle relative group">
+                  <p className="line-clamp-2 cursor-pointer text-slate-700">
                     {product.description}
                   </p>
 
+                  {/* Tooltip */}
                   <div
-                    className="
-                      hidden group-hover:block absolute z-50 left-0 top-full mt-1
-                      w-[380px] bg-white shadow-xl border border-gray-300
-                      rounded-md p-3 text-gray-700 text-sm leading-relaxed
-                      whitespace-normal
-                    "
+                    className="hidden group-hover:block absolute left-0 top-full mt-2 z-50
+                               w-[360px] bg-white/95 backdrop-blur-xl
+                               border border-slate-200 rounded-md shadow-xl
+                               p-3 text-xs text-slate-700"
                   >
                     {product.description}
                   </div>
                 </td>
 
                 {/* Size */}
-                <td className="p-2.5 w-[80px] align-middle">{product.size}</td>
+                <td className="p-3 w-[80px] align-middle">{product.size}</td>
 
                 {/* Stock */}
-                <td className="p-2.5 w-[80px] align-middle">{product.stock}</td>
+                <td className="p-3 w-[80px] align-middle font-semibold">
+                  {product.stock}
+                </td>
 
                 {/* Expiry */}
-                <td className="p-2.5 w-[130px] align-middle">
+                <td className="p-3 w-[130px] align-middle text-slate-600">
                   {product.expiryDate ?? "—"}
                 </td>
 
                 {/* In Date */}
-                <td className="p-2.5 w-[130px] align-middle">
+                <td className="p-3 w-[130px] align-middle text-slate-600">
                   {product.inDate ?? "—"}
                 </td>
 
-                {/* Status */}
-                <td className="p-2.5 w-[120px] align-middle">
+                {/* Status badge */}
+                <td className="p-3 w-[120px] align-middle">
                   <span
-                    className={`px-2 py-1 text-xs rounded-full border ${
-                      product.status === "Available"
-                        ? "bg-green-100 text-green-700 border-green-300"
-                        : "bg-red-100 text-red-700 border-red-300"
-                    }`}
+                    className={`px-2 py-1 text-xs rounded-full border font-semibold 
+                      ${
+                        product.status === "Available"
+                          ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+                          : "bg-red-100 text-red-700 border-red-300"
+                      }`}
                   >
                     {product.status}
                   </span>
                 </td>
 
                 {/* ACTION BUTTONS */}
-                <td className="p-2.5 align-middle w-[500px]">
-                  <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+                <td className="p-3 w-[500px] align-middle">
+                  <div className="flex items-center justify-center gap-2">
+
                     {/* UPDATE */}
                     <button
-                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
+                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 
+                                 px-3 text-xs font-semibold text-white
+                                 bg-gradient-to-r from-yellow-500 to-yellow-600
+                                 rounded-md shadow hover:shadow-lg transition"
                       onClick={() => {
                         const realIndex = (currentPage - 1) * pageSize + idx;
                         handleEditProduct(realIndex);
@@ -166,11 +191,14 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
                     {/* AVAILABILITY */}
                     <button
-                      className={`h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white rounded-md ${
-                        product.status === "Available"
-                          ? "bg-red-500 hover:bg-red-600"
-                          : "bg-green-600 hover:bg-green-700"
-                      }`}
+                      className={`h-9 min-w-[140px] flex items-center justify-center gap-1 px-3 
+                        text-xs font-semibold text-white rounded-md shadow hover:shadow-lg transition
+                        ${
+                          product.status === "Available"
+                            ? "bg-red-600 hover:bg-red-700"
+                            : "bg-green-600 hover:bg-green-700"
+                        }
+                      `}
                       onClick={() => toggleAvailability(product)}
                     >
                       {product.status === "Available" ? (
@@ -184,17 +212,23 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       )}
                     </button>
 
-                    {/* VIEW RECOMMENDATIONS ✅ */}
+                    {/* VIEW RECOMMENDATIONS */}
                     <button
-                      className="h-9 min-w-[150px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                      className="h-9 min-w-[160px] flex items-center justify-center gap-1 px-3 
+                                 text-xs font-semibold text-white
+                                 bg-gradient-to-r from-blue-600 to-blue-700
+                                 rounded-md shadow hover:shadow-lg transition"
                       onClick={() => onViewRecommendations(product)}
                     >
-                      <Eye className="w-4 h-4" /> View Recommendations
+                      <Eye className="w-4 h-4" /> Recommendations
                     </button>
 
                     {/* DELETE */}
                     <button
-                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md"
+                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 
+                                 text-xs font-semibold text-white
+                                 bg-gradient-to-r from-red-600 to-red-700
+                                 rounded-md shadow hover:shadow-xl transition"
                       onClick={() => {
                         if (product.id) handleDeleteProduct(product.id);
                       }}
@@ -209,7 +243,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
             <tr>
               <td
                 colSpan={11}
-                className="text-center py-4 text-gray-500 border-t border-gray-200"
+                className="text-center py-4 text-slate-500 border-t border-slate-200/60"
               >
                 No products found.
               </td>
