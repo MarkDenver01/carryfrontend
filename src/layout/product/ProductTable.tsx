@@ -12,8 +12,6 @@ interface ProductTableProps {
   handleEditProduct: (index: number) => void;
   toggleAvailability: (product: Product) => void;
   handleDeleteProduct: (id: number) => void;
-
-  // ✅ Replaced old modal triggers with the new unified handler
   onViewRecommendations: (product: Product) => void;
 }
 
@@ -29,121 +27,112 @@ const ProductTable: React.FC<ProductTableProps> = ({
   onViewRecommendations,
 }) => {
   return (
-    <div className="overflow-x-auto w-full">
-      <table className="min-w-[1500px] border border-gray-200 text-sm text-left text-gray-700">
-        <thead className="bg-emerald-700 text-white text-xs uppercase tracking-wide">
-          <tr className="divide-x divide-emerald-600">
-            <th className="p-3 font-semibold w-[80px]">Image</th>
+    <div className="overflow-x-auto w-full p-3">
+      <table className="min-w-[1500px] w-full text-sm text-gray-700">
+
+        {/* HEADER */}
+        <thead>
+          <tr className="text-left text-gray-500 text-xs font-semibold border-b border-gray-200">
+            <th className="py-3 px-2">Image</th>
             <th
-              className="p-3 font-semibold w-[100px] cursor-pointer"
+              className="py-3 px-2 cursor-pointer hover:text-emerald-600 transition"
               onClick={() => handleSort("code")}
             >
               Code {getSortIcon("code")}
             </th>
             <th
-              className="p-3 font-semibold w-[200px] cursor-pointer"
+              className="py-3 px-2 cursor-pointer hover:text-emerald-600 transition"
               onClick={() => handleSort("name")}
             >
               Name {getSortIcon("name")}
             </th>
             <th
-              className="p-3 font-semibold w-[260px] cursor-pointer"
+              className="py-3 px-2 cursor-pointer hover:text-emerald-600 transition"
               onClick={() => handleSort("categoryName")}
             >
               Category {getSortIcon("categoryName")}
             </th>
             <th
-              className="p-3 font-semibold w-[350px] cursor-pointer"
+              className="py-3 px-2 cursor-pointer hover:text-emerald-600 transition"
               onClick={() => handleSort("description")}
             >
               Description {getSortIcon("description")}
             </th>
-            <th className="p-3 font-semibold w-[80px]">Size</th>
+            <th className="py-3 px-2">Size</th>
             <th
-              className="p-3 font-semibold w-[80px] cursor-pointer"
+              className="py-3 px-2 cursor-pointer hover:text-emerald-600 transition"
               onClick={() => handleSort("stock")}
             >
               Stocks {getSortIcon("stock")}
             </th>
-            <th className="p-3 font-semibold w-[130px]">Expiry</th>
-            <th className="p-3 font-semibold w-[130px]">In Date</th>
-            <th className="p-3 font-semibold w-[120px]">Status</th>
-            <th className="p-3 font-semibold text-center w-[500px]">Actions</th>
+            <th className="py-3 px-2">Expiry</th>
+            <th className="py-3 px-2">In Date</th>
+            <th className="py-3 px-2">Status</th>
+            <th className="py-3 px-2 text-center">Actions</th>
           </tr>
         </thead>
 
-        <tbody className="bg-white">
+        {/* BODY */}
+        <tbody>
           {paginatedProducts.length > 0 ? (
             paginatedProducts.map((product, idx) => (
               <tr
                 key={product.id ?? idx}
-                className="hover:bg-gray-50 border-t border-gray-200"
+                className="border-b border-gray-200 hover:bg-gray-50 transition-all"
               >
-                {/* Image */}
-                <td className="p-2.5 w-[80px] align-middle">
+                {/* IMAGE */}
+                <td className="py-3 px-2">
                   <img
                     src={product.imageUrl || "/placeholder.png"}
                     alt={product.name}
-                    className="w-12 h-12 rounded object-cover border border-gray-200"
+                    className="w-12 h-12 rounded-md object-cover shadow-sm"
                   />
                 </td>
 
-                {/* Code */}
-                <td className="p-2.5 w-[100px] align-middle">{product.code}</td>
+                {/* CODE */}
+                <td className="py-3 px-2 text-gray-700">{product.code}</td>
 
-                {/* Name */}
-                <td className="p-2.5 w-[200px] align-middle font-medium">
+                {/* NAME */}
+                <td className="py-3 px-2 font-medium text-gray-900">
                   {product.name}
                 </td>
 
-                {/* Category */}
-                <td className="p-2.5 w-[260px] align-middle">
-                  <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
+                {/* CATEGORY */}
+                <td className="py-3 px-2">
+                  <span className="px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-xs">
                     {product.categoryName ?? "—"}
                   </span>
                 </td>
 
-                {/* Description (with hover tooltip) */}
-                <td className="p-2.5 w-[350px] align-middle relative group">
-                  <p className="line-clamp-3 cursor-pointer">
-                    {product.description}
-                  </p>
+                {/* DESCRIPTION */}
+                <td className="py-3 px-2 relative group text-gray-600">
+                  <p className="line-clamp-2 text-sm">{product.description}</p>
 
-                  <div
-                    className="
-                      hidden group-hover:block absolute z-50 left-0 top-full mt-1
-                      w-[380px] bg-white shadow-xl border border-gray-300
-                      rounded-md p-3 text-gray-700 text-sm leading-relaxed
-                      whitespace-normal
-                    "
-                  >
+                  {/* TOOLTIP */}
+                  <div className="absolute hidden group-hover:block left-0 top-full mt-1 w-[330px] bg-white shadow-lg border border-gray-200 rounded-lg p-3 text-xs leading-5 z-20">
                     {product.description}
                   </div>
                 </td>
 
-                {/* Size */}
-                <td className="p-2.5 w-[80px] align-middle">{product.size}</td>
+                {/* SIZE */}
+                <td className="py-3 px-2">{product.size}</td>
 
-                {/* Stock */}
-                <td className="p-2.5 w-[80px] align-middle">{product.stock}</td>
+                {/* STOCK */}
+                <td className="py-3 px-2">{product.stock}</td>
 
-                {/* Expiry */}
-                <td className="p-2.5 w-[130px] align-middle">
-                  {product.expiryDate ?? "—"}
-                </td>
+                {/* EXPIRY */}
+                <td className="py-3 px-2">{product.expiryDate ?? "—"}</td>
 
-                {/* In Date */}
-                <td className="p-2.5 w-[130px] align-middle">
-                  {product.inDate ?? "—"}
-                </td>
+                {/* IN DATE */}
+                <td className="py-3 px-2">{product.inDate ?? "—"}</td>
 
-                {/* Status */}
-                <td className="p-2.5 w-[120px] align-middle">
+                {/* STATUS */}
+                <td className="py-3 px-2">
                   <span
-                    className={`px-2 py-1 text-xs rounded-full border ${
+                    className={`px-3 py-1 rounded-full text-xs ${
                       product.status === "Available"
-                        ? "bg-green-100 text-green-700 border-green-300"
-                        : "bg-red-100 text-red-700 border-red-300"
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
                     }`}
                   >
                     {product.status}
@@ -151,22 +140,23 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 </td>
 
                 {/* ACTION BUTTONS */}
-                <td className="p-2.5 align-middle w-[500px]">
-                  <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+                <td className="py-3 px-2">
+                  <div className="flex items-center justify-center gap-2">
+
                     {/* UPDATE */}
                     <button
-                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
-                      onClick={() => {
-                        const realIndex = (currentPage - 1) * pageSize + idx;
-                        handleEditProduct(realIndex);
-                      }}
+                      className="px-3 h-9 text-xs bg-yellow-500 hover:bg-yellow-600 text-white rounded-md flex items-center gap-1 transition"
+                      onClick={() =>
+                        handleEditProduct((currentPage - 1) * pageSize + idx)
+                      }
                     >
-                      <Pencil className="w-4 h-4" /> Update
+                      <Pencil className="w-4 h-4" />
+                      Update
                     </button>
 
                     {/* AVAILABILITY */}
                     <button
-                      className={`h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white rounded-md ${
+                      className={`px-3 h-9 text-xs rounded-md flex items-center gap-1 transition text-white ${
                         product.status === "Available"
                           ? "bg-red-500 hover:bg-red-600"
                           : "bg-green-600 hover:bg-green-700"
@@ -184,23 +174,24 @@ const ProductTable: React.FC<ProductTableProps> = ({
                       )}
                     </button>
 
-                    {/* VIEW RECOMMENDATIONS ✅ */}
+                    {/* VIEW */}
                     <button
-                      className="h-9 min-w-[150px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                      className="px-3 h-9 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-md flex items-center gap-1 transition"
                       onClick={() => onViewRecommendations(product)}
                     >
-                      <Eye className="w-4 h-4" /> View Recommendations
+                      <Eye className="w-4 h-4" />
+                      View
                     </button>
 
                     {/* DELETE */}
                     <button
-                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md"
-                      onClick={() => {
-                        if (product.id) handleDeleteProduct(product.id);
-                      }}
+                      className="px-3 h-9 text-xs bg-red-600 hover:bg-red-700 text-white rounded-md flex items-center gap-1 transition"
+                      onClick={() => product.id && handleDeleteProduct(product.id)}
                     >
-                      <XCircle className="w-4 h-4" /> Delete
+                      <XCircle className="w-4 h-4" />
+                      Delete
                     </button>
+
                   </div>
                 </td>
               </tr>
@@ -209,13 +200,14 @@ const ProductTable: React.FC<ProductTableProps> = ({
             <tr>
               <td
                 colSpan={11}
-                className="text-center py-4 text-gray-500 border-t border-gray-200"
+                className="text-center py-5 text-gray-500"
               >
                 No products found.
               </td>
             </tr>
           )}
         </tbody>
+
       </table>
     </div>
   );
