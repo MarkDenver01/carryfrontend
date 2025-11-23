@@ -5,11 +5,11 @@ export default function ProfileDropdown() {
   const navigate = useNavigate();
 
   const handleDashboard = () => {
-    navigate("/layout/dashboard/DashboardLayout");
+    navigate("/dashboard");
   };
 
   const handleSettings = () => {
-    navigate("/SystemSettings/SystemSettings");
+    navigate("/admin/settings");
   };
 
   const handleLogout = () => {
@@ -17,7 +17,7 @@ export default function ProfileDropdown() {
     localStorage.removeItem("authToken");
     sessionStorage.clear();
 
-    navigate("page/login/login");
+    navigate("");
   };
 
   return (
