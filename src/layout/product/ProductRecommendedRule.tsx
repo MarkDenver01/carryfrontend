@@ -185,7 +185,9 @@ export default function RecommendationRulesPage() {
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
               Rule Engine
             </span>
-            <span className="text-[0.7rem]">Define Ruled-Based product relationships</span>
+            <span className="text-[0.7rem]">
+              Define Ruled-Based product relationships
+            </span>
           </div>
 
           <Button
@@ -222,11 +224,21 @@ export default function RecommendationRulesPage() {
           <table className="min-w-[1400px] w-full text-sm text-slate-700">
             <thead>
               <tr className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-500 text-white text-xs uppercase tracking-wide">
-                <th className="p-3 border-r border-emerald-300/40">Main Product</th>
-                <th className="p-3 border-r border-emerald-300/40">Recommended Products</th>
-                <th className="p-3 border-r border-emerald-300/40">Effective Date</th>
-                <th className="p-3 border-r border-emerald-300/40">Expiry Date</th>
-                <th className="p-3 border-r border-emerald-300/40 text-center">Status</th>
+                <th className="p-3 border-r border-emerald-300/40">
+                  Main Product
+                </th>
+                <th className="p-3 border-r border-emerald-300/40">
+                  Recommended Products
+                </th>
+                <th className="p-3 border-r border-emerald-300/40">
+                  Effective Date
+                </th>
+                <th className="p-3 border-r border-emerald-300/40">
+                  Expiry Date
+                </th>
+                <th className="p-3 border-r border-emerald-300/40 text-center">
+                  Status
+                </th>
                 <th className="p-3 text-center">Actions</th>
               </tr>
             </thead>
@@ -243,15 +255,23 @@ export default function RecommendationRulesPage() {
                     className="border-b border-slate-200/60 transition"
                   >
                     <td className="p-3 font-semibold">{rule.productName}</td>
-                    <td className="p-3">{rule.recommendedNames.join(", ")}</td>
+                    <td className="p-3">
+                      {rule.recommendedNames.join(", ")}
+                    </td>
                     <td className="p-3">
                       {rule.effectiveDate
-                        ? format(new Date(rule.effectiveDate), "yyyy-MM-dd")
+                        ? format(
+                            new Date(rule.effectiveDate),
+                            "yyyy-MM-dd"
+                          )
                         : "—"}
                     </td>
                     <td className="p-3">
                       {rule.expiryDate
-                        ? format(new Date(rule.expiryDate), "yyyy-MM-dd")
+                        ? format(
+                            new Date(rule.expiryDate),
+                            "yyyy-MM-dd"
+                          )
                         : "—"}
                     </td>
 
@@ -330,85 +350,145 @@ export default function RecommendationRulesPage() {
         )}
       </motion.div>
 
-      {/* MODAL */}
+      {/* ================================================== */}
+      {/*                IMPROVED PREMIUM MODAL              */}
+      {/* ================================================== */}
       <Modal show={showModal} size="md" popup onClose={closeModal}>
         <ModalHeader />
+
         <ModalBody>
-          <h3 className="text-lg font-bold mb-4">
-            {editTarget ? "Edit Rule" : "Add New Rule"}
+          <h3
+            className="text-xl font-extrabold text-transparent bg-clip-text 
+                       bg-gradient-to-r from-emerald-500 via-emerald-600 to-cyan-500 
+                       text-center mb-6"
+          >
+            {editTarget ? "Update Recommendation Rule" : "Create Recommendation Rule"}
           </h3>
 
-          <div className="mb-3">
-            <Label>Main Product</Label>
-            <Select
-              value={form.baseProductId || ""}
-              onChange={(e) =>
-                setForm({ ...form, baseProductId: Number(e.target.value) })
-              }
-            >
-              <option value="">Select Product</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
-          </div>
+          <div className="space-y-5">
 
-          <div className="mb-3">
-            <Label>Recommended Products</Label>
-            <Select
-              multiple
-              value={form.recommendedProductIds.map(String)}
-              onChange={(e) =>
-                setForm({
-                  ...form,
-                  recommendedProductIds: Array.from(
-                    e.target.selectedOptions,
-                    (o) => Number(o.value)
-                  ),
-                })
-              }
-            >
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </Select>
-          </div>
-
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <Label>Effective Date</Label>
-              <TextInput
-                type="date"
-                value={form.effectiveDate}
-                onChange={(e) =>
-                  setForm({ ...form, effectiveDate: e.target.value })
-                }
-              />
+            {/* MAIN PRODUCT */}
+            <div className="space-y-1">
+              <Label className="font-semibold text-slate-700 flex items-center gap-1">
+                <Sparkles className="w-4 h-4 text-emerald-500" /> Main Product
+              </Label>
+              <div className="
+                rounded-2xl border border-emerald-300/60 shadow-sm 
+                bg-white/90 backdrop-blur-sm px-3 py-2
+              ">
+                <Select
+                  value={form.baseProductId || ""}
+                  onChange={(e) =>
+                    setForm({ ...form, baseProductId: Number(e.target.value) })
+                  }
+                  className="focus:ring-emerald-500"
+                >
+                  <option value="">Select Product</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             </div>
 
-            <div className="flex-1">
-              <Label>Expiry Date</Label>
-              <TextInput
-                type="date"
-                value={form.expiryDate}
-                onChange={(e) =>
-                  setForm({ ...form, expiryDate: e.target.value })
-                }
-              />
+            {/* RECOMMENDED PRODUCTS */}
+            <div className="space-y-1">
+              <Label className="font-semibold text-slate-700 flex items-center gap-1">
+                <Sparkles className="w-4 h-4 text-cyan-500" /> Recommended Products
+              </Label>
+              <div className="
+                rounded-2xl border border-cyan-300/60 shadow-sm 
+                bg-white/90 backdrop-blur-sm px-3 py-2
+              ">
+                <Select
+                  multiple
+                  value={form.recommendedProductIds.map(String)}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      recommendedProductIds: Array.from(
+                        e.target.selectedOptions,
+                        (o) => Number(o.value)
+                      ),
+                    })
+                  }
+                  className="focus:ring-cyan-500"
+                >
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             </div>
-          </div>
 
-          <div className="flex justify-end gap-2 mt-4">
-            <Button color="gray" onClick={closeModal}>
-              Cancel
-            </Button>
-            <Button color="blue" onClick={handleSaveRule}>
-              {editTarget ? "Update" : "Add"}
-            </Button>
+            {/* DATE FIELDS */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              {/* EFFECTIVE */}
+              <div>
+                <Label className="font-semibold text-slate-700">Effective Date</Label>
+                <div className="
+                  rounded-2xl border border-emerald-300/60 shadow-sm 
+                  bg-white/90 backdrop-blur-sm px-3 py-2
+                ">
+                  <TextInput
+                    type="date"
+                    value={form.effectiveDate}
+                    onChange={(e) =>
+                      setForm({ ...form, effectiveDate: e.target.value })
+                    }
+                    className="focus:ring-emerald-500"
+                  />
+                </div>
+              </div>
+
+              {/* EXPIRY */}
+              <div>
+                <Label className="font-semibold text-slate-700">Expiry Date</Label>
+                <div className="
+                  rounded-2xl border border-red-300/60 shadow-sm 
+                  bg-white/90 backdrop-blur-sm px-3 py-2
+                ">
+                  <TextInput
+                    type="date"
+                    value={form.expiryDate}
+                    onChange={(e) =>
+                      setForm({ ...form, expiryDate: e.target.value })
+                    }
+                    className="focus:ring-red-500"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ACTION BUTTONS */}
+            <div className="flex justify-end gap-3 pt-4">
+
+              <Button
+                color="gray"
+                onClick={closeModal}
+                className="rounded-full px-5 py-2 shadow-md hover:shadow-lg 
+                           transition border border-slate-300"
+              >
+                Cancel
+              </Button>
+
+              <Button
+                onClick={handleSaveRule}
+                className="
+                  rounded-full px-5 py-2 font-semibold 
+                  bg-gradient-to-r from-emerald-600 to-cyan-500 text-white
+                  shadow-[0_8px_20px_rgba(0,200,180,0.45)] hover:brightness-110
+                "
+              >
+                {editTarget ? "Update Rule" : "Add Rule"}
+              </Button>
+            </div>
+
           </div>
         </ModalBody>
       </Modal>
