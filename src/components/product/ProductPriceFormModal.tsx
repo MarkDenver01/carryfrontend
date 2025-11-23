@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Button, Modal, ModalBody, ModalHeader, Label, Select, TextInput } from "flowbite-react";
+import {
+  Button,
+  Modal,
+  ModalBody,
+  ModalHeader,
+  Label,
+  Select,
+  TextInput,
+} from "flowbite-react";
 import Swal from "sweetalert2";
 import { usePricesContext } from "../../context/PricesContext";
 import { useProductsContext } from "../../context/ProductsContext";
@@ -56,57 +64,125 @@ export default function ProductPriceFormModal({ show, onClose, price }: Props) {
   return (
     <Modal show={show} size="md" popup onClose={onClose}>
       <ModalHeader />
+
       <ModalBody>
-        <h3 className="text-lg font-bold mb-4">
-          {price ? "Edit Product Price" : "Add Product Price"}
+        {/* TITLE */}
+        <h3
+          className="
+            text-xl font-extrabold text-center mb-6
+            bg-gradient-to-r from-emerald-500 via-emerald-600 to-cyan-500
+            text-transparent bg-clip-text
+          "
+        >
+          {price ? "Update Product Price" : "Add Product Price"}
         </h3>
 
-        <div className="mb-3">
-          <Label>Product</Label>
-          <Select
-            value={formData.productId || ""}
-            onChange={(e) =>
-              setFormData({ ...formData, productId: Number(e.target.value) })
-            }
-          >
-            <option value="">Select Product</option>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <div className="space-y-5">
 
-        <div className="mb-3">
-          <Label>Base Price (₱)</Label>
-          <TextInput
-            type="number"
-            value={formData.basePrice}
-            onChange={(e) =>
-              setFormData({ ...formData, basePrice: Number(e.target.value) })
-            }
-          />
-        </div>
+          {/* PRODUCT FIELD */}
+          <div className="space-y-1">
+            <Label className="font-semibold text-slate-700">Product</Label>
+            <div
+              className="
+                rounded-2xl border border-emerald-300/60 bg-white/90
+                backdrop-blur-sm px-3 py-2 shadow-sm
+              "
+            >
+              <Select
+                value={formData.productId || ""}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    productId: Number(e.target.value),
+                  })
+                }
+                className="focus:ring-emerald-500"
+              >
+                <option value="">Select Product</option>
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
 
-        <div className="mb-3">
-          <Label>Effective Date</Label>
-          <TextInput
-            type="date"
-            value={formData.effectiveDate}
-            onChange={(e) =>
-              setFormData({ ...formData, effectiveDate: e.target.value })
-            }
-          />
-        </div>
+          {/* BASE PRICE */}
+          <div className="space-y-1">
+            <Label className="font-semibold text-slate-700">
+              Base Price (₱)
+            </Label>
+            <div
+              className="
+                rounded-2xl border border-emerald-300/60 bg-white/90
+                backdrop-blur-sm px-3 py-2 shadow-sm
+              "
+            >
+              <TextInput
+                type="number"
+                value={formData.basePrice}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    basePrice: Number(e.target.value),
+                  })
+                }
+                className="focus:ring-emerald-500"
+              />
+            </div>
+          </div>
 
-        <div className="flex justify-end gap-2 mt-4">
-          <Button color="gray" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button color="blue" onClick={handleSubmit}>
-            {price ? "Update" : "Add"}
-          </Button>
+          {/* EFFECTIVE DATE */}
+          <div className="space-y-1">
+            <Label className="font-semibold text-slate-700">
+              Effective Date
+            </Label>
+            <div
+              className="
+                rounded-2xl border border-cyan-300/60 bg-white/90
+                backdrop-blur-sm px-3 py-2 shadow-sm
+              "
+            >
+              <TextInput
+                type="date"
+                value={formData.effectiveDate}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    effectiveDate: e.target.value,
+                  })
+                }
+                className="focus:ring-cyan-500"
+              />
+            </div>
+          </div>
+
+          {/* ACTION BUTTONS */}
+          <div className="flex justify-end gap-3 pt-4">
+            <Button
+              color="gray"
+              onClick={onClose}
+              className="
+                rounded-full px-5 py-2 shadow-md hover:shadow-lg
+                border border-slate-300 transition
+              "
+            >
+              Cancel
+            </Button>
+
+            <Button
+              onClick={handleSubmit}
+              className="
+                rounded-full px-5 py-2 font-semibold text-white
+                bg-gradient-to-r from-emerald-600 to-cyan-500
+                shadow-[0_8px_20px_rgba(0,200,180,0.45)]
+                hover:brightness-110 transition
+              "
+            >
+              {price ? "Update" : "Add"}
+            </Button>
+          </div>
         </div>
       </ModalBody>
     </Modal>
