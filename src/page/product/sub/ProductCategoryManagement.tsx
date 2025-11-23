@@ -80,16 +80,15 @@ export default function ProductCategoryManagement() {
       transition={{ duration: 0.45, ease: "easeOut" }}
       className="relative p-6 md:p-8 overflow-hidden"
     >
-      {/* ===== SUBTLE HYBRID HUD BACKGROUND ===== */}
+      {/* ===== BACKGROUND ===== */}
       <div className="pointer-events-none absolute inset-0 -z-20">
-        {/* Grid */}
-        <div className="w-full h-full opacity-30 mix-blend-soft-light 
-            bg-[linear-gradient(to_right,rgba(148,163,184,0.14)_1px,transparent_1px),
-            linear-gradient(to_bottom,rgba(148,163,184,0.14)_1px,transparent_1px)]
-            bg-[size:42px_42px]" 
+        <div
+          className="w-full h-full opacity-30 mix-blend-soft-light 
+          bg-[linear-gradient(to_right,rgba(148,163,184,0.14)_1px,transparent_1px),
+          linear-gradient(to_bottom,rgba(148,163,184,0.14)_1px,transparent_1px)]
+          bg-[size:42px_42px]"
         />
 
-        {/* Soft ambient blobs */}
         <motion.div
           className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-400/20 blur-3xl"
           animate={{ x: [0, 18, 8, -8, 0], y: [0, 10, 20, 6, 0] }}
@@ -103,7 +102,7 @@ export default function ProductCategoryManagement() {
         />
       </div>
 
-      {/* ===== PAGE HEADER ===== */}
+      {/* ===== HEADER ===== */}
       <div className="mb-8 relative">
         <motion.h1
           initial={{ opacity: 0, x: -15 }}
@@ -120,8 +119,10 @@ export default function ProductCategoryManagement() {
           Manage and organize your store’s category structure.
         </div>
 
-        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 
-          via-emerald-500 to-transparent rounded-full" />
+        <div
+          className="mt-3 h-[3px] w-24 bg-gradient-to-r 
+          from-emerald-400 via-emerald-500 to-transparent rounded-full"
+        />
       </div>
 
       {/* ===== CONTENT CARD ===== */}
@@ -133,15 +134,7 @@ export default function ProductCategoryManagement() {
           bg-gradient-to-br from-white/96 via-slate-50/98 to-emerald-50/60 
           shadow-[0_18px_55px_rgba(15,23,42,0.28)] backdrop-blur-xl p-6 overflow-hidden"
       >
-        {/* Light corner accents */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-3 left-3 h-4 w-4 border-t border-l border-emerald-200/80" />
-          <div className="absolute top-3 right-3 h-4 w-4 border-t border-r border-emerald-200/80" />
-          <div className="absolute bottom-3 left-3 h-4 w-4 border-b border-l border-emerald-200/80" />
-          <div className="absolute bottom-3 right-3 h-4 w-4 border-b border-r border-emerald-200/80" />
-        </div>
-
-        {/* Add Button */}
+        {/* ADD BUTTON */}
         <div className="flex justify-between items-center mb-6">
           <motion.button
             whileHover={{ scale: 1.04 }}
@@ -149,15 +142,16 @@ export default function ProductCategoryManagement() {
               setEditTarget(null);
               setShowModal(true);
             }}
-            className="px-5 py-2 rounded-full bg-gradient-to-r from-emerald-600 
-              via-emerald-500 to-cyan-400 text-white font-semibold shadow-lg 
-              hover:brightness-110 border border-emerald-300/80"
+            className="px-5 py-2 rounded-full bg-gradient-to-r 
+              from-emerald-600 via-emerald-500 to-cyan-400 text-white 
+              font-semibold shadow-lg hover:brightness-110 
+              border border-emerald-300/80"
           >
             + Add Category
           </motion.button>
         </div>
 
-        {/* Search */}
+        {/* SEARCH BAR */}
         <div className="relative w-full max-w-sm mb-6">
           <input
             type="text"
@@ -174,80 +168,86 @@ export default function ProductCategoryManagement() {
           <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
         </div>
 
-        {/* TABLE CARD */}
+        {/* ===== ENHANCED TABLE ===== */}
         <motion.div
           initial={{ opacity: 0, y: 6 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: "easeOut" }}
-          className="relative w-full overflow-x-auto pb-3 rounded-2xl 
-            border border-emerald-200/80 bg-white/98 
-            shadow-[0_14px_40px_rgba(15,23,42,0.18)]"
+          className="relative w-full overflow-x-auto rounded-2xl 
+            border border-emerald-200/60 bg-white/95 backdrop-blur-xl
+            shadow-[0_14px_45px_rgba(15,23,42,0.15)]"
         >
-          <table className="min-w-[900px] w-full text-sm text-left text-gray-700">
-            <thead className="bg-gradient-to-r from-emerald-600 
-              via-emerald-500 to-green-600 text-white sticky top-0 shadow-md">
-              <tr>
+          <table className="min-w-[900px] w-full text-sm text-gray-700">
+            <thead className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 text-white shadow-lg">
+              <tr className="divide-x divide-emerald-300/30">
                 <th
-                  className="p-3 font-semibold cursor-pointer border border-emerald-300/40"
+                  className="p-4 font-semibold cursor-pointer tracking-wide text-left"
                   onClick={() => handleSort("categoryName")}
                 >
-                  Category Name{" "}
-                  <span className="text-xs opacity-80">
-                    {getSortIcon("categoryName")}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span>Category Name</span>
+                    <span className="text-xs opacity-90">
+                      {getSortIcon("categoryName")}
+                    </span>
+                  </div>
                 </th>
 
                 <th
-                  className="p-3 font-semibold cursor-pointer border border-emerald-300/40"
+                  className="p-4 font-semibold cursor-pointer tracking-wide text-left"
                   onClick={() => handleSort("categoryDescription")}
                 >
-                  Description{" "}
-                  <span className="text-xs opacity-80">
-                    {getSortIcon("categoryDescription")}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span>Description</span>
+                    <span className="text-xs opacity-90">
+                      {getSortIcon("categoryDescription")}
+                    </span>
+                  </div>
                 </th>
 
-                <th className="p-3 text-center font-semibold border border-emerald-300/40">
+                <th className="p-4 text-center font-semibold tracking-wide">
                   Actions
                 </th>
               </tr>
             </thead>
 
-            <tbody className="bg-white">
+            <tbody className="divide-y divide-gray-200/60">
               {paginated.length > 0 ? (
                 paginated.map((cat) => (
                   <motion.tr
                     key={cat.categoryId}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
                     whileHover={{
-                      backgroundColor: "rgba(16,185,129,0.12)",
+                      backgroundColor: "rgba(16,185,129,0.08)",
                       scale: 1.01,
                     }}
-                    transition={{ duration: 0.2 }}
-                    className="border-b border-gray-300/40"
+                    className="transition-all border-l-[4px] border-transparent hover:border-emerald-500"
                   >
-                    <td className="p-3 border border-gray-300/40">
+                    <td className="p-4">
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-gray-900">
                           {cat.categoryName}
                         </span>
 
-                        <span className="px-2 py-0.5 text-xs font-semibold rounded-full 
-                          bg-emerald-100 text-emerald-700 border border-emerald-200/80">
-                          Category
+                        <span
+                          className="px-2 py-0.5 text-[10px] font-semibold rounded-full 
+                          bg-emerald-100 text-emerald-700 border border-emerald-200/80"
+                        >
+                          CATEGORY
                         </span>
                       </div>
                     </td>
 
-                    <td className="p-3 border border-gray-300/40 text-slate-700">
+                    <td className="p-4 text-gray-700">
                       {cat.categoryDescription || "—"}
                     </td>
 
-                    <td className="p-3 border border-gray-300/40 text-center">
+                    <td className="p-4 text-center">
                       <div className="flex justify-center gap-3">
-                        {/* Update */}
                         <button
-                          className="flex items-center gap-1 px-3 py-1 text-xs text-white 
-                            bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-md"
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs text-white 
+                            bg-gradient-to-r from-yellow-500 to-yellow-600 
+                            hover:brightness-110 rounded-md shadow-md"
                           onClick={() => {
                             setEditTarget(cat);
                             setShowModal(true);
@@ -256,10 +256,10 @@ export default function ProductCategoryManagement() {
                           <Pencil className="w-4 h-4" /> Update
                         </button>
 
-                        {/* Delete */}
                         <button
-                          className="flex items-center gap-1 px-3 py-1 text-xs text-white 
-                            bg-red-600 hover:bg-red-700 rounded-md shadow-md"
+                          className="flex items-center gap-1 px-3 py-1.5 text-xs text-white 
+                            bg-gradient-to-r from-red-600 to-red-700 
+                            hover:brightness-110 rounded-md shadow-md"
                           onClick={() => handleDelete(cat.categoryId)}
                         >
                           <XCircle className="w-4 h-4" /> Delete
@@ -284,7 +284,8 @@ export default function ProductCategoryManagement() {
 
         {/* PAGINATION */}
         {totalPages > 1 && (
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center 
+          <div
+            className="flex flex-col gap-2 sm:flex-row sm:items-center 
             sm:justify-between mt-6 text-sm text-gray-600"
           >
             <span>
