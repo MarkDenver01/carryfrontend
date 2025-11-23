@@ -5,11 +5,11 @@ export default function ProfileDropdown() {
   const navigate = useNavigate();
 
   const handleDashboard = () => {
-    navigate("/admin/dashboard");
+    navigate("/Dashboard");
   };
 
   const handleSettings = () => {
-    navigate("/admin/settings");
+    navigate("/SystemSettings");
   };
 
   const handleLogout = () => {
