@@ -31,9 +31,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
 
       {/* HEADER */}
       <div className="grid grid-cols-12 text-xs font-semibold text-gray-500 px-3 pb-2 border-b border-gray-200 tracking-wide">
-        <div className="col-span-3 flex items-center gap-1 cursor-default">
-          Product
-        </div>
+        <div className="col-span-3 flex items-center gap-1">Product</div>
 
         <div
           className="col-span-1 cursor-pointer hover:text-emerald-600 transition"
@@ -62,43 +60,31 @@ const ProductTable: React.FC<ProductTableProps> = ({
         <div className="col-span-2 text-center">Actions</div>
       </div>
 
+      {/* BODY */}
       {paginatedProducts.length > 0 ? (
         paginatedProducts.map((product, idx) => (
           <div
             key={product.id ?? idx}
             className="
               group
-              grid grid-cols-12 gap-4 p-5 rounded-2xl
-              bg-white 
-              border border-gray-100
-              shadow-[0_4px_24px_rgba(0,0,0,0.06)]
-              hover:shadow-[0_10px_30px_rgba(0,0,0,0.12)]
-              transition-all duration-300
-              relative overflow-hidden
+              grid grid-cols-12 gap-4 p-5 rounded-xl
+              bg-white border border-gray-100
+              shadow-sm hover:shadow-md
+              transition-all duration-200
+              relative
             "
           >
-            {/* Glow Accent */}
-            <div className="
-              absolute inset-0 pointer-events-none opacity-0 
-              group-hover:opacity-100 transition-all duration-300
-              bg-gradient-to-r from-emerald-50 to-transparent
-            "/>
-
-            {/* !! Image + Name + Description */}
-            <div className="col-span-3 flex gap-4 relative z-10">
+            {/* IMAGE + DETAILS */}
+            <div className="col-span-3 flex gap-4 items-center">
               <img
-                src={product.imageUrl || '/placeholder.png'}
-                className="
-                  w-20 h-20 rounded-xl object-cover border border-gray-200 
-                  shadow-sm
-                "
+                src={product.imageUrl || "/placeholder.png"}
+                className="w-20 h-20 rounded-lg object-cover border border-gray-200 shadow-sm"
               />
-
-              <div className="flex flex-col justify-between py-1">
-                <p className="font-semibold text-gray-900 text-sm leading-tight">
+              <div>
+                <p className="font-semibold text-gray-900 text-sm">
                   {product.name}
                 </p>
-                <p className="text-xs text-gray-500 line-clamp-2 leading-snug">
+                <p className="text-xs text-gray-500 line-clamp-2">
                   {product.description}
                 </p>
               </div>
@@ -109,18 +95,14 @@ const ProductTable: React.FC<ProductTableProps> = ({
               {product.code}
             </div>
 
-            {/* NAME (redundant para sa grid alignment, kaya faded na) */}
+            {/* NAME */}
             <div className="col-span-2 flex items-center text-sm text-gray-800">
               {product.name}
             </div>
 
             {/* CATEGORY */}
             <div className="col-span-2 flex items-center">
-              <span className="
-                px-3 py-1 text-xs rounded-full 
-                bg-emerald-50 text-emerald-700 border border-emerald-200
-                shadow-sm
-              ">
+              <span className="px-3 py-1 text-xs rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 shadow-sm">
                 {product.categoryName ?? "—"}
               </span>
             </div>
@@ -154,71 +136,82 @@ const ProductTable: React.FC<ProductTableProps> = ({
             {/* ACTION BUTTONS */}
             <div className="col-span-2 flex items-center justify-center gap-2">
 
+              {/* UPDATE */}
               <button
-                className="
-                  px-3 py-2 text-xs rounded-lg text-white shadow-md 
-                  bg-gradient-to-br from-yellow-500 to-yellow-600
-                  hover:brightness-110 transition
-                  flex items-center gap-1
-                "
                 onClick={() =>
                   handleEditProduct((currentPage - 1) * pageSize + idx)
                 }
+                className="
+                  px-2.5 py-1.5 text-xs font-medium rounded-md 
+                  bg-blue-500 text-white hover:bg-blue-600
+                  flex items-center gap-1 transition-all shadow-sm
+                  active:scale-[0.97]
+                "
               >
                 <Pencil className="w-4 h-4" />
-                Update
+                Edit
               </button>
 
+              {/* STATUS TOGGLE */}
               <button
+                onClick={() => toggleAvailability(product)}
                 className={`
-                  px-3 py-2 text-xs rounded-lg shadow-md 
-                  flex items-center gap-1 transition text-white
+                  px-2.5 py-1.5 text-xs font-medium rounded-md 
+                  flex items-center gap-1 transition-all shadow-sm 
+                  active:scale-[0.97] 
                   ${
                     product.status === "Available"
-                      ? "bg-gradient-to-br from-red-500 to-red-600 hover:brightness-110"
-                      : "bg-gradient-to-br from-green-600 to-green-700 hover:brightness-110"
+                      ? "bg-red-500 hover:bg-red-600 text-white"
+                      : "bg-green-500 hover:bg-green-600 text-white"
                   }
                 `}
-                onClick={() => toggleAvailability(product)}
               >
                 {product.status === "Available" ? (
                   <>
-                    <XCircle className="w-4 h-4" /> Not Available
+                    <XCircle className="w-4 h-4" /> Disable
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="w-4 h-4" /> Available
+                    <CheckCircle className="w-4 h-4" /> Enable
                   </>
                 )}
               </button>
 
+              {/* VIEW */}
               <button
-                className="
-                  px-3 py-2 text-xs rounded-lg text-white
-                  bg-gradient-to-br from-blue-600 to-blue-700
-                  hover:brightness-110 shadow-md flex items-center gap-1 transition
-                "
                 onClick={() => onViewRecommendations(product)}
-              >
-                <Eye className="w-4 h-4" /> View
-              </button>
-
-              <button
                 className="
-                  px-3 py-2 text-xs rounded-lg text-white
-                  bg-gradient-to-br from-red-600 to-red-700
-                  hover:brightness-110 shadow-md flex items-center gap-1 transition
+                  px-2.5 py-1.5 text-xs font-medium rounded-md 
+                  bg-indigo-500 text-white hover:bg-indigo-600
+                  flex items-center gap-1 transition-all shadow-sm
+                  active:scale-[0.97]
                 "
-                onClick={() => product.id && handleDeleteProduct(product.id)}
               >
-                <XCircle className="w-4 h-4" /> Delete
+                <Eye className="w-4 h-4" />
+                View
               </button>
 
+              {/* DELETE */}
+              <button
+                onClick={() => product.id && handleDeleteProduct(product.id)}
+                className="
+                  px-2.5 py-1.5 text-xs font-medium rounded-md 
+                  bg-red-600 text-white hover:bg-red-700 
+                  flex items-center gap-1 transition-all shadow-sm
+                  active:scale-[0.97]
+                "
+              >
+                <XCircle className="w-4 h-4" />
+                Delete
+              </button>
             </div>
+
           </div>
         ))
       ) : (
-        <div className="text-center text-gray-500 py-6">No products found.</div>
+        <div className="text-center text-gray-500 py-6">
+          No products found.
+        </div>
       )}
     </div>
   );
