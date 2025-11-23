@@ -5,7 +5,7 @@ export default function ProfileDropdown() {
   const navigate = useNavigate();
 
   const handleDashboard = () => {
-    navigate("/dashboard");
+    navigate("/admin/dashboard");
   };
 
   const handleSettings = () => {
@@ -13,11 +13,11 @@ export default function ProfileDropdown() {
   };
 
   const handleLogout = () => {
-    // Clear tokens / session
+    // Clear tokens/session
     localStorage.removeItem("authToken");
     sessionStorage.clear();
 
-    navigate("");
+    navigate("/login"); // FIXED
   };
 
   return (
@@ -34,7 +34,6 @@ export default function ProfileDropdown() {
         </div>
       }
     >
-      {/* User Info */}
       <DropdownHeader>
         <span className="block text-sm">Admin</span>
         <span className="block truncate text-sm font-medium">
@@ -44,24 +43,15 @@ export default function ProfileDropdown() {
 
       <div className="border-t border-gray-200 mx-2 my-1" />
 
-      {/* Dashboard Link */}
-      <DropdownItem onClick={handleDashboard}>
-        Dashboard
-      </DropdownItem>
+      <DropdownItem onClick={handleDashboard}>Dashboard</DropdownItem>
 
       <div className="border-t border-gray-200 mx-2 my-1" />
 
-      {/* Settings Link */}
-      <DropdownItem onClick={handleSettings}>
-        Settings
-      </DropdownItem>
+      <DropdownItem onClick={handleSettings}>Settings</DropdownItem>
 
       <div className="border-t border-gray-200 mx-2 my-1" />
 
-      {/* Logout */}
-      <DropdownItem onClick={handleLogout}>
-        Logout
-      </DropdownItem>
+      <DropdownItem onClick={handleLogout}>Logout</DropdownItem>
     </Dropdown>
   );
 }
