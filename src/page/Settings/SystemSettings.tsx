@@ -25,6 +25,7 @@ interface ToggleSwitchProps {
   onChange: () => void;
 }
 
+
 /* ============================================================
    MAIN PAGE
 ============================================================ */
@@ -51,9 +52,13 @@ export default function SystemSettings() {
 
   // Dark mode
   useEffect(() => {
-    localStorage.setItem("darkMode", darkMode.toString());
-    document.documentElement.classList.toggle("dark", darkMode);
-  }, [darkMode]);
+  if (darkMode) {
+    document.body.classList.add("dark-mode");
+  } else {
+    document.body.classList.remove("dark-mode");
+  }
+}, [darkMode]);
+
 
   // Notifications
   useEffect(() => {
