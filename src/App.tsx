@@ -18,9 +18,12 @@ function App(): JSX.Element {
     <AuthProvider>
       <div
         className={
-          isLoginPage
+          (isLoginPage
             ? "relative min-h-screen w-full bg-cover bg-no-repeat bg-center flex items-center justify-center"
-            : "min-h-screen w-full"
+            : "min-h-screen w-full")
+          +
+          // ⬇⬇⬇ DARK MODE WRAPPER (IMPORTANT)
+          " dark:bg-slate-900 dark:text-white transition-colors duration-300"
         }
         style={isLoginPage ? { backgroundImage: `url(${bg})` } : {}}
       >
@@ -59,7 +62,7 @@ function App(): JSX.Element {
               }
             />
 
-            {/* FALLBACK ROUTE */}
+            {/* FALLBACK */}
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
