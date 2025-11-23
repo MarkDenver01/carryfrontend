@@ -206,6 +206,7 @@ export default function Orders() {
     setSelectedOrder(order);
     setIsDeliveredOpen(true);
   };
+  
 
   const closeDetails = () => setIsDetailOpen(false);
   const closeAssign = () => setIsAssignOpen(false);
