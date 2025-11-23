@@ -17,7 +17,7 @@ export default function ProfileDropdown() {
     localStorage.removeItem("authToken");
     sessionStorage.clear();
 
-    navigate("/login/login");
+    navigate("page/login/login");
   };
 
   return (
