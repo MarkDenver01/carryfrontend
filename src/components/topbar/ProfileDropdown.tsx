@@ -5,19 +5,17 @@ export default function ProfileDropdown() {
   const navigate = useNavigate();
 
   const handleDashboard = () => {
-    navigate("/admin/dashboard");
+    navigate("/dashboard");
   };
 
   const handleSettings = () => {
-    navigate("/admin/settings");
+    navigate("/settings");
   };
 
   const handleLogout = () => {
-    // Clear tokens/session
     localStorage.removeItem("authToken");
     sessionStorage.clear();
-
-    navigate("/login"); // FIXED
+    navigate("/");
   };
 
   return (
