@@ -15,8 +15,6 @@ interface ProductTableProps {
   onViewRecommendations: (product: Product) => void;
 }
 
-const LOW_STOCK_LIMIT = 1; // 🔥 change mo if needed (ex: 5)
-
 const ProductTable: React.FC<ProductTableProps> = ({
   paginatedProducts,
   currentPage,
@@ -66,11 +64,6 @@ const ProductTable: React.FC<ProductTableProps> = ({
       {paginatedProducts.length > 0 ? (
         paginatedProducts.map((product, idx) => {
           const isOutOfStock = product.stock <= 0;
-          const isLowStock = product.stock <= LOW_STOCK_LIMIT;
-
-          // Auto force "Not Available" when stock is 0 or low
-          const computedStatus =
-            isOutOfStock || isLowStock ? "Not Available" : product.status;
 
           return (
             <div
@@ -84,7 +77,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
               {/* IMAGE + DETAILS */}
               <div className="col-span-3 flex items-center gap-3">
                 <img
-                  src={product.imageUrl || '/placeholder.png'}
+                  src={product.imageUrl || "/placeholder.png"}
                   className="w-16 h-16 rounded-md object-cover border border-gray-200"
                 />
                 <div>
@@ -130,19 +123,21 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   className={`
                     px-2 py-0.5 text-[11px] rounded-full border
                     ${
-                      computedStatus === "Available"
+                      isOutOfStock
+                        ? "bg-red-100 text-red-700 border-red-200"
+                        : product.status === "Available"
                         ? "bg-green-100 text-green-700 border-green-200"
                         : "bg-red-100 text-red-700 border-red-200"
                     }
                   `}
                 >
-                  {computedStatus}
+                  {/* Kung ubos stock, pinapakita lang sa UI na Not Available */}
+                  {isOutOfStock ? "Not Available" : product.status}
                 </span>
               </div>
 
               {/* ACTION BUTTONS */}
               <div className="col-span-2 flex items-center justify-center gap-1.5">
-
                 {/* EDIT */}
                 <button
                   onClick={() =>
@@ -158,29 +153,23 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   Edit
                 </button>
 
-                {/* STATUS TOGGLE */}
+                {/* STATUS TOGGLE – LAGING CLICKABLE */}
                 <button
-                  disabled={isOutOfStock || isLowStock}
                   onClick={() => {
-                    if (isOutOfStock || isLowStock) {
-                      alert("This product has low or zero stock and cannot be set to Available.");
-                      return;
-                    }
+                    // dito mo lang tatawagin, backend na bahala mag set ng Available / Not Available
                     toggleAvailability(product);
                   }}
                   className={`
                     px-2 py-1 text-[10px] font-medium rounded-sm
                     flex items-center gap-1 shadow-sm transition
                     ${
-                      isOutOfStock || isLowStock
-                        ? "bg-gray-400 cursor-not-allowed text-white"
-                        : computedStatus === "Available"
+                      product.status === "Available"
                         ? "bg-red-500 hover:bg-red-600 text-white"
                         : "bg-green-500 hover:bg-green-600 text-white"
                     }
                   `}
                 >
-                  {computedStatus === "Available" ? (
+                  {product.status === "Available" ? (
                     <>
                       <XCircle className="w-3.5 h-3.5" /> Off
                     </>
@@ -216,13 +205,14 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   <XCircle className="w-3.5 h-3.5" />
                   Delete
                 </button>
-
               </div>
             </div>
           );
         })
       ) : (
-        <div className="text-center text-gray-500 py-6">No products found.</div>
+        <div className="text-center text-gray-500 py-6">
+          No products found.
+        </div>
       )}
     </div>
   );
