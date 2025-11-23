@@ -18,7 +18,7 @@
     "dayjs": "^1.11.13",
     "flowbite-react": "^0.11.7",
     "framer-motion": "^12.19.2",
-    "lucide-react": "^0.525.0",
+    "lucide-react": "^0.554.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-google-recaptcha": "^3.1.0",

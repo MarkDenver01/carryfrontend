@@ -140,8 +140,14 @@ export default function Orders() {
   const [filter, setFilter] = useState<"All" | OrderStatus>("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [isRouteOpen, setIsRouteOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [isDeliveredOpen, setIsDeliveredOpen] = useState(false);
+
   const [cursorPos, setCursorPos] = useState<{ x: number; y: number }>({
     x: 0,
     y: 0,
@@ -181,21 +187,32 @@ export default function Orders() {
     setIsAssignOpen(true);
   };
 
+  const openRoute = (order: Order) => {
+    setSelectedOrder(order);
+    setIsRouteOpen(true);
+  };
+
+  const openContact = (order: Order) => {
+    setSelectedOrder(order);
+    setIsContactOpen(true);
+  };
+
+  const openCancel = (order: Order) => {
+    setSelectedOrder(order);
+    setIsCancelOpen(true);
+  };
+
+  const openDelivered = (order: Order) => {
+    setSelectedOrder(order);
+    setIsDeliveredOpen(true);
+  };
+
   const closeDetails = () => setIsDetailOpen(false);
   const closeAssign = () => setIsAssignOpen(false);
-
-  const updateOrderStatus = (orderId: string, status: OrderStatus) => {
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId
-          ? {
-              ...o,
-              status,
-            }
-          : o
-      )
-    );
-  };
+  const closeRoute = () => setIsRouteOpen(false);
+  const closeContact = () => setIsContactOpen(false);
+  const closeCancel = () => setIsCancelOpen(false);
+  const closeDelivered = () => setIsDeliveredOpen(false);
 
   const assignRiderToOrder = (riderName: string) => {
     if (!selectedOrder) return;
@@ -218,6 +235,71 @@ export default function Orders() {
         : prev
     );
     closeAssign();
+  };
+
+  const handleCancelOrder = (orderId: string, reason: string) => {
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: "Cancelled",
+              notes: reason
+                ? `Cancelled: ${reason}`
+                : o.notes || "Order has been cancelled.",
+            }
+          : o
+      )
+    );
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "Cancelled",
+              notes: reason
+                ? `Cancelled: ${reason}`
+                : prev.notes || "Order has been cancelled.",
+            }
+          : prev
+      );
+    }
+    closeCancel();
+  };
+
+  const handleMarkDelivered = (
+    orderId: string,
+    payload: { deliveredAt?: string; note?: string }
+  ) => {
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: "Delivered",
+              notes:
+                payload.note && payload.note.trim().length > 0
+                  ? `Delivered: ${payload.note}`
+                  : o.notes || "Marked as delivered.",
+            }
+          : o
+      )
+    );
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "Delivered",
+              notes:
+                payload.note && payload.note.trim().length > 0
+                  ? `Delivered: ${payload.note}`
+                  : prev.notes || "Marked as delivered.",
+            }
+          : prev
+      );
+    }
+    closeDelivered();
   };
 
   return (
@@ -281,7 +363,7 @@ export default function Orders() {
         <p className="text-gray-500 text-sm max-w-xl">
           Monitor{" "}
           <span className="font-medium text-emerald-700">
-            delivery & orders control center
+            delivery &amp; orders control center
           </span>
           . Track pipelines, riders, and order health in one view.
         </p>
@@ -554,21 +636,27 @@ export default function Orders() {
                       >
                         <UserPlus className="w-4 h-4" /> Assign Rider
                       </button>
-                      <button className="w-full bg-indigo-50 text-indigo-700 px-3 py-2 rounded-xl font-semibold hover:bg-indigo-100 transition flex items-center justify-center gap-1">
+                      <button
+                        className="w-full bg-indigo-50 text-indigo-700 px-3 py-2 rounded-xl font-semibold hover:bg-indigo-100 transition flex items-center justify-center gap-1"
+                        onClick={() => openRoute(order)}
+                      >
                         <Truck className="w-4 h-4" /> View Route
                       </button>
-                      <button className="w-full bg-orange-50 text-orange-700 px-3 py-2 rounded-xl font-semibold hover:bg-orange-100 transition flex items-center justify-center gap-1">
-                        <Phone className="w-4 h-4" /> Contact
+                      <button
+                        className="w-full bg-orange-50 text-orange-700 px-3 py-2 rounded-xl font-semibold hover:bg-orange-100 transition flex items-center justify-center gap-1"
+                        onClick={() => openContact(order)}
+                      >
+                        <Phone className="w-4 h-4" /> View Contact
                       </button>
                       <button
                         className="w-full bg-green-50 text-green-700 px-3 py-2 rounded-xl font-semibold hover:bg-green-100 transition flex items-center justify-center gap-1"
-                        onClick={() => updateOrderStatus(order.id, "Delivered")}
+                        onClick={() => openDelivered(order)}
                       >
                         <CheckCircle className="w-4 h-4" /> Mark Delivered
                       </button>
                       <button
                         className="w-full bg-red-50 text-red-700 px-3 py-2 rounded-xl font-semibold hover:bg-red-100 transition flex items-center justify-center gap-1"
-                        onClick={() => updateOrderStatus(order.id, "Cancelled")}
+                        onClick={() => openCancel(order)}
                       >
                         <XCircle className="w-4 h-4" /> Cancel
                       </button>
@@ -708,9 +796,7 @@ export default function Orders() {
                     {getStatusIcon(selectedOrder.status)}
                     {selectedOrder.status}
                   </span>
-                  <span
-                    className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] bg-slate-900/80 text-slate-100 border border-slate-600/70`}
-                  >
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] bg-slate-900/80 text-slate-100 border border-slate-600/70">
                     <AlertTriangle className="w-3 h-3 text-amber-300" />
                     {selectedOrder.priority} priority
                   </span>
@@ -847,6 +933,36 @@ export default function Orders() {
           </motion.div>
         </div>
       )}
+
+      {/* ---------- VIEW ROUTE MODAL ---------- */}
+      <RouteModal
+        isOpen={isRouteOpen}
+        order={selectedOrder}
+        onClose={closeRoute}
+      />
+
+      {/* ---------- VIEW CONTACT MODAL ---------- */}
+      <ContactModal
+        isOpen={isContactOpen}
+        order={selectedOrder}
+        onClose={closeContact}
+      />
+
+      {/* ---------- CANCEL ORDER MODAL ---------- */}
+      <CancelOrderModal
+        isOpen={isCancelOpen}
+        order={selectedOrder}
+        onClose={closeCancel}
+        onConfirm={handleCancelOrder}
+      />
+
+      {/* ---------- MARK DELIVERED MODAL ---------- */}
+      <MarkDeliveredModal
+        isOpen={isDeliveredOpen}
+        order={selectedOrder}
+        onClose={closeDelivered}
+        onConfirm={handleMarkDelivered}
+      />
     </motion.div>
   );
 }
@@ -897,5 +1013,475 @@ function OrdersSummaryCard({
         </div>
       </div>
     </motion.div>
+  );
+}
+
+/* ============================================================
+   MODALS
+============================================================ */
+
+function RouteModal({
+  isOpen,
+  order,
+  onClose,
+}: {
+  isOpen: boolean;
+  order: Order | null;
+  onClose: () => void;
+}) {
+  if (!isOpen || !order) return null;
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 20 }}
+        transition={{ duration: 0.2 }}
+        className="w-full max-w-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-2xl border border-emerald-500/40 shadow-[0_24px_80px_rgba(15,23,42,0.9)] p-5 md:p-6 relative overflow-hidden"
+      >
+        <div className="pointer-events-none absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.4),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.35),transparent_55%)]" />
+        <div className="relative z-10 space-y-4">
+          {/* Header */}
+          <div className="flex justify-between items-start gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-slate-50 flex items-center gap-2">
+                <span className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <Route className="w-4 h-4 text-emerald-400" />
+                </span>
+                Route tracker
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                ORD - {order.id} • {order.name}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-100 text-sm px-2 py-1 rounded-full bg-slate-800/60 border border-slate-600/70"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Map placeholder */}
+          <div className="mt-2 grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-2">
+              <div className="relative rounded-xl overflow-hidden border border-emerald-500/40 bg-slate-900/80 h-64 md:h-72">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(34,197,94,0.6),transparent_60%),radial-gradient(circle_at_bottom,rgba(15,23,42,1),rgba(15,23,42,1))]" />
+                <div className="relative z-10 w-full h-full">
+                  <div className="absolute inset-6 border border-dashed border-emerald-300/40 rounded-3xl" />
+                  <div className="absolute inset-0 opacity-30 bg-[linear-gradient(to_right,rgba(148,163,184,0.2)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.2)_1px,transparent_1px)] bg-[size:32px_32px]" />
+                  <div className="absolute left-10 bottom-10 flex flex-col gap-2 text-xs text-emerald-100">
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-950/70 border border-emerald-300/40">
+                      <span className="h-2 w-2 rounded-full bg-emerald-400" />
+                      Current rider location
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-950/70 border border-sky-300/40">
+                      <span className="h-2 w-2 rounded-full bg-sky-400" />
+                      Customer drop-off point
+                    </span>
+                  </div>
+
+                  {/* Fake route line */}
+                  <svg
+                    className="absolute inset-0"
+                    viewBox="0 0 400 260"
+                    preserveAspectRatio="none"
+                  >
+                    <path
+                      d="M40,220 C120,190 140,160 190,150 C250,135 280,110 340,60"
+                      stroke="rgba(56,189,248,0.8)"
+                      strokeWidth="3"
+                      strokeDasharray="4 6"
+                      fill="none"
+                    />
+                  </svg>
+
+                  {/* Origin + destination pins */}
+                  <div className="absolute left-[10%] bottom-[20%] flex flex-col items-center gap-1">
+                    <div className="h-7 w-7 rounded-full bg-emerald-400 flex items-center justify-center text-slate-950 text-xs font-bold shadow-lg shadow-emerald-500/60">
+                      R
+                    </div>
+                    <span className="text-[10px] text-emerald-100/90">
+                      Rider
+                    </span>
+                  </div>
+                  <div className="absolute right-[10%] top-[20%] flex flex-col items-center gap-1">
+                    <div className="h-7 w-7 rounded-full bg-sky-400 flex items-center justify-center text-slate-950 text-xs font-bold shadow-lg shadow-sky-500/60">
+                      C
+                    </div>
+                    <span className="text-[10px] text-emerald-100/90">
+                      Customer
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Route details */}
+            <div className="space-y-3 text-xs text-slate-200">
+              <div className="bg-slate-900/70 border border-slate-700/70 rounded-xl p-3">
+                <p className="text-[11px] uppercase tracking-[0.16em] text-slate-400 mb-1">
+                  route summary
+                </p>
+                <p className="font-semibold text-sm mb-1">
+                  {order.address.split(",")[0]}
+                </p>
+                <p className="text-[11px] text-slate-400 mb-2">
+                  {order.address}
+                </p>
+                <div className="flex items-center justify-between text-[11px]">
+                  <span className="inline-flex items-center gap-1">
+                    <Route className="w-3 h-3 text-emerald-300" />
+                    Est. distance:
+                  </span>
+                  <span className="font-semibold text-emerald-300">
+                    {order.distanceKm
+                      ? `${order.distanceKm.toFixed(1)} km`
+                      : "~ – km"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="bg-slate-900/70 border border-slate-700/70 rounded-xl p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400 text-[11px]">
+                    Assigned rider
+                  </span>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-emerald-200 font-semibold">
+                    <User className="w-3 h-3" />
+                    {order.rider ?? "Unassigned"}
+                  </span>
+                </div>
+                {order.scheduledTime && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-400 text-[11px]">
+                      Target schedule
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-sky-200">
+                      <Clock className="w-3 h-3" />
+                      {order.scheduledTime}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-emerald-900/40 border border-emerald-500/40 rounded-xl p-3 text-[11px] text-emerald-50">
+                <p className="font-semibold mb-1 text-emerald-100">
+                  Integration note
+                </p>
+                <p>
+                  This map is a UI placeholder. You can later bind this section
+                  to Google Maps / Mapbox using the order&apos;s coordinates and
+                  rider live location.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function ContactModal({
+  isOpen,
+  order,
+  onClose,
+}: {
+  isOpen: boolean;
+  order: Order | null;
+  onClose: () => void;
+}) {
+  if (!isOpen || !order) return null;
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 18 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 18 }}
+        transition={{ duration: 0.2 }}
+        className="w-full max-w-md bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-2xl border border-emerald-500/40 shadow-[0_24px_80px_rgba(15,23,42,0.9)] p-5 relative overflow-hidden"
+      >
+        <div className="pointer-events-none absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(245,158,11,0.45),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.35),transparent_55%)]" />
+
+        <div className="relative z-10 space-y-4 text-sm text-slate-100">
+          {/* Header */}
+          <div className="flex justify-between items-start gap-3">
+            <div>
+              <h2 className="text-lg font-bold flex items-center gap-2">
+                <span className="h-8 w-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <Phone className="w-4 h-4 text-amber-300" />
+                </span>
+                Contact details
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                ORD - {order.id} • {order.name}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-100 text-sm px-2 py-1 rounded-full bg-slate-800/60 border border-slate-600/70"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Contact info */}
+          <div className="bg-slate-900/70 border border-slate-700/80 rounded-xl p-3 space-y-2">
+            <div>
+              <p className="text-[11px] text-slate-400 mb-1">Customer name</p>
+              <p className="text-sm font-semibold">{order.name}</p>
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 mb-1">Delivery address</p>
+              <p className="text-xs text-slate-200 flex gap-2 items-start">
+                <MapPin className="w-3 h-3 text-emerald-400 mt-[2px]" />
+                {order.address}
+              </p>
+            </div>
+            <div>
+              <p className="text-[11px] text-slate-400 mb-1">
+                Preferred instructions
+              </p>
+              <p className="text-xs text-slate-200">
+                {order.notes ?? "No special notes recorded for this customer."}
+              </p>
+            </div>
+          </div>
+
+          {/* Quick actions (mock only) */}
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <button className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-emerald-50 font-semibold transition border border-emerald-400/70">
+              <Phone className="w-3 h-3" />
+              Call customer
+            </button>
+            <button className="flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-100 font-semibold transition border border-slate-600/80">
+              <span className="text-[10px]">SMS</span>
+              Send text
+            </button>
+            <button className="col-span-2 flex items-center justify-center gap-2 px-3 py-2 rounded-xl bg-slate-900/80 hover:bg-slate-800 text-slate-200 text-[11px] transition border border-slate-600/80">
+              Copy contact &amp; address
+            </button>
+          </div>
+
+          <p className="text-[11px] text-slate-500">
+            This panel is purely UI. You can wire the buttons to your SMS /
+            tel: link / VOIP integration later.
+          </p>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function CancelOrderModal({
+  isOpen,
+  order,
+  onClose,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  order: Order | null;
+  onClose: () => void;
+  onConfirm: (orderId: string, reason: string) => void;
+}) {
+  const [reason, setReason] = useState("");
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setReason("");
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !order) return null;
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 18 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 18 }}
+        transition={{ duration: 0.2 }}
+        className="w-full max-w-md bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-2xl border border-red-500/50 shadow-[0_24px_80px_rgba(127,29,29,0.9)] p-5 relative overflow-hidden"
+      >
+        <div className="pointer-events-none absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_top_left,rgba(248,113,113,0.45),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(30,64,175,0.4),transparent_55%)]" />
+
+        <div className="relative z-10 space-y-4 text-sm text-slate-100">
+          {/* Header */}
+          <div className="flex justify-between items-start gap-3">
+            <div>
+              <h2 className="text-lg font-bold flex items-center gap-2 text-red-100">
+                <span className="h-8 w-8 rounded-full bg-red-500/20 flex items-center justify-center">
+                  <XCircle className="w-4 h-4 text-red-300" />
+                </span>
+                Cancel order
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                ORD - {order.id} • {order.name}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-100 text-sm px-2 py-1 rounded-full bg-slate-800/60 border border-slate-600/70"
+            >
+              ✕
+            </button>
+          </div>
+
+          <p className="text-xs text-slate-300">
+            You&apos;re about to mark this order as{" "}
+            <span className="font-semibold text-red-300">Cancelled</span>.
+            Please provide a short reason. This will be attached as an internal
+            note and can also be shown to the customer.
+          </p>
+
+          <div>
+            <label className="text-[11px] text-slate-300 mb-1 block">
+              Cancellation reason
+            </label>
+            <textarea
+              className="w-full rounded-xl border border-slate-700 bg-slate-950/60 text-xs text-slate-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/70 focus:border-red-500/70 resize-none h-24"
+              placeholder="Example: Customer unavailable / address cannot be located / payment declined..."
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-1 text-xs">
+            <button
+              onClick={onClose}
+              className="px-3 py-2 rounded-xl border border-slate-600 bg-slate-900/80 text-slate-100 hover:bg-slate-800 transition"
+            >
+              Back
+            </button>
+            <button
+              onClick={() => onConfirm(order.id, reason.trim())}
+              className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-400 text-white font-semibold transition border border-red-300 text-xs"
+            >
+              Confirm cancel
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+function MarkDeliveredModal({
+  isOpen,
+  order,
+  onClose,
+  onConfirm,
+}: {
+  isOpen: boolean;
+  order: Order | null;
+  onClose: () => void;
+  onConfirm: (
+    orderId: string,
+    payload: { deliveredAt?: string; note?: string }
+  ) => void;
+}) {
+  const [note, setNote] = useState("");
+  const [deliveredAt, setDeliveredAt] = useState("");
+
+  React.useEffect(() => {
+    if (isOpen) {
+      setNote("");
+      // prefills with a simple timestamp string – pwede mong palitan later
+      const now = new Date();
+      setDeliveredAt(now.toLocaleString());
+    }
+  }, [isOpen]);
+
+  if (!isOpen || !order) return null;
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-sm">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.94, y: 18 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.94, y: 18 }}
+        transition={{ duration: 0.2 }}
+        className="w-full max-w-md bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 rounded-2xl border border-emerald-500/60 shadow-[0_24px_80px_rgba(6,95,70,0.9)] p-5 relative overflow-hidden"
+      >
+        <div className="pointer-events-none absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.45),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.35),transparent_55%)]" />
+
+        <div className="relative z-10 space-y-4 text-sm text-slate-100">
+          {/* Header */}
+          <div className="flex justify-between items-start gap-3">
+            <div>
+              <h2 className="text-lg font-bold flex items-center gap-2 text-emerald-100">
+                <span className="h-8 w-8 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-emerald-300" />
+                </span>
+                Mark as delivered
+              </h2>
+              <p className="text-xs text-slate-400 mt-1">
+                ORD - {order.id} • {order.name}
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="text-slate-400 hover:text-slate-100 text-sm px-2 py-1 rounded-full bg-slate-800/60 border border-slate-600/70"
+            >
+              ✕
+            </button>
+          </div>
+
+          <p className="text-xs text-slate-300">
+            Confirm that this order has been successfully delivered to the
+            customer. You can add a short note for audit / reference (e.g. who
+            received it, building / gate instructions, etc.).
+          </p>
+
+          <div className="space-y-2">
+            <div>
+              <label className="text-[11px] text-slate-300 mb-1 block">
+                Delivered at
+              </label>
+              <input
+                type="text"
+                className="w-full rounded-xl border border-slate-700 bg-slate-950/60 text-xs text-slate-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500/70"
+                value={deliveredAt}
+                onChange={(e) => setDeliveredAt(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-[11px] text-slate-300 mb-1 block">
+                Delivery note (optional)
+              </label>
+              <textarea
+                className="w-full rounded-xl border border-slate-700 bg-slate-950/60 text-xs text-slate-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-500/70 focus:border-emerald-500/70 resize-none h-24"
+                placeholder="Example: Received by security guard / left at front desk / photo proof captured..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-1 text-xs">
+            <button
+              onClick={onClose}
+              className="px-3 py-2 rounded-xl border border-slate-600 bg-slate-900/80 text-slate-100 hover:bg-slate-800 transition"
+            >
+              Back
+            </button>
+            <button
+              onClick={() =>
+                onConfirm(order.id, {
+                  deliveredAt: deliveredAt.trim(),
+                  note: note.trim(),
+                })
+              }
+              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-white font-semibold transition border border-emerald-300 text-xs"
+            >
+              Confirm delivered
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </div>
   );
 }
