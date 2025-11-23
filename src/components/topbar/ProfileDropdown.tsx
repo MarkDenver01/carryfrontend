@@ -4,17 +4,19 @@ import { useNavigate } from "react-router-dom";
 export default function ProfileDropdown() {
   const navigate = useNavigate();
 
-  const goDashboard = () => {
+  const handleDashboard = () => {
     navigate("/admin/dashboard");
   };
 
-  const goSettings = () => {
+  const handleSettings = () => {
     navigate("/admin/settings");
   };
 
   const handleLogout = () => {
+    // Clear tokens / session
     localStorage.removeItem("authToken");
     sessionStorage.clear();
+
     navigate("/login");
   };
 
@@ -32,28 +34,34 @@ export default function ProfileDropdown() {
         </div>
       }
     >
-      {/* USER INFO */}
+      {/* User Info */}
       <DropdownHeader>
-        <span className="block text-sm font-semibold">Admin</span>
-        <span className="block truncate text-sm text-gray-600">
+        <span className="block text-sm">Admin</span>
+        <span className="block truncate text-sm font-medium">
           frontendreactcares@admin.com
         </span>
       </DropdownHeader>
 
       <div className="border-t border-gray-200 mx-2 my-1" />
 
-      {/* DASHBOARD */}
-      <DropdownItem onClick={goDashboard}>Dashboard</DropdownItem>
+      {/* Dashboard Link */}
+      <DropdownItem onClick={handleDashboard}>
+        Dashboard
+      </DropdownItem>
 
       <div className="border-t border-gray-200 mx-2 my-1" />
 
-      {/* SETTINGS */}
-      <DropdownItem onClick={goSettings}>Settings</DropdownItem>
+      {/* Settings Link */}
+      <DropdownItem onClick={handleSettings}>
+        Settings
+      </DropdownItem>
 
       <div className="border-t border-gray-200 mx-2 my-1" />
 
-      {/* LOGOUT */}
-      <DropdownItem onClick={handleLogout}>Logout</DropdownItem>
+      {/* Logout */}
+      <DropdownItem onClick={handleLogout}>
+        Logout
+      </DropdownItem>
     </Dropdown>
   );
 }
