@@ -12,8 +12,6 @@ interface ProductTableProps {
   handleEditProduct: (index: number) => void;
   toggleAvailability: (product: Product) => void;
   handleDeleteProduct: (id: number) => void;
-
-  // ✅ Replaced old modal triggers with the new unified handler
   onViewRecommendations: (product: Product) => void;
 }
 
@@ -29,194 +27,199 @@ const ProductTable: React.FC<ProductTableProps> = ({
   onViewRecommendations,
 }) => {
   return (
-    <div className="overflow-x-auto w-full">
-      <table className="min-w-[1500px] border border-gray-200 text-sm text-left text-gray-700">
-        <thead className="bg-emerald-700 text-white text-xs uppercase tracking-wide">
-          <tr className="divide-x divide-emerald-600">
-            <th className="p-3 font-semibold w-[80px]">Image</th>
-            <th
-              className="p-3 font-semibold w-[100px] cursor-pointer"
-              onClick={() => handleSort("code")}
-            >
-              Code {getSortIcon("code")}
-            </th>
-            <th
-              className="p-3 font-semibold w-[200px] cursor-pointer"
-              onClick={() => handleSort("name")}
-            >
-              Name {getSortIcon("name")}
-            </th>
-            <th
-              className="p-3 font-semibold w-[260px] cursor-pointer"
-              onClick={() => handleSort("categoryName")}
-            >
-              Category {getSortIcon("categoryName")}
-            </th>
-            <th
-              className="p-3 font-semibold w-[350px] cursor-pointer"
-              onClick={() => handleSort("description")}
-            >
-              Description {getSortIcon("description")}
-            </th>
-            <th className="p-3 font-semibold w-[80px]">Size</th>
-            <th
-              className="p-3 font-semibold w-[80px] cursor-pointer"
-              onClick={() => handleSort("stock")}
-            >
-              Stocks {getSortIcon("stock")}
-            </th>
-            <th className="p-3 font-semibold w-[130px]">Expiry</th>
-            <th className="p-3 font-semibold w-[130px]">In Date</th>
-            <th className="p-3 font-semibold w-[120px]">Status</th>
-            <th className="p-3 font-semibold text-center w-[500px]">Actions</th>
-          </tr>
-        </thead>
+    <div className="space-y-5 p-3">
 
-        <tbody className="bg-white">
-          {paginatedProducts.length > 0 ? (
-            paginatedProducts.map((product, idx) => (
-              <tr
-                key={product.id ?? idx}
-                className="hover:bg-gray-50 border-t border-gray-200"
-              >
-                {/* Image */}
-                <td className="p-2.5 w-[80px] align-middle">
-                  <img
-                    src={product.imageUrl || "/placeholder.png"}
-                    alt={product.name}
-                    className="w-12 h-12 rounded object-cover border border-gray-200"
-                  />
-                </td>
+      {/* HEADER */}
+      <div className="grid grid-cols-12 text-xs font-semibold text-gray-500 px-3 pb-2 border-b border-gray-200 tracking-wide">
+        <div className="col-span-3 flex items-center gap-1 cursor-default">
+          Product
+        </div>
 
-                {/* Code */}
-                <td className="p-2.5 w-[100px] align-middle">{product.code}</td>
+        <div
+          className="col-span-1 cursor-pointer hover:text-emerald-600 transition"
+          onClick={() => handleSort("code")}
+        >
+          Code {getSortIcon("code")}
+        </div>
 
-                {/* Name */}
-                <td className="p-2.5 w-[200px] align-middle font-medium">
+        <div
+          className="col-span-2 cursor-pointer hover:text-emerald-600 transition"
+          onClick={() => handleSort("name")}
+        >
+          Name {getSortIcon("name")}
+        </div>
+
+        <div
+          className="col-span-2 cursor-pointer hover:text-emerald-600 transition"
+          onClick={() => handleSort("categoryName")}
+        >
+          Category {getSortIcon("categoryName")}
+        </div>
+
+        <div className="col-span-1">Stock</div>
+        <div className="col-span-1">Expiry</div>
+        <div className="col-span-1">Status</div>
+        <div className="col-span-2 text-center">Actions</div>
+      </div>
+
+      {paginatedProducts.length > 0 ? (
+        paginatedProducts.map((product, idx) => (
+          <div
+            key={product.id ?? idx}
+            className="
+              group
+              grid grid-cols-12 gap-4 p-5 rounded-2xl
+              bg-white 
+              border border-gray-100
+              shadow-[0_4px_24px_rgba(0,0,0,0.06)]
+              hover:shadow-[0_10px_30px_rgba(0,0,0,0.12)]
+              transition-all duration-300
+              relative overflow-hidden
+            "
+          >
+            {/* Glow Accent */}
+            <div className="
+              absolute inset-0 pointer-events-none opacity-0 
+              group-hover:opacity-100 transition-all duration-300
+              bg-gradient-to-r from-emerald-50 to-transparent
+            "/>
+
+            {/* !! Image + Name + Description */}
+            <div className="col-span-3 flex gap-4 relative z-10">
+              <img
+                src={product.imageUrl || '/placeholder.png'}
+                className="
+                  w-20 h-20 rounded-xl object-cover border border-gray-200 
+                  shadow-sm
+                "
+              />
+
+              <div className="flex flex-col justify-between py-1">
+                <p className="font-semibold text-gray-900 text-sm leading-tight">
                   {product.name}
-                </td>
+                </p>
+                <p className="text-xs text-gray-500 line-clamp-2 leading-snug">
+                  {product.description}
+                </p>
+              </div>
+            </div>
 
-                {/* Category */}
-                <td className="p-2.5 w-[260px] align-middle">
-                  <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
-                    {product.categoryName ?? "—"}
-                  </span>
-                </td>
+            {/* CODE */}
+            <div className="col-span-1 flex items-center text-sm text-gray-600">
+              {product.code}
+            </div>
 
-                {/* Description (with hover tooltip) */}
-                <td className="p-2.5 w-[350px] align-middle relative group">
-                  <p className="line-clamp-3 cursor-pointer">
-                    {product.description}
-                  </p>
+            {/* NAME (redundant para sa grid alignment, kaya faded na) */}
+            <div className="col-span-2 flex items-center text-sm text-gray-800">
+              {product.name}
+            </div>
 
-                  <div
-                    className="
-                      hidden group-hover:block absolute z-50 left-0 top-full mt-1
-                      w-[380px] bg-white shadow-xl border border-gray-300
-                      rounded-md p-3 text-gray-700 text-sm leading-relaxed
-                      whitespace-normal
-                    "
-                  >
-                    {product.description}
-                  </div>
-                </td>
+            {/* CATEGORY */}
+            <div className="col-span-2 flex items-center">
+              <span className="
+                px-3 py-1 text-xs rounded-full 
+                bg-emerald-50 text-emerald-700 border border-emerald-200
+                shadow-sm
+              ">
+                {product.categoryName ?? "—"}
+              </span>
+            </div>
 
-                {/* Size */}
-                <td className="p-2.5 w-[80px] align-middle">{product.size}</td>
+            {/* STOCK */}
+            <div className="col-span-1 flex items-center text-sm font-medium">
+              {product.stock}
+            </div>
 
-                {/* Stock */}
-                <td className="p-2.5 w-[80px] align-middle">{product.stock}</td>
+            {/* EXPIRY */}
+            <div className="col-span-1 flex items-center text-sm text-gray-600">
+              {product.expiryDate ?? "—"}
+            </div>
 
-                {/* Expiry */}
-                <td className="p-2.5 w-[130px] align-middle">
-                  {product.expiryDate ?? "—"}
-                </td>
-
-                {/* In Date */}
-                <td className="p-2.5 w-[130px] align-middle">
-                  {product.inDate ?? "—"}
-                </td>
-
-                {/* Status */}
-                <td className="p-2.5 w-[120px] align-middle">
-                  <span
-                    className={`px-2 py-1 text-xs rounded-full border ${
-                      product.status === "Available"
-                        ? "bg-green-100 text-green-700 border-green-300"
-                        : "bg-red-100 text-red-700 border-red-300"
-                    }`}
-                  >
-                    {product.status}
-                  </span>
-                </td>
-
-                {/* ACTION BUTTONS */}
-                <td className="p-2.5 align-middle w-[500px]">
-                  <div className="flex items-center justify-center gap-2 whitespace-nowrap">
-                    {/* UPDATE */}
-                    <button
-                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
-                      onClick={() => {
-                        const realIndex = (currentPage - 1) * pageSize + idx;
-                        handleEditProduct(realIndex);
-                      }}
-                    >
-                      <Pencil className="w-4 h-4" /> Update
-                    </button>
-
-                    {/* AVAILABILITY */}
-                    <button
-                      className={`h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white rounded-md ${
-                        product.status === "Available"
-                          ? "bg-red-500 hover:bg-red-600"
-                          : "bg-green-600 hover:bg-green-700"
-                      }`}
-                      onClick={() => toggleAvailability(product)}
-                    >
-                      {product.status === "Available" ? (
-                        <>
-                          <XCircle className="w-4 h-4" /> Not Available
-                        </>
-                      ) : (
-                        <>
-                          <CheckCircle className="w-4 h-4" /> Available
-                        </>
-                      )}
-                    </button>
-
-                    {/* VIEW RECOMMENDATIONS ✅ */}
-                    <button
-                      className="h-9 min-w-[150px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
-                      onClick={() => onViewRecommendations(product)}
-                    >
-                      <Eye className="w-4 h-4" /> View Recommendations
-                    </button>
-
-                    {/* DELETE */}
-                    <button
-                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md"
-                      onClick={() => {
-                        if (product.id) handleDeleteProduct(product.id);
-                      }}
-                    >
-                      <XCircle className="w-4 h-4" /> Delete
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))
-          ) : (
-            <tr>
-              <td
-                colSpan={11}
-                className="text-center py-4 text-gray-500 border-t border-gray-200"
+            {/* STATUS */}
+            <div className="col-span-1 flex items-center">
+              <span
+                className={`
+                  px-3 py-1 text-xs rounded-full border shadow-sm
+                  ${
+                    product.status === "Available"
+                      ? "bg-green-100 text-green-700 border-green-200"
+                      : "bg-red-100 text-red-700 border-red-200"
+                  }
+                `}
               >
-                No products found.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+                {product.status}
+              </span>
+            </div>
+
+            {/* ACTION BUTTONS */}
+            <div className="col-span-2 flex items-center justify-center gap-2">
+
+              <button
+                className="
+                  px-3 py-2 text-xs rounded-lg text-white shadow-md 
+                  bg-gradient-to-br from-yellow-500 to-yellow-600
+                  hover:brightness-110 transition
+                  flex items-center gap-1
+                "
+                onClick={() =>
+                  handleEditProduct((currentPage - 1) * pageSize + idx)
+                }
+              >
+                <Pencil className="w-4 h-4" />
+                Update
+              </button>
+
+              <button
+                className={`
+                  px-3 py-2 text-xs rounded-lg shadow-md 
+                  flex items-center gap-1 transition text-white
+                  ${
+                    product.status === "Available"
+                      ? "bg-gradient-to-br from-red-500 to-red-600 hover:brightness-110"
+                      : "bg-gradient-to-br from-green-600 to-green-700 hover:brightness-110"
+                  }
+                `}
+                onClick={() => toggleAvailability(product)}
+              >
+                {product.status === "Available" ? (
+                  <>
+                    <XCircle className="w-4 h-4" /> Not Available
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4" /> Available
+                  </>
+                )}
+              </button>
+
+              <button
+                className="
+                  px-3 py-2 text-xs rounded-lg text-white
+                  bg-gradient-to-br from-blue-600 to-blue-700
+                  hover:brightness-110 shadow-md flex items-center gap-1 transition
+                "
+                onClick={() => onViewRecommendations(product)}
+              >
+                <Eye className="w-4 h-4" /> View
+              </button>
+
+              <button
+                className="
+                  px-3 py-2 text-xs rounded-lg text-white
+                  bg-gradient-to-br from-red-600 to-red-700
+                  hover:brightness-110 shadow-md flex items-center gap-1 transition
+                "
+                onClick={() => product.id && handleDeleteProduct(product.id)}
+              >
+                <XCircle className="w-4 h-4" /> Delete
+              </button>
+
+            </div>
+          </div>
+        ))
+      ) : (
+        <div className="text-center text-gray-500 py-6">No products found.</div>
+      )}
     </div>
   );
 };
