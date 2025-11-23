@@ -6,7 +6,7 @@ type Props = {
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (data: any) => void;
-  initialData?: any; // null or undefined = Add
+  initialData: any; // required — always editing
 };
 
 export default function RiderFormModal({
@@ -23,7 +23,7 @@ export default function RiderFormModal({
     ordersToday: 0,
   });
 
-  // Load data into form when editing
+  // Load data (always editing)
   useEffect(() => {
     if (initialData) {
       setForm({
@@ -32,14 +32,6 @@ export default function RiderFormModal({
         homeBase: initialData.homeBase,
         status: initialData.status,
         ordersToday: initialData.ordersToday ?? 0,
-      });
-    } else {
-      setForm({
-        name: "",
-        contact: "",
-        homeBase: "",
-        status: "Available",
-        ordersToday: 0,
       });
     }
   }, [initialData]);
@@ -73,9 +65,9 @@ export default function RiderFormModal({
           <X className="w-5 h-5" />
         </button>
 
-        {/* Title */}
+        {/* Title (EDIT ONLY) */}
         <h2 className="text-xl font-bold mb-4 text-slate-900">
-          {initialData ? "Edit Rider" : "Add Rider"}
+          Edit Rider
         </h2>
 
         {/* Name */}
@@ -147,7 +139,7 @@ export default function RiderFormModal({
           className="w-full bg-emerald-600 text-white font-semibold py-2 rounded-lg hover:bg-emerald-700 transition"
           onClick={handleSubmit}
         >
-          {initialData ? "Save Changes" : "Add Rider"}
+          Save Changes
         </button>
       </motion.div>
     </div>

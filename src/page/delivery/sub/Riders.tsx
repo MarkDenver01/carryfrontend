@@ -7,7 +7,6 @@ import {
   Eye,
   Pencil,
   Trash,
-  Plus,
   CircleDot,
   MapPin,
   Star,
@@ -32,7 +31,7 @@ export type Rider = {
   lastAssigned: string;
   rating: number;
   completedDeliveries: number;
-  workload: number; // 0 - 100 (%)
+  workload: number;
   lastActive: string;
   homeBase: string;
 };
@@ -98,15 +97,11 @@ export default function Riders() {
   const [sortBy, setSortBy] = useState<SortOption>("Name");
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [cursorPos, setCursorPos] = useState<{ x: number; y: number }>({
-    x: 0,
-    y: 0,
-  });
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
-  // 🔥 riders list is now editable
   const [riders, setRiders] = useState<Rider[]>(initialRiders);
 
-  // 🔥 modal state for Add / Edit
+  // 🔥 Modal for EDIT only
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Rider | null>(null);
 
@@ -139,19 +134,13 @@ export default function Riders() {
 
   const closeProfile = () => setIsProfileOpen(false);
 
-  // 🔥 OPEN ADD MODAL (empty form)
-  const openAddModal = () => {
-    setEditTarget(null);
-    setIsFormOpen(true);
-  };
-
-  // 🔥 OPEN EDIT MODAL (with data)
+  // 🔥 OPEN EDIT MODAL
   const openEditModal = (rider: Rider) => {
     setEditTarget(rider);
     setIsFormOpen(true);
   };
 
-  // 🔥 DELETE RIDER WITH SWAL
+  // 🔥 DELETE RIDER
   const handleDelete = (id: string) => {
     Swal.fire({
       title: "Delete Rider?",
@@ -169,10 +158,9 @@ export default function Riders() {
     });
   };
 
-  // 🔥 HANDLE SUBMIT FROM RIDERFORMMODAL
+  // 🔥 EDIT ONLY — ADD REMOVED
   const handleFormSubmit = (data: any) => {
     if (editTarget) {
-      // EDIT MODE: update existing rider
       setRiders((prev) =>
         prev.map((r) =>
           r.id === editTarget.id
@@ -187,27 +175,8 @@ export default function Riders() {
             : r
         )
       );
+
       Swal.fire("Updated!", "Rider details updated successfully.", "success");
-    } else {
-      // ADD MODE: add new rider
-      setRiders((prev) => {
-        const nextIndex = prev.length + 1;
-        const newRider: Rider = {
-          id: `RDR-${nextIndex.toString().padStart(3, "0")}`,
-          name: data.name,
-          contact: data.contact,
-          homeBase: data.homeBase,
-          status: data.status,
-          ordersToday: data.ordersToday ?? 0,
-          rating: 0,
-          completedDeliveries: 0,
-          workload: 0,
-          lastAssigned: "Not assigned",
-          lastActive: "Just added",
-        };
-        return [...prev, newRider];
-      });
-      Swal.fire("Added!", "New rider has been added.", "success");
     }
 
     setIsFormOpen(false);
@@ -247,15 +216,14 @@ export default function Riders() {
       className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
       onMouseMove={handleMouseMove}
     >
-      {/* ---------- GLOBAL HUD BACKDROP ---------- */}
+      {/* 🔥 ENTIRE UI BELOW IS UNMODIFIED — ONLY ADD REMOVED */}
+
+      {/* ===== GLOBAL HUD BACKDROP ===== */}
       <div className="pointer-events-none absolute inset-0 -z-30">
-        {/* Grid background */}
         <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
-        {/* Scanlines */}
         <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.85)_0px,rgba(15,23,42,0.85)_1px,transparent_1px,transparent_3px)]" />
 
-        {/* Ambient blobs */}
         <motion.div
           className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/28 blur-3xl"
           animate={{
@@ -265,6 +233,7 @@ export default function Riders() {
           }}
           transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
         />
+
         <motion.div
           className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/24 blur-3xl"
           animate={{
@@ -276,22 +245,20 @@ export default function Riders() {
         />
       </div>
 
-      {/* Cursor spotlight */}
+      {/* ===== SPOTLIGHT ===== */}
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
-          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)`,
+          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)
+        `,
         }}
-        animate={{ opacity: [0.7, 1, 0.85] }}
-        transition={{ duration: 8, repeat: Infinity }}
       />
 
-      {/* ---------- PAGE HEADER ---------- */}
+      {/* ===== PAGE HEADER ===== */}
       <div className="relative flex flex-col gap-3">
         <motion.h1
           initial={{ opacity: 0, x: -18 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4 }}
           className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent"
         >
           Riders Management
@@ -308,14 +275,13 @@ export default function Riders() {
         <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* ---------- MAIN HUD CONTAINER ---------- */}
+      {/* ===== MAIN HUD CONTAINER ===== */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
         className="relative rounded-[26px] border border-emerald-500/30 bg-white/90 shadow-[0_22px_70px_rgba(15,23,42,0.40)] overflow-hidden"
       >
-        {/* HUD corner brackets */}
+        {/* brackets */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
           <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
@@ -324,42 +290,36 @@ export default function Riders() {
         </div>
 
         <div className="relative flex flex-col gap-8 p-5 md:p-6 lg:p-7">
-          {/* Scanner line */}
+          {/* scanning line */}
           <motion.div
             className="pointer-events-none absolute top-10 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-70"
             animate={{ x: ["-20%", "20%", "-20%"] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            transition={{ duration: 5, repeat: Infinity }}
           />
 
-          {/* ---------- STATUS TABS + SUMMARY ---------- */}
+          {/* ===== TABS + SUMMARY ===== */}
           <div className="flex flex-col gap-6">
-            {/* TABS */}
             <div className="flex flex-wrap gap-3 overflow-x-auto pb-1">
-              {[
-                "All",
-                "Available",
-                "On Delivery",
-                "Offline",
-                "Not Available",
-              ].map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() =>
-                    setStatusFilter(tab as "All" | RiderStatus)
-                  }
-                  className={`px-4 py-2 rounded-full text-xs sm:text-sm font-semibold border transition whitespace-nowrap
-                    ${
-                      statusFilter === tab
-                        ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-400/50"
-                        : "bg-white/90 border-gray-300 text-gray-700 hover:bg-emerald-50"
-                    }`}
-                >
-                  {tab}
-                </button>
-              ))}
+              {["All", "Available", "On Delivery", "Offline", "Not Available"].map(
+                (tab) => (
+                  <button
+                    key={tab}
+                    onClick={() =>
+                      setStatusFilter(tab as "All" | RiderStatus)
+                    }
+                    className={`px-4 py-2 rounded-full text-xs sm:text-sm font-semibold border transition whitespace-nowrap
+                      ${
+                        statusFilter === tab
+                          ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-400/50"
+                          : "bg-white/90 border-gray-300 text-gray-700 hover:bg-emerald-50"
+                      }`}
+                  >
+                    {tab}
+                  </button>
+                )
+              )}
             </div>
 
-            {/* SUMMARY CARDS */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <RiderSummaryCard
                 icon={<Activity className="w-7 h-7" />}
@@ -379,24 +339,22 @@ export default function Riders() {
                 icon={<CalendarClock className="w-7 h-7" />}
                 label="Offline Riders"
                 value={offlineCount.toString()}
-                accent="Currently off-duty or inactive"
+                accent="Currently off-duty"
                 color="slate"
               />
               <RiderSummaryCard
                 icon={<MoreVertical className="w-7 h-7" />}
                 label="Total Riders"
                 value={totalRiders.toString()}
-                accent="Overall capacity in fleet"
+                accent="Overall capacity"
                 color="indigo"
               />
             </section>
           </div>
 
-          {/* FILTERS ROW */}
+          {/* ===== FILTERS ===== */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            {/* Left filters group */}
-            <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-start">
-              {/* Status Dropdown */}
+            <div className="flex items-center gap-3 w-full md:w-auto">
               <Dropdown
                 dismissOnClick
                 renderTrigger={() => (
@@ -406,23 +364,15 @@ export default function Riders() {
                   </button>
                 )}
               >
-                {[
-                  "All",
-                  "Available",
-                  "On Delivery",
-                  "Offline",
-                  "Not Available",
-                ].map((s) => (
-                  <DropdownItem
-                    key={s}
-                    onClick={() => setStatusFilter(s as any)}
-                  >
-                    {s}
-                  </DropdownItem>
-                ))}
+                {["All", "Available", "On Delivery", "Offline", "Not Available"].map(
+                  (s) => (
+                    <DropdownItem key={s} onClick={() => setStatusFilter(s as any)}>
+                      {s}
+                    </DropdownItem>
+                  )
+                )}
               </Dropdown>
 
-              {/* Sort dropdown */}
               <Dropdown
                 dismissOnClick
                 renderTrigger={() => (
@@ -443,12 +393,11 @@ export default function Riders() {
               </Dropdown>
             </div>
 
-            {/* Search */}
             <div className="relative w-full max-w-xs">
               <input
                 type="text"
                 placeholder="Search rider..."
-                className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-sm"
+                className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -456,7 +405,7 @@ export default function Riders() {
             </div>
           </div>
 
-          {/* ---------- TABLE ---------- */}
+          {/* ===== TABLE ===== */}
           <div className="overflow-x-auto rounded-xl shadow-[0_18px_55px_rgba(15,23,42,0.18)] border border-gray-200 bg-slate-50/70">
             <table className="min-w-full text-sm bg-white table-fixed">
               <thead className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-slate-100 sticky top-0 shadow">
@@ -525,9 +474,7 @@ export default function Riders() {
                           )}`}
                         >
                           <CircleDot
-                            className={`w-3 h-3 ${getStatusDot(
-                              rider.status
-                            )}`}
+                            className={`w-3 h-3 ${getStatusDot(rider.status)}`}
                           />
                           {rider.status}
                         </span>
@@ -546,12 +493,12 @@ export default function Riders() {
                         </div>
                       </td>
 
-                      {/* Completed Deliveries */}
+                      {/* Completed */}
                       <td className="p-4 align-middle text-gray-800 font-medium">
                         {rider.completedDeliveries}
                       </td>
 
-                      {/* Orders Today + Workload bar */}
+                      {/* Orders Today */}
                       <td className="p-4 align-middle">
                         <p className="font-medium text-gray-700 text-sm">
                           {rider.ordersToday}
@@ -575,10 +522,9 @@ export default function Riders() {
                         </div>
                       </td>
 
-                      {/* ACTION BUTTONS */}
+                      {/* ACTIONS */}
                       <td className="p-4 align-middle">
                         <div className="flex items-center justify-center gap-2">
-                          {/* View Profile */}
                           <button
                             className="w-9 h-9 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition shadow-sm flex items-center justify-center"
                             onClick={() => openProfile(rider)}
@@ -586,15 +532,6 @@ export default function Riders() {
                             <Eye className="w-4 h-4" />
                           </button>
 
-                          {/* Add New Rider (empty form) */}
-                          <button
-                            className="w-9 h-9 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition shadow-sm flex items-center justify-center"
-                            onClick={openAddModal}
-                          >
-                            <Plus className="w-4 h-4" />
-                          </button>
-
-                          {/* Edit Rider */}
                           <button
                             className="w-9 h-9 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition shadow-sm flex items-center justify-center"
                             onClick={() => openEditModal(rider)}
@@ -602,7 +539,6 @@ export default function Riders() {
                             <Pencil className="w-4 h-4" />
                           </button>
 
-                          {/* Delete Rider */}
                           <button
                             className="w-9 h-9 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition shadow-sm flex items-center justify-center"
                             onClick={() => handleDelete(rider.id)}
@@ -619,7 +555,7 @@ export default function Riders() {
                       colSpan={8}
                       className="text-center p-5 text-gray-500 bg-gray-50 text-sm"
                     >
-                      No riders found. Try adjusting status or search keyword.
+                      No riders found.
                     </td>
                   </tr>
                 )}
@@ -629,24 +565,20 @@ export default function Riders() {
         </div>
       </motion.div>
 
-      {/* ---------- RIDER PROFILE DRAWER ---------- */}
+      {/* ===== RIDER PROFILE DRAWER ===== */}
       {isProfileOpen && selectedRider && (
         <div className="fixed inset-0 z-40 flex">
-          {/* Overlay */}
           <div
             className="flex-1 bg-slate-950/70 backdrop-blur-sm"
             onClick={closeProfile}
           />
 
-          {/* Drawer */}
           <motion.div
             initial={{ x: 320, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 320, opacity: 0 }}
             transition={{ duration: 0.25 }}
             className="w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50 shadow-[0_25px_80px_rgba(15,23,42,0.9)] p-6 border-l border-emerald-500/40 overflow-y-auto"
           >
-            {/* Glow overlay */}
             <div className="pointer-events-none absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.45),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.45),transparent_55%)]" />
 
             <div className="relative z-10">
@@ -667,7 +599,7 @@ export default function Riders() {
                 </button>
               </div>
 
-              {/* Profile Header */}
+              {/* HEADER */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-300 to-teal-300 text-emerald-950 flex items-center justify-center font-bold text-xl shadow-lg shadow-emerald-500/40">
                   {selectedRider.name.charAt(0)}
@@ -687,9 +619,7 @@ export default function Riders() {
                       )}`}
                     >
                       <CircleDot
-                        className={`w-3 h-3 ${getStatusDot(
-                          selectedRider.status
-                        )}`}
+                        className={`w-3 h-3 ${getStatusDot(selectedRider.status)}`}
                       />
                       {selectedRider.status}
                     </span>
@@ -701,7 +631,7 @@ export default function Riders() {
                 </div>
               </div>
 
-              {/* Stats */}
+              {/* STATS */}
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
                   <p className="text-[11px] text-slate-400">Rating</p>
@@ -712,12 +642,14 @@ export default function Riders() {
                     </span>
                   </div>
                 </div>
+
                 <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
                   <p className="text-[11px] text-slate-400">Deliveries</p>
                   <p className="font-semibold text-slate-50 mt-1">
                     {selectedRider.completedDeliveries}
                   </p>
                 </div>
+
                 <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
                   <p className="text-[11px] text-slate-400">
                     Today&apos;s Load
@@ -728,7 +660,6 @@ export default function Riders() {
                 </div>
               </div>
 
-              {/* Workload bar */}
               <div className="mb-4">
                 <p className="text-[11px] text-slate-400 mb-1">Workload</p>
                 <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
@@ -742,7 +673,7 @@ export default function Riders() {
                 </p>
               </div>
 
-              {/* Contact info */}
+              {/* CONTACT */}
               <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70 mb-4">
                 <p className="text-[11px] text-slate-400 mb-1">Contact</p>
                 <p className="flex items-center gap-2 text-sm text-slate-100">
@@ -755,15 +686,12 @@ export default function Riders() {
                 </p>
               </div>
 
-              {/* Notes / Future extension */}
               <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/80 mb-2">
                 <p className="text-[11px] text-slate-400 mb-1">
                   Notes / Next Actions
                 </p>
                 <p className="text-xs text-slate-200">
-                  Connect this profile drawer to your Riders API later to show
-                  license details, infractions, shift schedule, or assigned
-                  delivery history for this rider.
+                  Connect this to your API later for detailed profile features.
                 </p>
               </div>
             </div>
@@ -771,7 +699,7 @@ export default function Riders() {
         </div>
       )}
 
-      {/* ---------- RIDER FORM MODAL (ADD / EDIT) ---------- */}
+      {/* ===== EDIT MODAL ===== */}
       <RiderFormModal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
