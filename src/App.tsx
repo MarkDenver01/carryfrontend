@@ -8,6 +8,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import DashboardLayout from './layout/dashboard/DashboardLayout.tsx';
 import type { JSX } from 'react';
 import { AuthProvider } from './context/AuthContext.tsx';
+import SystemSettings from "./page/SystemSettings/SystemSettings.tsx";
+
+<Route path="/admin/settings" element={<SystemSettings />} />
 
 function App(): JSX.Element {
     const location = useLocation();
