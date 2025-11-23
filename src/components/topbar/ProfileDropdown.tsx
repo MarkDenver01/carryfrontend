@@ -35,7 +35,7 @@ export default function ProfileDropdown() {
       <DropdownHeader>
         <span className="block text-sm">Admin</span>
         <span className="block truncate text-sm font-medium">
-          wrapandcarry@admin.com
+          wrapandcarry@subadmin.com
         </span>
       </DropdownHeader>
 
