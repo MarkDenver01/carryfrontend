@@ -17,11 +17,13 @@ import {
 } from "lucide-react";
 import { Dropdown, DropdownItem } from "flowbite-react";
 import { motion } from "framer-motion";
+import Swal from "sweetalert2";
+import RiderFormModal from "../../../components/driver/RiderFormModal";
 
 type RiderStatus = "Available" | "On Delivery" | "Offline" | "Not Available";
 type SortOption = "Name" | "Status" | "Deliveries" | "Rating";
 
-type Rider = {
+export type Rider = {
   id: string;
   name: string;
   contact: string;
@@ -101,7 +103,12 @@ export default function Riders() {
     y: 0,
   });
 
-  const [riders] = useState<Rider[]>(initialRiders);
+  // 🔥 riders list is now editable
+  const [riders, setRiders] = useState<Rider[]>(initialRiders);
+
+  // 🔥 modal state for Add / Edit
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Rider | null>(null);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -131,6 +138,80 @@ export default function Riders() {
   };
 
   const closeProfile = () => setIsProfileOpen(false);
+
+  // 🔥 OPEN ADD MODAL (empty form)
+  const openAddModal = () => {
+    setEditTarget(null);
+    setIsFormOpen(true);
+  };
+
+  // 🔥 OPEN EDIT MODAL (with data)
+  const openEditModal = (rider: Rider) => {
+    setEditTarget(rider);
+    setIsFormOpen(true);
+  };
+
+  // 🔥 DELETE RIDER WITH SWAL
+  const handleDelete = (id: string) => {
+    Swal.fire({
+      title: "Delete Rider?",
+      text: "This action cannot be undone.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Delete",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        setRiders((prev) => prev.filter((r) => r.id !== id));
+        Swal.fire("Deleted!", "The rider has been removed.", "success");
+      }
+    });
+  };
+
+  // 🔥 HANDLE SUBMIT FROM RIDERFORMMODAL
+  const handleFormSubmit = (data: any) => {
+    if (editTarget) {
+      // EDIT MODE: update existing rider
+      setRiders((prev) =>
+        prev.map((r) =>
+          r.id === editTarget.id
+            ? {
+                ...r,
+                name: data.name,
+                contact: data.contact,
+                homeBase: data.homeBase,
+                status: data.status,
+                ordersToday: data.ordersToday ?? 0,
+              }
+            : r
+        )
+      );
+      Swal.fire("Updated!", "Rider details updated successfully.", "success");
+    } else {
+      // ADD MODE: add new rider
+      setRiders((prev) => {
+        const nextIndex = prev.length + 1;
+        const newRider: Rider = {
+          id: `RDR-${nextIndex.toString().padStart(3, "0")}`,
+          name: data.name,
+          contact: data.contact,
+          homeBase: data.homeBase,
+          status: data.status,
+          ordersToday: data.ordersToday ?? 0,
+          rating: 0,
+          completedDeliveries: 0,
+          workload: 0,
+          lastAssigned: "Not assigned",
+          lastActive: "Just added",
+        };
+        return [...prev, newRider];
+      });
+      Swal.fire("Added!", "New rider has been added.", "success");
+    }
+
+    setIsFormOpen(false);
+  };
 
   const filteredRiders = useMemo(() => {
     let data = riders.filter(
@@ -505,18 +586,27 @@ export default function Riders() {
                             <Eye className="w-4 h-4" />
                           </button>
 
-                          {/* Assign stub */}
-                          <button className="w-9 h-9 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition shadow-sm flex items-center justify-center">
+                          {/* Add New Rider (empty form) */}
+                          <button
+                            className="w-9 h-9 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition shadow-sm flex items-center justify-center"
+                            onClick={openAddModal}
+                          >
                             <Plus className="w-4 h-4" />
                           </button>
 
-                          {/* Edit */}
-                          <button className="w-9 h-9 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition shadow-sm flex items-center justify-center">
+                          {/* Edit Rider */}
+                          <button
+                            className="w-9 h-9 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition shadow-sm flex items-center justify-center"
+                            onClick={() => openEditModal(rider)}
+                          >
                             <Pencil className="w-4 h-4" />
                           </button>
 
-                          {/* Delete */}
-                          <button className="w-9 h-9 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition shadow-sm flex items-center justify-center">
+                          {/* Delete Rider */}
+                          <button
+                            className="w-9 h-9 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition shadow-sm flex items-center justify-center"
+                            onClick={() => handleDelete(rider.id)}
+                          >
                             <Trash className="w-4 h-4" />
                           </button>
                         </div>
@@ -629,7 +719,9 @@ export default function Riders() {
                   </p>
                 </div>
                 <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
-                  <p className="text-[11px] text-slate-400">Today&apos;s Load</p>
+                  <p className="text-[11px] text-slate-400">
+                    Today&apos;s Load
+                  </p>
                   <p className="font-semibold text-slate-50 mt-1">
                     {selectedRider.ordersToday} orders
                   </p>
@@ -678,6 +770,14 @@ export default function Riders() {
           </motion.div>
         </div>
       )}
+
+      {/* ---------- RIDER FORM MODAL (ADD / EDIT) ---------- */}
+      <RiderFormModal
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSubmit={handleFormSubmit}
+        initialData={editTarget || undefined}
+      />
     </motion.div>
   );
 }
