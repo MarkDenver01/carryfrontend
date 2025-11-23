@@ -1,11 +1,5 @@
 import React from "react";
-import {
-  Pencil,
-  Eye,
-  Trash2,
-  CheckCircle,
-  XCircle,
-} from "lucide-react";
+import { Pencil, Eye, XCircle, CheckCircle } from "lucide-react";
 import type { Product } from "../../types/types";
 
 interface ProductTableProps {
@@ -18,6 +12,8 @@ interface ProductTableProps {
   handleEditProduct: (index: number) => void;
   toggleAvailability: (product: Product) => void;
   handleDeleteProduct: (id: number) => void;
+
+  // ✅ Replaced old modal triggers with the new unified handler
   onViewRecommendations: (product: Product) => void;
 }
 
@@ -34,146 +30,177 @@ const ProductTable: React.FC<ProductTableProps> = ({
 }) => {
   return (
     <div className="overflow-x-auto w-full">
-      <table className="min-w-[1100px] w-full text-sm text-slate-800">
-        
-        {/* ================= HEADER (Apple style) ================= */}
-        <thead>
-          <tr className="bg-white/80 backdrop-blur-md border-b border-slate-200/80">
-            {[
-              { key: "", label: "Image" },
-              { key: "code", label: "Code" },
-              { key: "name", label: "Name" },
-              { key: "categoryName", label: "Category" },
-              { key: "stock", label: "Stock" },
-              { key: "status", label: "Status" },
-              { key: "", label: "Actions" },
-            ].map((col) => (
-              <th
-                key={col.label}
-                className="p-3 font-semibold text-[13px] text-slate-600 select-none"
-                onClick={() => col.key && handleSort(col.key as any)}
-              >
-                <div
-                  className={`flex items-center gap-1 ${
-                    col.key ? "cursor-pointer hover:text-slate-900" : ""
-                  }`}
-                >
-                  {col.label}
-                  {col.key && (
-                    <span className="text-xs opacity-60">
-                      {getSortIcon(col.key as any)}
-                    </span>
-                  )}
-                </div>
-              </th>
-            ))}
+      <table className="min-w-[1500px] border border-gray-200 text-sm text-left text-gray-700">
+        <thead className="bg-emerald-700 text-white text-xs uppercase tracking-wide">
+          <tr className="divide-x divide-emerald-600">
+            <th className="p-3 font-semibold w-[80px]">Image</th>
+            <th
+              className="p-3 font-semibold w-[100px] cursor-pointer"
+              onClick={() => handleSort("code")}
+            >
+              Code {getSortIcon("code")}
+            </th>
+            <th
+              className="p-3 font-semibold w-[200px] cursor-pointer"
+              onClick={() => handleSort("name")}
+            >
+              Name {getSortIcon("name")}
+            </th>
+            <th
+              className="p-3 font-semibold w-[260px] cursor-pointer"
+              onClick={() => handleSort("categoryName")}
+            >
+              Category {getSortIcon("categoryName")}
+            </th>
+            <th
+              className="p-3 font-semibold w-[350px] cursor-pointer"
+              onClick={() => handleSort("description")}
+            >
+              Description {getSortIcon("description")}
+            </th>
+            <th className="p-3 font-semibold w-[80px]">Size</th>
+            <th
+              className="p-3 font-semibold w-[80px] cursor-pointer"
+              onClick={() => handleSort("stock")}
+            >
+              Stocks {getSortIcon("stock")}
+            </th>
+            <th className="p-3 font-semibold w-[130px]">Expiry</th>
+            <th className="p-3 font-semibold w-[130px]">In Date</th>
+            <th className="p-3 font-semibold w-[120px]">Status</th>
+            <th className="p-3 font-semibold text-center w-[500px]">Actions</th>
           </tr>
         </thead>
 
-        {/* ================= BODY ================= */}
-        <tbody className="divide-y divide-slate-200/70">
+        <tbody className="bg-white">
           {paginatedProducts.length > 0 ? (
             paginatedProducts.map((product, idx) => (
               <tr
-                key={product.id}
-                className="hover:bg-slate-100/50 transition-all"
+                key={product.id ?? idx}
+                className="hover:bg-gray-50 border-t border-gray-200"
               >
-                {/* IMAGE */}
-                <td className="p-3">
-                  <div className="h-12 w-12 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-                    <img
-                      src={product.imageUrl || "/placeholder.png"}
-                      alt={product.name}
-                      className="h-full w-full object-cover"
-                    />
-                  </div>
+                {/* Image */}
+                <td className="p-2.5 w-[80px] align-middle">
+                  <img
+                    src={product.imageUrl || "/placeholder.png"}
+                    alt={product.name}
+                    className="w-12 h-12 rounded object-cover border border-gray-200"
+                  />
                 </td>
 
-                {/* CODE */}
-                <td className="p-3 text-slate-600">{product.code}</td>
+                {/* Code */}
+                <td className="p-2.5 w-[100px] align-middle">{product.code}</td>
 
-                {/* NAME */}
-                <td className="p-3 font-medium text-slate-900">
+                {/* Name */}
+                <td className="p-2.5 w-[200px] align-middle font-medium">
                   {product.name}
                 </td>
 
-                {/* CATEGORY */}
-                <td className="p-3">
-                  <span className="px-2 py-1 rounded-lg bg-slate-100 text-slate-700 text-xs border border-slate-200">
-                    {product.categoryName}
+                {/* Category */}
+                <td className="p-2.5 w-[260px] align-middle">
+                  <span className="px-2 py-1 text-xs rounded-full bg-indigo-100 text-indigo-700 border border-indigo-300">
+                    {product.categoryName ?? "—"}
                   </span>
                 </td>
 
-                {/* STOCK */}
-                <td className="p-3 font-semibold text-slate-900">
-                  {product.stock}
+                {/* Description (with hover tooltip) */}
+                <td className="p-2.5 w-[350px] align-middle relative group">
+                  <p className="line-clamp-3 cursor-pointer">
+                    {product.description}
+                  </p>
+
+                  <div
+                    className="
+                      hidden group-hover:block absolute z-50 left-0 top-full mt-1
+                      w-[380px] bg-white shadow-xl border border-gray-300
+                      rounded-md p-3 text-gray-700 text-sm leading-relaxed
+                      whitespace-normal
+                    "
+                  >
+                    {product.description}
+                  </div>
                 </td>
 
-                {/* STATUS */}
-                <td className="p-3">
+                {/* Size */}
+                <td className="p-2.5 w-[80px] align-middle">{product.size}</td>
+
+                {/* Stock */}
+                <td className="p-2.5 w-[80px] align-middle">{product.stock}</td>
+
+                {/* Expiry */}
+                <td className="p-2.5 w-[130px] align-middle">
+                  {product.expiryDate ?? "—"}
+                </td>
+
+                {/* In Date */}
+                <td className="p-2.5 w-[130px] align-middle">
+                  {product.inDate ?? "—"}
+                </td>
+
+                {/* Status */}
+                <td className="p-2.5 w-[120px] align-middle">
                   <span
-                    className={`px-2 py-1 rounded-lg text-xs border font-medium ${
+                    className={`px-2 py-1 text-xs rounded-full border ${
                       product.status === "Available"
-                        ? "bg-green-100 text-green-700 border-green-200"
-                        : "bg-red-100 text-red-700 border-red-200"
+                        ? "bg-green-100 text-green-700 border-green-300"
+                        : "bg-red-100 text-red-700 border-red-300"
                     }`}
                   >
                     {product.status}
                   </span>
                 </td>
 
-                {/* ACTIONS */}
-                <td className="p-3">
-                  <div className="flex items-center gap-3">
-
-                    {/* VIEW */}
+                {/* ACTION BUTTONS */}
+                <td className="p-2.5 align-middle w-[500px]">
+                  <div className="flex items-center justify-center gap-2 whitespace-nowrap">
+                    {/* UPDATE */}
                     <button
-                      className="p-2 bg-white rounded-lg border border-slate-200 hover:bg-slate-100 hover:border-slate-300 text-slate-700 transition shadow-sm"
-                      onClick={() => onViewRecommendations(product)}
-                      title="View Recommendations"
+                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md"
+                      onClick={() => {
+                        const realIndex = (currentPage - 1) * pageSize + idx;
+                        handleEditProduct(realIndex);
+                      }}
                     >
-                      <Eye className="w-4 h-4" />
+                      <Pencil className="w-4 h-4" /> Update
                     </button>
 
-                    {/* EDIT */}
+                    {/* AVAILABILITY */}
                     <button
-                      className="p-2 bg-white rounded-lg border border-slate-200 hover:bg-blue-100 hover:border-blue-300 text-blue-500 transition shadow-sm"
-                      onClick={() =>
-                        handleEditProduct(
-                          (currentPage - 1) * pageSize + idx
-                        )
-                      }
-                      title="Edit Product"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-
-                    {/* TOGGLE STATUS */}
-                    <button
-                      className={`p-2 bg-white rounded-lg border shadow-sm transition ${
+                      className={`h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white rounded-md ${
                         product.status === "Available"
-                          ? "text-red-600 hover:bg-red-100 hover:border-red-300 border-red-200"
-                          : "text-green-600 hover:bg-green-100 hover:border-green-300 border-green-200"
+                          ? "bg-red-500 hover:bg-red-600"
+                          : "bg-green-600 hover:bg-green-700"
                       }`}
                       onClick={() => toggleAvailability(product)}
-                      title="Toggle Availability"
                     >
                       {product.status === "Available" ? (
-                        <XCircle className="w-4 h-4" />
+                        <>
+                          <XCircle className="w-4 h-4" /> Not Available
+                        </>
                       ) : (
-                        <CheckCircle className="w-4 h-4" />
+                        <>
+                          <CheckCircle className="w-4 h-4" /> Available
+                        </>
                       )}
+                    </button>
+
+                    {/* VIEW RECOMMENDATIONS ✅ */}
+                    <button
+                      className="h-9 min-w-[150px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md"
+                      onClick={() => onViewRecommendations(product)}
+                    >
+                      <Eye className="w-4 h-4" /> View Recommendations
                     </button>
 
                     {/* DELETE */}
                     <button
-                      className="p-2 bg-white rounded-lg border border-slate-200 hover:bg-red-100 hover:border-red-300 text-red-600 transition shadow-sm"
-                      onClick={() => product.id && handleDeleteProduct(product.id)}
-                      title="Delete"
+                      className="h-9 min-w-[120px] flex items-center justify-center gap-1 px-3 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md"
+                      onClick={() => {
+                        if (product.id) handleDeleteProduct(product.id);
+                      }}
                     >
-                      <Trash2 className="w-4 h-4" />
+                      <XCircle className="w-4 h-4" /> Delete
                     </button>
-
                   </div>
                 </td>
               </tr>
@@ -181,8 +208,8 @@ const ProductTable: React.FC<ProductTableProps> = ({
           ) : (
             <tr>
               <td
-                colSpan={7}
-                className="text-center py-6 text-slate-500"
+                colSpan={11}
+                className="text-center py-4 text-gray-500 border-t border-gray-200"
               >
                 No products found.
               </td>
