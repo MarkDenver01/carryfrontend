@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cash In Failed</title>
+
+  <!-- Lottie Web Component -->
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #450a0a, #7f1d1d);
+      color: #0f172a;
+    }
+
+    .card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 20px;
+      box-shadow: 0 20px 45px rgba(120, 20, 20, 0.35);
+      padding: 32px 24px 28px;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background-color: #fef2f2;
+      color: #b91c1c;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 16px;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background-color: #dc2626;
+      box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.25);
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #0f172a;
+    }
+
+    .subtext {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 20px;
+    }
+
+    .animation-wrapper {
+      margin: 0 auto 20px;
+      width: 210px;
+      height: 210px;
+    }
+
+    .ref {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 18px;
+    }
+
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .btn-primary {
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #dc2626, #ef4444);
+      color: #ffffff;
+      transition: 0.12s ease;
+      box-shadow: 0 10px 25px rgba(239, 68, 68, 0.45);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(239, 68, 68, 0.55);
+    }
+
+    .btn-secondary {
+      border-radius: 999px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px dashed #d1d5db;
+      background-color: #f9fafb;
+      color: #6b7280;
+      cursor: pointer;
+      transition: 0.12s ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #f3f4f6;
+      border-color: #9ca3af;
+      color: #4b5563;
+    }
+
+    .footer-note {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .footer-note span {
+      color: #dc2626;
+      font-weight: 600;
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        margin: 16px;
+        padding: 24px 18px 22px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      .animation-wrapper {
+        width: 180px;
+        height: 180px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      CASH IN FAILED
+    </div>
+
+    <h1>Transaction Failed ❌</h1>
+    <p class="subtext">
+      Your payment did not go through. Please try again or use another
+      payment method.
+    </p>
+
+    <!-- Lottie Animation -->
+    <div class="animation-wrapper">
+      <!-- Replace this with your error animation URL -->
+      <lottie-player
+        src="https://assets1.lottiefiles.com/private_files/lf30_t9gkkhz4.json"
+        background="transparent"
+        speed="1"
+        loop
+        autoplay
+        style="width: 100%; height: 100%;"
+      ></lottie-player>
+    </div>
+
+    <p class="ref">
+      Error Code: <strong>GCASH-ERR-402</strong> · Payment was not completed
+    </p>
+
+    <div class="buttons">
+      <button
+        class="btn-primary"
+        onclick="window.location.href='https://your-app-url.com/cash-in';"
+      >
+        Try Again
+      </button>
+
+      <button
+        class="btn-secondary"
+        onclick="window.location.href='https://your-app-url.com/support';"
+      >
+        Contact Support
+      </button>
+    </div>
+
+    <p class="footer-note">
+      If you think this is a mistake, <span>reach out to our support team</span>.
+    </p>
+  </div>
+</body>
+</html>
