@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cash In Success</title>
+  <!-- Lottie Player (Web Component) -->
+  <script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f172a, #020617);
+      color: #0f172a;
+    }
+
+    .card {
+      background: #ffffff;
+      width: 100%;
+      max-width: 420px;
+      border-radius: 20px;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.35);
+      padding: 32px 24px 28px;
+      text-align: center;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background-color: #ecfdf3;
+      color: #15803d;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 16px;
+    }
+
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background-color: #22c55e;
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25);
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: #0f172a;
+    }
+
+    .subtext {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 20px;
+    }
+
+    .animation-wrapper {
+      margin: 0 auto 20px;
+      width: 210px;
+      height: 210px;
+    }
+
+    .amount-box {
+      background: #f9fafb;
+      border-radius: 14px;
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .amount-label {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .amount-value {
+      font-size: 18px;
+      font-weight: 700;
+      color: #16a34a;
+    }
+
+    .ref {
+      font-size: 12px;
+      color: #9ca3af;
+      margin-bottom: 18px;
+    }
+
+    .buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .btn-primary {
+      border: none;
+      outline: none;
+      cursor: pointer;
+      padding: 10px 16px;
+      border-radius: 999px;
+      font-size: 14px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.12s ease, box-shadow 0.12s ease,
+        filter 0.12s ease;
+      box-shadow: 0 10px 25px rgba(34, 197, 94, 0.4);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.05);
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(34, 197, 94, 0.5);
+    }
+
+    .btn-secondary {
+      border-radius: 999px;
+      padding: 9px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      border: 1px dashed #d1d5db;
+      background-color: #f9fafb;
+      color: #6b7280;
+      cursor: pointer;
+      transition: background-color 0.12s ease, color 0.12s ease,
+        border-color 0.12s ease;
+    }
+
+    .btn-secondary:hover {
+      background-color: #f3f4f6;
+      border-color: #9ca3af;
+      color: #4b5563;
+    }
+
+    .footer-note {
+      font-size: 11px;
+      color: #9ca3af;
+    }
+
+    .footer-note span {
+      color: #16a34a;
+      font-weight: 600;
+    }
+
+    @media (max-width: 480px) {
+      .card {
+        margin: 16px;
+        padding: 24px 18px 22px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      .animation-wrapper {
+        width: 180px;
+        height: 180px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">
+      <span class="badge-dot"></span>
+      CASH IN SUCCESS
+    </div>
+
+    <h1>Payment Confirmed 🎉</h1>
+    <p class="subtext">
+      Your GCash cash in has been successfully processed and added to your
+      wallet.
+    </p>
+
+    <!-- Lottie Animation Container -->
+    <div class="animation-wrapper">
+      <!-- 🔁 Replace the src URL below with your own Lottie JSON link -->
+      <lottie-player
+        src="https://assets10.lottiefiles.com/packages/lf20_jbrw3hcz.json"
+        background="transparent"
+        speed="1"
+        loop
+        autoplay
+        style="width: 100%; height: 100%;"
+      >
+      </lottie-player>
+    </div>
+
+    <!-- Optional: Dynamic details (you can bind these via JS if needed) -->
+    <div class="amount-box">
+      <div class="amount-label">Cash In Amount</div>
+      <div class="amount-value">₱1,000.00</div>
+    </div>
+
+    <p class="ref">
+      Ref No: <strong>GC-2025-1125-0001</strong> · Posted to your ShopMate Wallet
+    </p>
+
+    <div class="buttons">
+      <!-- This button can redirect back to your app or dashboard -->
+      <button
+        class="btn-primary"
+        onclick="window.location.href='https://capstone.wrapandcarry.com/';"
+      >
+        Back to ShopMate
+      </button>
+    </div>
+
+    <p class="footer-note">
+      Having issues? <span>Contact support</span> with your reference number.
+    </p>
+  </div>
+</body>
+</html>
