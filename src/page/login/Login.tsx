@@ -343,7 +343,7 @@ const Login: React.FC = () => {
                 <ul className="space-y-2 text-xs sm:text-sm text-emerald-50/95">
                   <li className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(167,243,208,0.9)]" />
-                    Monitor orders, drivers, and product inventory in real time
+                    Monitor orders, drivers, and product inventory in updates.
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(167,243,208,0.9)]" />
