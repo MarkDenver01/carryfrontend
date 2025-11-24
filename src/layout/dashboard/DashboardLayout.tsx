@@ -31,6 +31,7 @@ import { ProductsProvider } from "../../context/ProductsContext";
 import { PricesProvider } from "../../context/PricesContext";
 import CategoryProvider from "../../context/CategoryContext";
 import { RecommendationRuleProvider } from "../../context/RecommendationRulesContext";
+import { DriverProvider }  from '../../context/DriverContext.tsx';
 
 export default function DashboardLayout() {
     const { user } = useAuth();
@@ -61,8 +62,9 @@ export default function DashboardLayout() {
                         <ProductsProvider>
                             <PricesProvider>
                                 <RecommendationRuleProvider>
-                                    <Routes>
-
+                                    <DriverProvider>
+                                        <Routes>
+                                            
                                         {/* LANDING DASHBOARD PER ROLE */}
                                         <Route
                                             path=""
@@ -214,7 +216,8 @@ export default function DashboardLayout() {
                                             }
                                         />
 
-                                    </Routes>
+                                     </Routes>
+                                    </DriverProvider>
                                 </RecommendationRuleProvider>
                             </PricesProvider>
                         </ProductsProvider>
