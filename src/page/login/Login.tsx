@@ -101,7 +101,7 @@ const Login: React.FC = () => {
       if (response.role === "ADMIN") {
         Swal.fire({
           icon: "success",
-          title: `Hi ${response.username} (Super Admin)! Your login is successful.`,
+          title: `Hi ${response.username} "Super Admin"! Your login is successful.`,
           text: "Tap proceed to continue.",
           confirmButtonText: "PROCEED",
           ...getSwalTheme(),
@@ -113,7 +113,7 @@ const Login: React.FC = () => {
       } else if (response.role === "SUB_ADMIN") {
         Swal.fire({
           icon: "success",
-          title: `Hi ${response.username} (Admin)! Your login is successful.`,
+          title: `Hi ${response.username} "Admin"! Your login is successful.`,
           text: "Tap proceed to continue.",
           confirmButtonText: "PROCEED",
           ...getSwalTheme(),
