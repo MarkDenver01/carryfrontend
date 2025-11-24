@@ -11,6 +11,7 @@ import {
     Currency,
 } from "lucide-react";
 import type { SidebarMenuSection } from "../types/sidebar";
+import { Image } from "lucide-react";
 
 export const sidebarMenu: SidebarMenuSection[] = [
     {
@@ -32,6 +33,12 @@ export const sidebarMenu: SidebarMenuSection[] = [
                 icon: Boxes,
                 role: "SUB_ADMIN",
                 children: [
+                     {
+                        label: "Product Banner",
+                        icon: Image,
+                        path: "/dashboard/products/banner",
+                        role: "SUB_ADMIN",
+                    },
                     {
                         label: "Product Categories",
                         icon: Boxes,

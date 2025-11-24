@@ -213,3 +213,4 @@ export async function registerDriver(formData: FormData) {
     throw error.response?.data || { message: "Failed to register driver" };
   }
 }
+
