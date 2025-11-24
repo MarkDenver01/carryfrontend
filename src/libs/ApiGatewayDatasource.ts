@@ -198,3 +198,18 @@ export async function updateRule(id: number, rule: RecommendationRuleRequest) {
   return res.data;
 }
 
+/**
+ * Register Driver (Multipart Upload)
+ */
+export async function registerDriver(formData: FormData) {
+  try {
+    const response = await api.post("/admin/api/driver/register", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    return response.data; // backend returns Driver
+  } catch (error: any) {
+    console.error("Driver registration failed:", error);
+    throw error.response?.data || { message: "Failed to register driver" };
+  }
+}

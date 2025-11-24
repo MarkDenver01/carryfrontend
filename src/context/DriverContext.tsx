@@ -1,22 +1,23 @@
 import { createContext, useContext, useState } from "react";
+import { registerDriver } from "../libs/ApiGatewayDatasource";
 
 export interface Driver {
-  id: number;
+  driverId: number;
   userName: string;
   email: string;
   mobileNumber: string;
   address: string;
   driversLicenseNumber: string;
-  photoFile: File | null;
-  frontIdFile: File | null;
-  backIdFile: File | null;
+  photoUrl: string | null;
+  frontIdUrl: string | null;
+  backIdUrl: string | null;
 }
 
 interface DriverContextType {
   drivers: Driver[];
-  addDriver: (d: Driver) => void;
-  updateDriver: (d: Driver) => void;
-  deleteDriver: (id: number) => void;
+  addDriver: (formData: FormData) => Promise<Driver>;
+  updateDriver: (driver: Driver) => void;
+  deleteDriver: (driverId: number) => void;
 }
 
 const DriverContext = createContext<DriverContextType | undefined>(undefined);
@@ -24,24 +25,27 @@ const DriverContext = createContext<DriverContextType | undefined>(undefined);
 export function DriverProvider({ children }: { children: React.ReactNode }) {
   const [drivers, setDrivers] = useState<Driver[]>([]);
 
-  const addDriver = (d: Driver) => {
-    setDrivers((prev) => [...prev, d]);
+  const addDriver = async (formData: FormData): Promise<Driver> => {
+    const savedDriver = await registerDriver(formData);
+
+    // append saved driver to list
+    setDrivers((prev) => [...prev, savedDriver]);
+
+    return savedDriver;
   };
 
   const updateDriver = (updated: Driver) => {
     setDrivers((prev) =>
-      prev.map((d) => (d.id === updated.id ? updated : d))
+      prev.map((d) => (d.driverId === updated.driverId ? updated : d))
     );
   };
 
-  const deleteDriver = (id: number) => {
-    setDrivers((prev) => prev.filter((d) => d.id !== id));
+  const deleteDriver = (driverId: number) => {
+    setDrivers((prev) => prev.filter((d) => d.driverId !== driverId));
   };
 
   return (
-    <DriverContext.Provider
-      value={{ drivers, addDriver, updateDriver, deleteDriver }}
-    >
+    <DriverContext.Provider value={{ drivers, addDriver, updateDriver, deleteDriver }}>
       {children}
     </DriverContext.Provider>
   );

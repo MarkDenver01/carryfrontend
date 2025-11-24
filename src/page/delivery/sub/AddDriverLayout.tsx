@@ -77,16 +77,23 @@ export default function AddDriverLayout() {
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validate()) return;
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!validate()) return;
 
-    const newDriver = {
-      id: Date.now(),
-      ...form,
-    };
+  const formData = new FormData();
+  formData.append("userName", form.userName);
+  formData.append("email", form.email);
+  formData.append("mobileNumber", form.mobileNumber);
+  formData.append("address", form.address);
+  formData.append("driversLicenseNumber", form.driversLicenseNumber);
 
-    addDriver(newDriver);
+  if (form.photoFile) formData.append("photoFile", form.photoFile);
+  if (form.frontIdFile) formData.append("frontIdFile", form.frontIdFile);
+  if (form.backIdFile) formData.append("backIdFile", form.backIdFile);
+
+  try {
+    const saved = await addDriver(formData);
 
     Swal.fire({
       title: "Driver Registered!",
@@ -94,6 +101,9 @@ export default function AddDriverLayout() {
       icon: "success",
     });
 
+    console.log("Saved Driver:", saved);
+
+    // reset form
     setForm({
       userName: "",
       email: "",
@@ -106,7 +116,16 @@ export default function AddDriverLayout() {
     });
 
     setPreview({ photo: "", frontId: "", backId: "" });
-  };
+
+  } catch (error: any) {
+    Swal.fire({
+      title: "Registration Failed",
+      text: error.message ?? "Something went wrong",
+      icon: "error",
+    });
+  }
+};
+
 
   return (
     <div className="flex justify-center w-full px-4 md:px-0">
