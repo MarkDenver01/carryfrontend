@@ -10,11 +10,11 @@ import {
   UploadCloud,
 } from "lucide-react";
 import Swal from "sweetalert2";
-import { useDrivers } from "../../../context/DriverContext";
+
+// 👉 REAL BACKEND API (IMPORTANT)
+import { registerDriver } from "../../../libs/ApiGatewayDatasource";
 
 export default function AddDriverLayout() {
-  const { addDriver } = useDrivers();
-
   const [form, setForm] = useState({
     userName: "",
     email: "",
@@ -77,55 +77,55 @@ export default function AddDriverLayout() {
     return true;
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!validate()) return;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validate()) return;
 
-  const formData = new FormData();
-  formData.append("userName", form.userName);
-  formData.append("email", form.email);
-  formData.append("mobileNumber", form.mobileNumber);
-  formData.append("address", form.address);
-  formData.append("driversLicenseNumber", form.driversLicenseNumber);
+    const formData = new FormData();
+    formData.append("userName", form.userName);
+    formData.append("email", form.email);
+    formData.append("mobileNumber", form.mobileNumber);
+    formData.append("address", form.address);
+    formData.append("driversLicenseNumber", form.driversLicenseNumber);
 
-  if (form.photoFile) formData.append("photoFile", form.photoFile);
-  if (form.frontIdFile) formData.append("frontIdFile", form.frontIdFile);
-  if (form.backIdFile) formData.append("backIdFile", form.backIdFile);
+    if (form.photoFile) formData.append("photoFile", form.photoFile);
+    if (form.frontIdFile) formData.append("frontIdFile", form.frontIdFile);
+    if (form.backIdFile) formData.append("backIdFile", form.backIdFile);
 
-  try {
-    const saved = await addDriver(formData);
+    try {
+      // ⭐ REAL BACKEND SAVE
+      const saved = await registerDriver(formData);
 
-    Swal.fire({
-      title: "Driver Registered!",
-      text: "The driver has been successfully added.",
-      icon: "success",
-    });
+      Swal.fire({
+        title: "Driver Registered!",
+        text: "Driver added successfully.",
+        icon: "success",
+      });
 
-    console.log("Saved Driver:", saved);
+      console.log("Saved Driver:", saved);
 
-    // reset form
-    setForm({
-      userName: "",
-      email: "",
-      mobileNumber: "",
-      address: "",
-      driversLicenseNumber: "",
-      photoFile: null,
-      frontIdFile: null,
-      backIdFile: null,
-    });
+      // Reset form
+      setForm({
+        userName: "",
+        email: "",
+        mobileNumber: "",
+        address: "",
+        driversLicenseNumber: "",
+        photoFile: null,
+        frontIdFile: null,
+        backIdFile: null,
+      });
 
-    setPreview({ photo: "", frontId: "", backId: "" });
+      setPreview({ photo: "", frontId: "", backId: "" });
 
-  } catch (error: any) {
-    Swal.fire({
-      title: "Registration Failed",
-      text: error.message ?? "Something went wrong",
-      icon: "error",
-    });
-  }
-};
-
+    } catch (error: any) {
+      Swal.fire({
+        title: "Registration Failed",
+        text: error.message ?? "Something went wrong",
+        icon: "error",
+      });
+    }
+  };
 
   return (
     <div className="flex justify-center w-full px-4 md:px-0">
@@ -276,7 +276,6 @@ const handleSubmit = async (e: React.FormEvent) => {
 
           {/* BUTTONS */}
           <div className="col-span-2 flex justify-center gap-6 mt-6">
-            {/* SUBMIT */}
             <button
               type="submit"
               className="bg-emerald-600 hover:bg-emerald-700 text-white px-10 py-3 rounded-xl shadow-md font-semibold tracking-wide"
@@ -284,7 +283,6 @@ const handleSubmit = async (e: React.FormEvent) => {
               Register Driver
             </button>
 
-            {/* RESET */}
             <button
               type="button"
               className="bg-gray-300 hover:bg-gray-400 text-gray-800 px-8 py-3 rounded-xl shadow"
