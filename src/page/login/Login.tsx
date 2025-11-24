@@ -81,68 +81,68 @@ const Login: React.FC = () => {
 
   // Login Logic (unchanged)
   const handleLogin = async (e: FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!recaptchaValue) {
+  if (!recaptchaValue) {
+    Swal.fire({
+      icon: "error",
+      title: "Invalid Captcha",
+      text: "Please complete the captcha.",
+      ...getSwalTheme(),
+    });
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const response: LoginResponse = await login({ email, password });
+    setAuth(response);
+
+    if (response.role === "ADMIN") {
+      Swal.fire({
+        icon: "success",
+        title: `Hi Super Admin! Your login is successful.`,
+        text: "Tap proceed to continue.",
+        confirmButtonText: "PROCEED",
+        ...getSwalTheme(),
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate("dashboard", { replace: true });
+        }
+      });
+    } else if (response.role === "SUB_ADMIN") {
+      Swal.fire({
+        icon: "success",
+        title: `Hi Admin! Your login is successful.`,
+        text: "Tap proceed to continue.",
+        confirmButtonText: "PROCEED",
+        ...getSwalTheme(),
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate("dashboard", { replace: true });
+        }
+      });
+    } else {
       Swal.fire({
         icon: "error",
-        title: "Invalid Captcha",
-        text: "Please complete the captcha.",
+        title: "Access Denied",
+        text: `Non-administrator role is prohibited to login.`,
+        confirmButtonText: "CLOSE",
         ...getSwalTheme(),
       });
-      return;
     }
-
-    try {
-      setLoading(true);
-      const response: LoginResponse = await login({ email, password });
-      setAuth(response);
-
-      if (response.role === "ADMIN") {
-        Swal.fire({
-          icon: "success",
-          title: `Hi ${response.username} "Super Admin"! Your login is successful.`,
-          text: "Tap proceed to continue.",
-          confirmButtonText: "PROCEED",
-          ...getSwalTheme(),
-        }).then((result) => {
-          if (result.isConfirmed) {
-            navigate("dashboard", { replace: true });
-          }
-        });
-      } else if (response.role === "SUB_ADMIN") {
-        Swal.fire({
-          icon: "success",
-          title: `Hi ${response.username} "Admin"! Your login is successful.`,
-          text: "Tap proceed to continue.",
-          confirmButtonText: "PROCEED",
-          ...getSwalTheme(),
-        }).then((result) => {
-          if (result.isConfirmed) {
-            navigate("dashboard", { replace: true });
-          }
-        });
-      } else {
-        Swal.fire({
-          icon: "error",
-          title: "Access Denied",
-          text: `Non-administrator role is prohibited to login.`,
-          confirmButtonText: "CLOSE",
-          ...getSwalTheme(),
-        });
-      }
-    } catch (err) {
-      console.error(err);
-      Swal.fire({
-        icon: "error",
-        title: "Login Failed",
-        text: "Invalid email or password.",
-        ...getSwalTheme(),
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      icon: "error",
+      title: "Login Failed",
+      text: "Invalid email or password.",
+      ...getSwalTheme(),
+    });
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handlePasswordKeyEvent = (
     e: React.KeyboardEvent<HTMLInputElement>
