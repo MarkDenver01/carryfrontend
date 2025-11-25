@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import type React from "react";
 import {
   Search,
   ChevronDown,
@@ -19,87 +20,25 @@ import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 import RiderFormModal from "../../../components/driver/RiderFormModal";
 
-type RiderStatus = "Available" | "On Delivery" | "Offline" | "Not Available";
+// ⭐ IMPORT GLOBAL DRIVER CONTEXT
+import { useDrivers, type Rider } from "../../../context/DriverContext";
+
+// Derive RiderStatus from Rider type (no need i-export separately)
+type RiderStatus = Rider["status"];
+
 type SortOption = "Name" | "Status" | "Deliveries" | "Rating";
 
-export type Rider = {
-  id: string;
-  name: string;
-  contact: string;
-  status: RiderStatus;
-  ordersToday: number;
-  lastAssigned: string;
-  rating: number;
-  completedDeliveries: number;
-  workload: number;
-  lastActive: string;
-  homeBase: string;
-};
-
-const initialRiders: Rider[] = [
-  {
-    id: "RDR-001",
-    name: "Carlos Dela Cruz",
-    contact: "0917-123-4567",
-    status: "Available",
-    ordersToday: 7,
-    lastAssigned: "2025-07-03 10:45 AM",
-    rating: 4.9,
-    completedDeliveries: 152,
-    workload: 60,
-    lastActive: "Online • 5 mins ago",
-    homeBase: "Tanauan City, Batangas",
-  },
-  {
-    id: "RDR-002",
-    name: "Jomar Castillo",
-    contact: "0918-987-6543",
-    status: "On Delivery",
-    ordersToday: 4,
-    lastAssigned: "2025-07-03 09:30 AM",
-    rating: 4.7,
-    completedDeliveries: 98,
-    workload: 80,
-    lastActive: "On delivery route",
-    homeBase: "Talisay, Batangas",
-  },
-  {
-    id: "RDR-003",
-    name: "Leo Mariano",
-    contact: "0916-555-1234",
-    status: "Offline",
-    ordersToday: 0,
-    lastAssigned: "2025-07-02 06:15 PM",
-    rating: 4.5,
-    completedDeliveries: 74,
-    workload: 0,
-    lastActive: "Last seen • 10 hours ago",
-    homeBase: "Sto. Tomas, Batangas",
-  },
-  {
-    id: "RDR-004",
-    name: "Samuel Reyes",
-    contact: "0921-765-4321",
-    status: "Not Available",
-    ordersToday: 2,
-    lastAssigned: "2025-07-03 08:50 AM",
-    rating: 4.2,
-    completedDeliveries: 45,
-    workload: 40,
-    lastActive: "On break",
-    homeBase: "Malvar, Batangas",
-  },
-];
-
-export default function Riders() {
+export default function RidersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | RiderStatus>("All");
   const [sortBy, setSortBy] = useState<SortOption>("Name");
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  
 
-  const [riders, setRiders] = useState<Rider[]>(initialRiders);
+  // ⭐ GET GLOBAL RIDERS + ACTIONS FROM CONTEXT
+  const { riders, deleteRider, updateRider } = useDrivers();
 
   // 🔥 Modal for EDIT only
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -140,7 +79,7 @@ export default function Riders() {
     setIsFormOpen(true);
   };
 
-  // 🔥 DELETE RIDER
+  // 🔥 DELETE RIDER (GLOBAL VIA CONTEXT)
   const handleDelete = (id: string) => {
     Swal.fire({
       title: "Delete Rider?",
@@ -152,29 +91,22 @@ export default function Riders() {
       confirmButtonText: "Delete",
     }).then((result) => {
       if (result.isConfirmed) {
-        setRiders((prev) => prev.filter((r) => r.id !== id));
+        deleteRider(id);
         Swal.fire("Deleted!", "The rider has been removed.", "success");
       }
     });
   };
 
-  // 🔥 EDIT ONLY — ADD REMOVED
+  // 🔥 EDIT — USE GLOBAL updateRider (context)
   const handleFormSubmit = (data: any) => {
     if (editTarget) {
-      setRiders((prev) =>
-        prev.map((r) =>
-          r.id === editTarget.id
-            ? {
-                ...r,
-                name: data.name,
-                contact: data.contact,
-                homeBase: data.homeBase,
-                status: data.status,
-                ordersToday: data.ordersToday ?? 0,
-              }
-            : r
-        )
-      );
+      updateRider(editTarget.id, {
+        name: data.name,
+        contact: data.contact,
+        homeBase: data.homeBase,
+        status: data.status,
+        ordersToday: data.ordersToday ?? 0,
+      });
 
       Swal.fire("Updated!", "Rider details updated successfully.", "success");
     }
@@ -216,8 +148,6 @@ export default function Riders() {
       className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
       onMouseMove={handleMouseMove}
     >
-      {/* 🔥 ENTIRE UI BELOW IS UNMODIFIED — ONLY ADD REMOVED */}
-
       {/* ===== GLOBAL HUD BACKDROP ===== */}
       <div className="pointer-events-none absolute inset-0 -z-30">
         <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:40px_40px]" />
@@ -249,8 +179,7 @@ export default function Riders() {
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
-          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)
-        `,
+          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)`,
         }}
       />
 
@@ -432,9 +361,9 @@ export default function Riders() {
 
               <tbody>
                 {filteredRiders.length > 0 ? (
-                  filteredRiders.map((rider, index) => (
+                  filteredRiders.map((rider) => (
                     <tr
-                      key={index}
+                      key={rider.id}
                       className="hover:bg-emerald-50/70 transition border-b last:border-none"
                     >
                       {/* Rider */}
@@ -540,7 +469,7 @@ export default function Riders() {
                           </button>
 
                           <button
-                            className="w-9 h-9 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition shadow-sm flex items-center justify-center"
+                            className="w-9 h-9 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition shadow-sm flex items-center justifyCenter"
                             onClick={() => handleDelete(rider.id)}
                           >
                             <Trash className="w-4 h-4" />
@@ -651,9 +580,7 @@ export default function Riders() {
                 </div>
 
                 <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
-                  <p className="text-[11px] text-slate-400">
-                    Today&apos;s Load
-                  </p>
+                  <p className="text-[11px] text-slate-400">Today&apos;s Load</p>
                   <p className="font-semibold text-slate-50 mt-1">
                     {selectedRider.ordersToday} orders
                   </p>
