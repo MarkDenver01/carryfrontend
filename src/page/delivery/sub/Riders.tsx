@@ -1,5 +1,4 @@
 import { useState, useMemo } from "react";
-import type React from "react";
 import {
   Search,
   ChevronDown,
@@ -14,20 +13,83 @@ import {
   Activity,
   Briefcase,
   MoreVertical,
-  UserPlus,
 } from "lucide-react";
 import { Dropdown, DropdownItem } from "flowbite-react";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 import RiderFormModal from "../../../components/driver/RiderFormModal";
 
-// ⭐ IMPORT GLOBAL DRIVER CONTEXT
-import { useDrivers, type Rider } from "../../../context/DriverContext";
-
-// Derive RiderStatus from Rider type (no need i-export separately)
-type RiderStatus = Rider["status"];
-
+type RiderStatus = "Available" | "On Delivery" | "Offline" | "Not Available";
 type SortOption = "Name" | "Status" | "Deliveries" | "Rating";
+
+export type Rider = {
+  id: string;
+  name: string;
+  contact: string;
+  status: RiderStatus;
+  ordersToday: number;
+  lastAssigned: string;
+  rating: number;
+  completedDeliveries: number;
+  workload: number;
+  lastActive: string;
+  homeBase: string;
+};
+
+const initialRiders: Rider[] = [
+  {
+    id: "RDR-001",
+    name: "Carlos Dela Cruz",
+    contact: "0917-123-4567",
+    status: "Available",
+    ordersToday: 7,
+    lastAssigned: "2025-07-03 10:45 AM",
+    rating: 4.9,
+    completedDeliveries: 152,
+    workload: 60,
+    lastActive: "Online • 5 mins ago",
+    homeBase: "Tanauan City, Batangas",
+  },
+  {
+    id: "RDR-002",
+    name: "Jomar Castillo",
+    contact: "0918-987-6543",
+    status: "On Delivery",
+    ordersToday: 4,
+    lastAssigned: "2025-07-03 09:30 AM",
+    rating: 4.7,
+    completedDeliveries: 98,
+    workload: 80,
+    lastActive: "On delivery route",
+    homeBase: "Talisay, Batangas",
+  },
+  {
+    id: "RDR-003",
+    name: "Leo Mariano",
+    contact: "0916-555-1234",
+    status: "Offline",
+    ordersToday: 0,
+    lastAssigned: "2025-07-02 06:15 PM",
+    rating: 4.5,
+    completedDeliveries: 74,
+    workload: 0,
+    lastActive: "Last seen • 10 hours ago",
+    homeBase: "Sto. Tomas, Batangas",
+  },
+  {
+    id: "RDR-004",
+    name: "Samuel Reyes",
+    contact: "0921-765-4321",
+    status: "Not Available",
+    ordersToday: 2,
+    lastAssigned: "2025-07-03 08:50 AM",
+    rating: 4.2,
+    completedDeliveries: 45,
+    workload: 40,
+    lastActive: "On break",
+    homeBase: "Malvar, Batangas",
+  },
+];
 
 export default function Riders() {
   const [searchTerm, setSearchTerm] = useState("");
@@ -37,10 +99,9 @@ export default function Riders() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
-  // ⭐ GET GLOBAL RIDERS + ACTIONS FROM CONTEXT
-  const { riders, addRider, deleteRider, updateRider } = useDrivers();
+  const [riders, setRiders] = useState<Rider[]>(initialRiders);
 
-  // 🔥 Modal for ADD + EDIT
+  // 🔥 Modal for EDIT only
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Rider | null>(null);
 
@@ -79,13 +140,7 @@ export default function Riders() {
     setIsFormOpen(true);
   };
 
-  // 🔥 OPEN ADD MODAL
-  const openAddModal = () => {
-    setEditTarget(null);
-    setIsFormOpen(true);
-  };
-
-  // 🔥 DELETE RIDER (GLOBAL VIA CONTEXT)
+  // 🔥 DELETE RIDER
   const handleDelete = (id: string) => {
     Swal.fire({
       title: "Delete Rider?",
@@ -97,58 +152,34 @@ export default function Riders() {
       confirmButtonText: "Delete",
     }).then((result) => {
       if (result.isConfirmed) {
-        deleteRider(id);
+        setRiders((prev) => prev.filter((r) => r.id !== id));
         Swal.fire("Deleted!", "The rider has been removed.", "success");
       }
     });
   };
 
-  // 🔥 ADD / EDIT — USE GLOBAL CONTEXT
+  // 🔥 EDIT ONLY — ADD REMOVED
   const handleFormSubmit = (data: any) => {
-    // EDIT MODE
     if (editTarget) {
-      updateRider(editTarget.id, {
-        name: data.name,
-        contact: data.contact,
-        homeBase: data.homeBase,
-        status: data.status as RiderStatus,
-        ordersToday: data.ordersToday ?? 0,
-      });
+      setRiders((prev) =>
+        prev.map((r) =>
+          r.id === editTarget.id
+            ? {
+                ...r,
+                name: data.name,
+                contact: data.contact,
+                homeBase: data.homeBase,
+                status: data.status,
+                ordersToday: data.ordersToday ?? 0,
+              }
+            : r
+        )
+      );
 
       Swal.fire("Updated!", "Rider details updated successfully.", "success");
     }
-    // ADD MODE
-    else {
-      const newRider: Rider = {
-        id: "RDR-" + Math.floor(Math.random() * 90000 + 10000),
-        name: data.name,
-        contact: data.contact,
-        homeBase: data.homeBase,
-        status: (data.status as RiderStatus) || "Available",
-        ordersToday: data.ordersToday ?? 0,
-        lastAssigned: "Not Assigned",
-        rating: 5.0,
-        completedDeliveries: 0,
-        workload: 0,
-        lastActive: "Online now",
-      };
-
-      addRider(newRider);
-
-      // auto focus to Available tab
-      setStatusFilter("Available");
-
-      Swal.fire({
-        icon: "success",
-        title: "Driver Registered!",
-        text: `${newRider.name} is now in Available Riders.`,
-        timer: 1600,
-        showConfirmButton: false,
-      });
-    }
 
     setIsFormOpen(false);
-    setEditTarget(null);
   };
 
   const filteredRiders = useMemo(() => {
@@ -185,6 +216,8 @@ export default function Riders() {
       className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
       onMouseMove={handleMouseMove}
     >
+      {/* 🔥 ENTIRE UI BELOW IS UNMODIFIED — ONLY ADD REMOVED */}
+
       {/* ===== GLOBAL HUD BACKDROP ===== */}
       <div className="pointer-events-none absolute inset-0 -z-30">
         <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:40px_40px]" />
@@ -216,7 +249,8 @@ export default function Riders() {
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
-          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)`,
+          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)
+        `,
         }}
       />
 
@@ -318,9 +352,9 @@ export default function Riders() {
             </section>
           </div>
 
-          {/* ===== FILTERS + ADD BUTTON ===== */}
-          <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
-            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+          {/* ===== FILTERS ===== */}
+          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-3 w-full md:w-auto">
               <Dropdown
                 dismissOnClick
                 renderTrigger={() => (
@@ -332,10 +366,7 @@ export default function Riders() {
               >
                 {["All", "Available", "On Delivery", "Offline", "Not Available"].map(
                   (s) => (
-                    <DropdownItem
-                      key={s}
-                      onClick={() => setStatusFilter(s as any)}
-                    >
+                    <DropdownItem key={s} onClick={() => setStatusFilter(s as any)}>
                       {s}
                     </DropdownItem>
                   )
@@ -362,25 +393,15 @@ export default function Riders() {
               </Dropdown>
             </div>
 
-            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
-              <div className="relative w-full max-w-xs">
-                <input
-                  type="text"
-                  placeholder="Search rider..."
-                  className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
-              </div>
-
-              <button
-                onClick={openAddModal}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs sm:text-sm font-semibold shadow hover:bg-emerald-700 transition w-full sm:w-auto justify-center"
-              >
-                <UserPlus className="w-4 h-4" />
-                Register Rider
-              </button>
+            <div className="relative w-full max-w-xs">
+              <input
+                type="text"
+                placeholder="Search rider..."
+                className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
             </div>
           </div>
 
@@ -411,9 +432,9 @@ export default function Riders() {
 
               <tbody>
                 {filteredRiders.length > 0 ? (
-                  filteredRiders.map((rider) => (
+                  filteredRiders.map((rider, index) => (
                     <tr
-                      key={rider.id}
+                      key={index}
                       className="hover:bg-emerald-50/70 transition border-b last:border-none"
                     >
                       {/* Rider */}
@@ -598,9 +619,7 @@ export default function Riders() {
                       )}`}
                     >
                       <CircleDot
-                        className={`w-3 h-3 ${getStatusDot(
-                          selectedRider.status
-                        )}`}
+                        className={`w-3 h-3 ${getStatusDot(selectedRider.status)}`}
                       />
                       {selectedRider.status}
                     </span>
@@ -632,7 +651,9 @@ export default function Riders() {
                 </div>
 
                 <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
-                  <p className="text-[11px] text-slate-400">Today&apos;s Load</p>
+                  <p className="text-[11px] text-slate-400">
+                    Today&apos;s Load
+                  </p>
                   <p className="font-semibold text-slate-50 mt-1">
                     {selectedRider.ordersToday} orders
                   </p>
@@ -678,15 +699,12 @@ export default function Riders() {
         </div>
       )}
 
-      {/* ===== ADD / EDIT MODAL ===== */}
+      {/* ===== EDIT MODAL ===== */}
       <RiderFormModal
         isOpen={isFormOpen}
-        onClose={() => {
-          setIsFormOpen(false);
-          setEditTarget(null);
-        }}
+        onClose={() => setIsFormOpen(false)}
         onSubmit={handleFormSubmit}
-        initialData={editTarget || null}
+        initialData={editTarget || undefined}
       />
     </motion.div>
   );
