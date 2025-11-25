@@ -9,7 +9,7 @@ import ProductTable from "../product/ProductTable";
 import ProductFormModal from "../../components/product/ProductFormModal";
 import ProductRecommendationsModal from "../../components/product/ProductRecommendationsModal";
 
-import { fetchAllRules } from "../../libs/ApiGatewayDatasource"; // ✅ adjust path if different
+import { fetchAllRules } from "../../libs/ApiGatewayDatasource";
 import type { Product } from "../../types/types";
 import type { RecommendationRuleDTO } from "../../libs/models/product/RecommendedRule";
 
@@ -34,7 +34,7 @@ export default function ProductInventoryTable() {
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<Product | null>(null);
 
-  // ✅ Modal state for viewing recommendations
+  // Modal state for viewing recommendations
   const [viewModal, setViewModal] = useState(false);
   const [recommendations, setRecommendations] = useState<
     RecommendationRuleDTO[]
@@ -43,7 +43,7 @@ export default function ProductInventoryTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
-  /** 🔍 FILTER */
+  /** FILTER */
   const filtered = useMemo(() => {
     return products.filter(
       (p) =>
@@ -52,7 +52,7 @@ export default function ProductInventoryTable() {
     );
   }, [products, search, status]);
 
-  /** ↕️ SORT */
+  /** SORT */
   const [sortField, setSortField] = useState<ProductSortField>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
@@ -80,14 +80,14 @@ export default function ProductInventoryTable() {
     return sortOrder === "asc" ? "↑" : "↓";
   };
 
-  /** 📄 PAGINATION */
+  /** PAGINATION */
   const totalPages = Math.ceil(sortedProducts.length / pageSize);
   const paginatedProducts = sortedProducts.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
-  /** ✏️ EDIT PRODUCT */
+  /** EDIT PRODUCT */
   const handleEditProduct = (index: number) => {
     const product = sortedProducts[index];
     if (product) {
@@ -96,7 +96,7 @@ export default function ProductInventoryTable() {
     }
   };
 
-  /** ❌ DELETE PRODUCT */
+  /** DELETE PRODUCT */
   const handleDeleteProduct = async (id: number) => {
     const result = await Swal.fire({
       title: "Delete Product?",
@@ -112,7 +112,7 @@ export default function ProductInventoryTable() {
     }
   };
 
-  /** 🔁 TOGGLE AVAILABILITY */
+  /** TOGGLE AVAILABILITY */
   const toggleAvailability = async (product: Product) => {
     if (!product?.id) return;
     const newStatus =
@@ -120,7 +120,7 @@ export default function ProductInventoryTable() {
     await updateProductStatusById(product.id, newStatus);
   };
 
-  /** 👁️ VIEW RECOMMENDATIONS — fetch dynamically like ProductPriceTable */
+  /** VIEW RECOMMENDATIONS */
   const handleViewRecommendations = async (productId: number | undefined) => {
     if (!productId) return;
 
@@ -150,15 +150,12 @@ export default function ProductInventoryTable() {
       transition={{ duration: 0.45, ease: "easeOut" }}
       className="relative p-6 md:p-8 overflow-hidden"
     >
-      {/* ===== SUBTLE HUD BACKGROUND (CLEAN, NOT OA) ===== */}
+      {/* BACKGROUND */}
       <div className="pointer-events-none absolute inset-0 -z-20">
-        {/* Soft grid */}
         <div className="w-full h-full opacity-30 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.14)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.14)_1px,transparent_1px)] bg-[size:42px_42px]" />
 
-        {/* Very soft vignette */}
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_65%)]" />
 
-        {/* Ambient blobs (toned down) */}
         <motion.div
           className="absolute -top-24 -left-20 h-64 w-64 bg-emerald-400/20 blur-3xl"
           animate={{
@@ -177,7 +174,7 @@ export default function ProductInventoryTable() {
         />
       </div>
 
-      {/* ===== HEADER ===== */}
+      {/* HEADER */}
       <div className="mb-7 relative">
         <motion.h2
           initial={{ opacity: 0, x: -15 }}
@@ -202,14 +199,14 @@ export default function ProductInventoryTable() {
         <div className="mt-3 h-[3px] w-28 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* ===== MAIN CARD (CLEAN HYBRID HUD) ===== */}
+      {/* MAIN HUD CARD */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
         className="relative rounded-[24px] border border-emerald-200/80 bg-gradient-to-br from-white/96 via-slate-50/98 to-emerald-50/60 shadow-[0_18px_55px_rgba(15,23,42,0.28)] backdrop-blur-xl p-5 md:p-6 overflow-hidden"
       >
-        {/* Minimal corner accents (very subtle) */}
+        {/* CORNER ACCENTS */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-3 left-3 h-4 w-4 border-t border-l border-emerald-200/80" />
           <div className="absolute top-3 right-3 h-4 w-4 border-t border-r border-emerald-200/80" />
@@ -218,7 +215,7 @@ export default function ProductInventoryTable() {
         </div>
 
         <div className="relative flex flex-col gap-5">
-          {/* TOP ROW: badge + Add Product */}
+          {/* TOP BAR */}
           <div className="flex justify-between items-center mb-2">
             <div className="flex flex-col gap-1 text-xs text-slate-500">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
@@ -240,9 +237,9 @@ export default function ProductInventoryTable() {
             </Button>
           </div>
 
-          {/* FILTERS BAR */}
+          {/* FILTER BAR */}
           <div className="flex flex-wrap items-center gap-3 mb-2">
-            {/* Search */}
+            {/* Search box */}
             <div className="relative w-full max-w-xs">
               <input
                 type="text"
@@ -288,7 +285,7 @@ export default function ProductInventoryTable() {
             </Dropdown>
           </div>
 
-          {/* PRODUCT TABLE – CLEAN GLASS WRAPPER (NO SLIDING BAR) */}
+          {/* PRODUCT TABLE */}
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -296,9 +293,6 @@ export default function ProductInventoryTable() {
             className="relative w-full overflow-x-auto pb-3 rounded-2xl border border-emerald-200/80 
                        bg-white/98 shadow-[0_14px_40px_rgba(15,23,42,0.18)]"
           >
-            {/* ❗Removed: sliding hologram bar / sweep */}
-            {/* ❗Kept it clean and simple for better readability */}
-
             <div className="relative">
               <ProductTable
                 sortedProducts={sortedProducts}
@@ -312,7 +306,7 @@ export default function ProductInventoryTable() {
                 handleDeleteProduct={handleDeleteProduct}
                 onViewRecommendations={(product) =>
                   handleViewRecommendations(product.id!)
-                } // ✅ logic untouched
+                }
               />
             </div>
           </motion.div>
