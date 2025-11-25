@@ -6,12 +6,15 @@ import React from "react";
 
 // CONTEXT PROVIDERS
 import { AuthProvider } from "./context/AuthContext";
+import { DriverProvider } from "./context/DriverContext";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
       <AuthProvider>
-        <App />
+        <DriverProvider>
+          <App />
+        </DriverProvider>
       </AuthProvider>
     </BrowserRouter>
   </React.StrictMode>
