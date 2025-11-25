@@ -30,6 +30,7 @@ import { RecommendationRuleProvider } from "../../context/RecommendationRulesCon
 
 // ⭐ DELIVERY MODULE ROUTER
 import DeliveryRoutes from "../../page/delivery/sub/DeliveryRoutes.tsx";
+import { DriverProvider } from "../../context/DriverContext.tsx";
 
 // ⭐ DRIVER PROVIDER (GLOBAL PER DELIVERY ONLY)
 //import { DriverProvider } from "../../context/DriverContext.tsx";
@@ -67,6 +68,7 @@ export default function DashboardLayout() {
             <ProductsProvider>
               <PricesProvider>
                 <RecommendationRuleProvider>
+                    <DriverProvider>
                   <Routes>
                     {/* LANDING DASHBOARD PER ROLE */}
                     <Route
@@ -198,6 +200,7 @@ export default function DashboardLayout() {
                       }
                     />
                   </Routes>
+                  </DriverProvider>
                 </RecommendationRuleProvider>
               </PricesProvider>
             </ProductsProvider>
