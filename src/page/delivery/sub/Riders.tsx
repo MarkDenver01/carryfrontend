@@ -28,13 +28,14 @@ type RiderStatus = Rider["status"];
 
 type SortOption = "Name" | "Status" | "Deliveries" | "Rating";
 
-export default function Riders() {
+export default function RidersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | RiderStatus>("All");
   const [sortBy, setSortBy] = useState<SortOption>("Name");
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  
 
   // ⭐ GET GLOBAL RIDERS + ACTIONS FROM CONTEXT
   const { riders, deleteRider, updateRider } = useDrivers();
