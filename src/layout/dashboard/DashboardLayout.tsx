@@ -201,7 +201,7 @@ export default function DashboardLayout() {
                                             />
 
                                             <Route
-                                                path="delivery/riders"
+                                                path="delivery/add-riders"
                                                 element={
                                                     <ProtectedRoute requiredRole="SUB_ADMIN">
                                                         <AddDriverPage />
