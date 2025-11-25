@@ -19,87 +19,24 @@ import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 import RiderFormModal from "../../../components/driver/RiderFormModal";
 
-type RiderStatus = "Available" | "On Delivery" | "Offline" | "Not Available";
+// ✅ USE GLOBAL DRIVER CONTEXT
+import {
+  useDrivers,
+  type Rider,
+  type RiderStatus,
+} from "../../../context/DriverContext";
+
 type SortOption = "Name" | "Status" | "Deliveries" | "Rating";
 
-export type Rider = {
-  id: string;
-  name: string;
-  contact: string;
-  status: RiderStatus;
-  ordersToday: number;
-  lastAssigned: string;
-  rating: number;
-  completedDeliveries: number;
-  workload: number;
-  lastActive: string;
-  homeBase: string;
-};
-
-const initialRiders: Rider[] = [
-  {
-    id: "RDR-001",
-    name: "Carlos Dela Cruz",
-    contact: "0917-123-4567",
-    status: "Available",
-    ordersToday: 7,
-    lastAssigned: "2025-07-03 10:45 AM",
-    rating: 4.9,
-    completedDeliveries: 152,
-    workload: 60,
-    lastActive: "Online • 5 mins ago",
-    homeBase: "Tanauan City, Batangas",
-  },
-  {
-    id: "RDR-002",
-    name: "Jomar Castillo",
-    contact: "0918-987-6543",
-    status: "On Delivery",
-    ordersToday: 4,
-    lastAssigned: "2025-07-03 09:30 AM",
-    rating: 4.7,
-    completedDeliveries: 98,
-    workload: 80,
-    lastActive: "On delivery route",
-    homeBase: "Talisay, Batangas",
-  },
-  {
-    id: "RDR-003",
-    name: "Leo Mariano",
-    contact: "0916-555-1234",
-    status: "Offline",
-    ordersToday: 0,
-    lastAssigned: "2025-07-02 06:15 PM",
-    rating: 4.5,
-    completedDeliveries: 74,
-    workload: 0,
-    lastActive: "Last seen • 10 hours ago",
-    homeBase: "Sto. Tomas, Batangas",
-  },
-  {
-    id: "RDR-004",
-    name: "Samuel Reyes",
-    contact: "0921-765-4321",
-    status: "Not Available",
-    ordersToday: 2,
-    lastAssigned: "2025-07-03 08:50 AM",
-    rating: 4.2,
-    completedDeliveries: 45,
-    workload: 40,
-    lastActive: "On break",
-    homeBase: "Malvar, Batangas",
-  },
-];
-
 export default function Riders() {
+  const { riders, deleteRider, updateRider } = useDrivers();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | RiderStatus>("All");
   const [sortBy, setSortBy] = useState<SortOption>("Name");
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
-
-  const [riders, setRiders] = useState<Rider[]>(initialRiders);
 
   // 🔥 Modal for EDIT only
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -140,7 +77,7 @@ export default function Riders() {
     setIsFormOpen(true);
   };
 
-  // 🔥 DELETE RIDER
+  // 🔥 DELETE RIDER — NOW USING GLOBAL CONTEXT
   const handleDelete = (id: string) => {
     Swal.fire({
       title: "Delete Rider?",
@@ -152,29 +89,22 @@ export default function Riders() {
       confirmButtonText: "Delete",
     }).then((result) => {
       if (result.isConfirmed) {
-        setRiders((prev) => prev.filter((r) => r.id !== id));
+        deleteRider(id);
         Swal.fire("Deleted!", "The rider has been removed.", "success");
       }
     });
   };
 
-  // 🔥 EDIT ONLY — ADD REMOVED
+  // 🔥 EDIT ONLY — UPDATE GLOBAL CONTEXT
   const handleFormSubmit = (data: any) => {
     if (editTarget) {
-      setRiders((prev) =>
-        prev.map((r) =>
-          r.id === editTarget.id
-            ? {
-                ...r,
-                name: data.name,
-                contact: data.contact,
-                homeBase: data.homeBase,
-                status: data.status,
-                ordersToday: data.ordersToday ?? 0,
-              }
-            : r
-        )
-      );
+      updateRider(editTarget.id, {
+        name: data.name,
+        contact: data.contact,
+        homeBase: data.homeBase,
+        status: data.status,
+        ordersToday: data.ordersToday ?? 0,
+      });
 
       Swal.fire("Updated!", "Rider details updated successfully.", "success");
     }
@@ -216,7 +146,7 @@ export default function Riders() {
       className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
       onMouseMove={handleMouseMove}
     >
-      {/* 🔥 ENTIRE UI BELOW IS UNMODIFIED — ONLY ADD REMOVED */}
+      {/* 🔥 ENTIRE UI SAME AS BEFORE, STATE NOW GLOBAL */}
 
       {/* ===== GLOBAL HUD BACKDROP ===== */}
       <div className="pointer-events-none absolute inset-0 -z-30">
@@ -249,8 +179,7 @@ export default function Riders() {
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
-          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)
-        `,
+          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)`,
         }}
       />
 
@@ -366,7 +295,10 @@ export default function Riders() {
               >
                 {["All", "Available", "On Delivery", "Offline", "Not Available"].map(
                   (s) => (
-                    <DropdownItem key={s} onClick={() => setStatusFilter(s as any)}>
+                    <DropdownItem
+                      key={s}
+                      onClick={() => setStatusFilter(s as any)}
+                    >
                       {s}
                     </DropdownItem>
                   )
@@ -397,7 +329,7 @@ export default function Riders() {
               <input
                 type="text"
                 placeholder="Search rider..."
-                className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none fokus:ring-2 focus:ring-emerald-500 text-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -619,7 +551,9 @@ export default function Riders() {
                       )}`}
                     >
                       <CircleDot
-                        className={`w-3 h-3 ${getStatusDot(selectedRider.status)}`}
+                        className={`w-3 h-3 ${getStatusDot(
+                          selectedRider.status
+                        )}`}
                       />
                       {selectedRider.status}
                     </span>

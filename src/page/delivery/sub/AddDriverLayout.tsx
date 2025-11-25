@@ -1,13 +1,20 @@
 import { useState } from "react";
-import { UserPlus, Image as ImageIcon, IdCard, Phone, MapPin } from "lucide-react";
+import {
+  UserPlus,
+  Image as ImageIcon,
+  IdCard,
+  Phone,
+  MapPin,
+} from "lucide-react";
 import Swal from "sweetalert2";
+import { useNavigate } from "react-router-dom";
 
 // ⭐ GLOBAL DRIVERS CONTEXT
-import { useDrivers, type Rider,  } from "../../../context/DriverContext";
-
+import { useDrivers, type Rider } from "../../../context/DriverContext";
 
 export default function AddDriverLayout() {
   const { addRider } = useDrivers();
+  const navigate = useNavigate();
 
   const [form, setForm] = useState({
     userName: "",
@@ -74,35 +81,40 @@ export default function AddDriverLayout() {
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (!validate()) return;
+    if (!validate()) return;
 
-  const newDriver: Rider = {
-    id: "RDR-" + Math.floor(Math.random() * 900 + 100),
-    name: form.userName,
-    contact: form.mobileNumber,
-    status: "Available",
-    ordersToday: 0,
-    lastAssigned: "Not yet assigned",
-    rating: 0,
-    completedDeliveries: 0,
-    workload: 0,
-    lastActive: "Online now",
-    homeBase: form.address,
+    const newDriver: Rider = {
+      id: "RDR-" + Math.floor(Math.random() * 900 + 100),
+      name: form.userName,
+      contact: form.mobileNumber,
+      status: "Available",
+      ordersToday: 0,
+      lastAssigned: "Not yet assigned",
+      rating: 0,
+      completedDeliveries: 0,
+      workload: 0,
+      lastActive: "Online now",
+      homeBase: form.address,
+    };
+
+    // ✅ Save to GLOBAL DriverContext
+    addRider(newDriver);
+
+    // ✅ SweetAlert + redirect to Available Riders
+    Swal.fire({
+      title: "Driver Registered!",
+      text: "Redirecting to Available Riders...",
+      icon: "success",
+      timer: 1500,
+      showConfirmButton: false,
+    }).then(() => {
+      navigate("/dashboard/delivery/riders");
+    });
+
+    handleReset();
   };
-
-  addRider(newDriver); // ⭐ this will now work correctly
-
-  Swal.fire({
-    title: "Driver Registered!",
-    text: "The driver has been successfully added.",
-    icon: "success",
-    confirmButtonColor: "#059669",
-  });
-
-  handleReset();
-};
 
   const handleReset = () => {
     setForm({
@@ -251,7 +263,8 @@ export default function AddDriverLayout() {
                 {/* License Number */}
                 <div className="flex flex-col gap-1 md:col-span-2">
                   <label className="font-semibold text-xs text-slate-700 flex items-center gap-1">
-                    Driver&apos;s License No. <span className="text-red-500">*</span>
+                    Driver&apos;s License No.{" "}
+                    <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
@@ -362,8 +375,8 @@ export default function AddDriverLayout() {
             {/* ACTION BUTTONS */}
             <div className="md:col-span-2 flex flex-col md:flex-row justify-between items-center gap-3 mt-2">
               <span className="text-[11px] text-slate-500">
-                Review all details before registering the driver. Uploaded images will
-                be used for identity verification.
+                Review all details before registering the driver. Uploaded images
+                will be used for identity verification.
               </span>
 
               <div className="flex gap-3">
@@ -397,11 +410,15 @@ export default function AddDriverLayout() {
             <div className="space-y-2 text-xs text-slate-600">
               <p>
                 <span className="font-semibold text-slate-700">Name: </span>
-                {form.userName || <span className="text-slate-400">Not set</span>}
+                {form.userName || (
+                  <span className="text-slate-400">Not set</span>
+                )}
               </p>
               <p>
                 <span className="font-semibold text-slate-700">Email: </span>
-                {form.email || <span className="text-slate-400">Not set</span>}
+                {form.email || (
+                  <span className="text-slate-400">Not set</span>
+                )}
               </p>
               <p>
                 <span className="font-semibold text-slate-700">Mobile: </span>
@@ -411,7 +428,9 @@ export default function AddDriverLayout() {
               </p>
               <p>
                 <span className="font-semibold text-slate-700">Address: </span>
-                {form.address || <span className="text-slate-400">Not set</span>}
+                {form.address || (
+                  <span className="text-slate-400">Not set</span>
+                )}
               </p>
               <p>
                 <span className="font-semibold text-slate-700">License: </span>
