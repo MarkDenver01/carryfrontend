@@ -74,43 +74,35 @@ export default function AddDriverLayout() {
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-    console.log("Calling addRider...");
-    console.log("Context object:", useDrivers());
-    console.log("Current riders BEFORE add:", useDrivers().riders)
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!validate()) return;
+  if (!validate()) return;
 
-    // ⭐ CREATE NEW RIDER ENTRY FOR RIDERS TABLE (CONTEXT)
-    const newDriver: Rider = {
-      id: "RDR-" + Math.floor(Math.random() * 900 + 100), // RDR-100 ~ 999
-      name: form.userName,
-      contact: form.mobileNumber,
-      status: "Available",
-      ordersToday: 0,
-      lastAssigned: "Not yet assigned",
-      rating: 0,
-      completedDeliveries: 0,
-      workload: 0,
-      lastActive: "Online now",
-      homeBase: form.address,
-    };
-
-    // ⭐ ADD TO GLOBAL RIDER LIST
-    addRider(newDriver);
-
-    Swal.fire({
-      title: "Driver Registered!",
-      text: "The driver has been successfully added to Available Drivers.",
-      icon: "success",
-      confirmButtonColor: "#059669",
-      background: "#f0fdf4",
-      color: "#065f46",
-      customClass: { popup: "rounded-xl shadow-lg" },
-    });
-
-    handleReset();
+  const newDriver: Rider = {
+    id: "RDR-" + Math.floor(Math.random() * 900 + 100),
+    name: form.userName,
+    contact: form.mobileNumber,
+    status: "Available",
+    ordersToday: 0,
+    lastAssigned: "Not yet assigned",
+    rating: 0,
+    completedDeliveries: 0,
+    workload: 0,
+    lastActive: "Online now",
+    homeBase: form.address,
   };
+
+  addRider(newDriver); // ⭐ this will now work correctly
+
+  Swal.fire({
+    title: "Driver Registered!",
+    text: "The driver has been successfully added.",
+    icon: "success",
+    confirmButtonColor: "#059669",
+  });
+
+  handleReset();
+};
 
   const handleReset = () => {
     setForm({
