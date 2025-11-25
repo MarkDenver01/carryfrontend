@@ -9,7 +9,7 @@ import DashboardLayout from "./layout/dashboard/DashboardLayout";
 import SystemSettings from "./page/Settings/SystemSettings";
 import type { JSX } from "react";
 
-// ⭐ IMPORT DRIVER PROVIDER (IMPORTANT)
+// ⭐ IMPORT DRIVER PROVIDER
 import { DriverProvider } from "./context/DriverContext";
 
 function App(): JSX.Element {
@@ -18,8 +18,7 @@ function App(): JSX.Element {
   const isAuthPage = isLoginPage;
 
   return (
-    // ⭐ WRAP THE ENTIRE APP WITH DRIVER PROVIDER
-    <DriverProvider>
+    <DriverProvider>   {/* ⭐ WRAP ENTIRE APP HERE */}
       <div
         className={
           isAuthPage
