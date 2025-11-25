@@ -3,27 +3,25 @@ import bg from "./assets/bg.svg";
 import cary_admin_logo from "./assets/cary_admin_logo.svg";
 import "./App.css";
 
-import Login from "./page/login/Login.tsx";
+import Login from "./page/login/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
-import DashboardLayout from "./layout/dashboard/DashboardLayout.tsx";
-import SystemSettings from "./page/Settings/SystemSettings.tsx";
+import DashboardLayout from "./layout/dashboard/DashboardLayout";
+import SystemSettings from "./page/Settings/SystemSettings";
 import type { JSX } from "react";
-import { AuthProvider } from "./context/AuthContext.tsx";
 
-// ⭐ GLOBAL DRIVER CONTEXT
+import { AuthProvider } from "./context/AuthContext";
 import { DriverProvider } from "./context/DriverContext";
 
 function App(): JSX.Element {
   const location = useLocation();
   const isLoginPage = location.pathname === "/";
-  const isAuthPage = isLoginPage;
 
   return (
     <AuthProvider>
-      <DriverProvider>   {/* 🔥 MOVE HERE PARA DI MAG RESET */}
+      <DriverProvider>
         <div
           className={
-            isAuthPage
+            isLoginPage
               ? "relative min-h-screen w-full bg-cover bg-no-repeat bg-center flex items-center justify-center"
               : "min-h-screen w-full"
           }
@@ -39,7 +37,7 @@ function App(): JSX.Element {
             </div>
           )}
 
-          <div className={isAuthPage ? "z-10" : ""}>
+          <div className={isLoginPage ? "z-10" : ""}>
             <Routes>
               {/* LOGIN */}
               <Route path="/" element={<Login />} />
