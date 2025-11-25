@@ -1,58 +1,100 @@
 import { createContext, useContext, useState } from "react";
-import { registerDriver } from "../libs/ApiGatewayDatasource";
 
-export interface Driver {
-  driverId: number;
-  userName: string;
-  email: string;
-  mobileNumber: string;
-  address: string;
-  driversLicenseNumber: string;
-  photoUrl: string | null;
-  frontIdUrl: string | null;
-  backIdUrl: string | null;
-}
+// =============================================================
+// GLOBAL TYPES
+// =============================================================
+export type RiderStatus =
+  | "Available"
+  | "On Delivery"
+  | "Offline"
+  | "Not Available";
 
-interface DriverContextType {
-  drivers: Driver[];
-  addDriver: (formData: FormData) => Promise<Driver>;
-  updateDriver: (driver: Driver) => void;
-  deleteDriver: (driverId: number) => void;
-}
+export type Rider = {
+  id: string;
+  name: string;
+  contact: string;
+  status: RiderStatus;
+  ordersToday: number;
+  lastAssigned: string;
+  rating: number;
+  completedDeliveries: number;
+  workload: number;
+  lastActive: string;
+  homeBase: string;
+};
 
-const DriverContext = createContext<DriverContextType | undefined>(undefined);
+// =============================================================
+// CONTEXT TYPE
+// =============================================================
+type DriverContextType = {
+  riders: Rider[];
+  addRider: (rider: Rider) => void;
+  deleteRider: (id: string) => void;
+  updateRider: (id: string, updated: Partial<Rider>) => void;
+};
 
-export function DriverProvider({ children }: { children: React.ReactNode }) {
-  const [drivers, setDrivers] = useState<Driver[]>([]);
+// =============================================================
+// CREATE CONTEXT
+// =============================================================
+const DriverContext = createContext<DriverContextType | null>(null);
 
-  const addDriver = async (formData: FormData): Promise<Driver> => {
-    const savedDriver = await registerDriver(formData);
+// =============================================================
+// PROVIDER
+// =============================================================
+export const DriverProvider = ({ children }: { children: React.ReactNode }) => {
+  const [riders, setRiders] = useState<Rider[]>([
+    // OPTIONAL: Sample default rider para di empty UI
+    {
+      id: "RDR-101",
+      name: "Sample Rider",
+      contact: "09123456789",
+      status: "Available",
+      ordersToday: 0,
+      lastAssigned: "Not Assigned",
+      rating: 4.8,
+      completedDeliveries: 12,
+      workload: 10,
+      lastActive: "Online now",
+      homeBase: "Tanauan City",
+    },
+  ]);
 
-    // append saved driver to list
-    setDrivers((prev) => [...prev, savedDriver]);
-
-    return savedDriver;
+  // ADD NEW RIDER
+  const addRider = (rider: Rider) => {
+    setRiders((prev) => [...prev, rider]);
   };
 
-  const updateDriver = (updated: Driver) => {
-    setDrivers((prev) =>
-      prev.map((d) => (d.driverId === updated.driverId ? updated : d))
+  // DELETE RIDER
+  const deleteRider = (id: string) => {
+    setRiders((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  // UPDATE GLOBAL RIDER ENTRY
+  const updateRider = (id: string, updated: Partial<Rider>) => {
+    setRiders((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, ...updated } : r))
     );
   };
 
-  const deleteDriver = (driverId: number) => {
-    setDrivers((prev) => prev.filter((d) => d.driverId !== driverId));
-  };
-
   return (
-    <DriverContext.Provider value={{ drivers, addDriver, updateDriver, deleteDriver }}>
+    <DriverContext.Provider
+      value={{
+        riders,
+        addRider,
+        deleteRider,
+        updateRider,
+      }}
+    >
       {children}
     </DriverContext.Provider>
   );
-}
+};
 
-export function useDrivers() {
+// =============================================================
+// CONTEXT CONSUMER HOOK
+// =============================================================
+export const useDrivers = () => {
   const ctx = useContext(DriverContext);
-  if (!ctx) throw new Error("useDrivers must be inside <DriverProvider>");
+  if (!ctx) throw new Error("useDrivers must be used inside <DriverProvider>");
   return ctx;
-}
+};
