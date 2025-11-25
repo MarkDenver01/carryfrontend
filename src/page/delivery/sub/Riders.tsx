@@ -14,6 +14,7 @@ import {
   Activity,
   Briefcase,
   MoreVertical,
+  UserPlus,
 } from "lucide-react";
 import { Dropdown, DropdownItem } from "flowbite-react";
 import { motion } from "framer-motion";
@@ -28,19 +29,18 @@ type RiderStatus = Rider["status"];
 
 type SortOption = "Name" | "Status" | "Deliveries" | "Rating";
 
-export default function RidersPage() {
+export default function Riders() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | RiderStatus>("All");
   const [sortBy, setSortBy] = useState<SortOption>("Name");
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
-  
 
   // ⭐ GET GLOBAL RIDERS + ACTIONS FROM CONTEXT
-  const { riders, deleteRider, updateRider } = useDrivers();
+  const { riders, addRider, deleteRider, updateRider } = useDrivers();
 
-  // 🔥 Modal for EDIT only
+  // 🔥 Modal for ADD + EDIT
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Rider | null>(null);
 
@@ -79,6 +79,12 @@ export default function RidersPage() {
     setIsFormOpen(true);
   };
 
+  // 🔥 OPEN ADD MODAL
+  const openAddModal = () => {
+    setEditTarget(null);
+    setIsFormOpen(true);
+  };
+
   // 🔥 DELETE RIDER (GLOBAL VIA CONTEXT)
   const handleDelete = (id: string) => {
     Swal.fire({
@@ -97,21 +103,52 @@ export default function RidersPage() {
     });
   };
 
-  // 🔥 EDIT — USE GLOBAL updateRider (context)
+  // 🔥 ADD / EDIT — USE GLOBAL CONTEXT
   const handleFormSubmit = (data: any) => {
+    // EDIT MODE
     if (editTarget) {
       updateRider(editTarget.id, {
         name: data.name,
         contact: data.contact,
         homeBase: data.homeBase,
-        status: data.status,
+        status: data.status as RiderStatus,
         ordersToday: data.ordersToday ?? 0,
       });
 
       Swal.fire("Updated!", "Rider details updated successfully.", "success");
     }
+    // ADD MODE
+    else {
+      const newRider: Rider = {
+        id: "RDR-" + Math.floor(Math.random() * 90000 + 10000),
+        name: data.name,
+        contact: data.contact,
+        homeBase: data.homeBase,
+        status: (data.status as RiderStatus) || "Available",
+        ordersToday: data.ordersToday ?? 0,
+        lastAssigned: "Not Assigned",
+        rating: 5.0,
+        completedDeliveries: 0,
+        workload: 0,
+        lastActive: "Online now",
+      };
+
+      addRider(newRider);
+
+      // auto focus to Available tab
+      setStatusFilter("Available");
+
+      Swal.fire({
+        icon: "success",
+        title: "Driver Registered!",
+        text: `${newRider.name} is now in Available Riders.`,
+        timer: 1600,
+        showConfirmButton: false,
+      });
+    }
 
     setIsFormOpen(false);
+    setEditTarget(null);
   };
 
   const filteredRiders = useMemo(() => {
@@ -281,9 +318,9 @@ export default function RidersPage() {
             </section>
           </div>
 
-          {/* ===== FILTERS ===== */}
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-3 w-full md:w-auto">
+          {/* ===== FILTERS + ADD BUTTON ===== */}
+          <div className="flex flex-col lg:flex-row justify-between items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
               <Dropdown
                 dismissOnClick
                 renderTrigger={() => (
@@ -295,7 +332,10 @@ export default function RidersPage() {
               >
                 {["All", "Available", "On Delivery", "Offline", "Not Available"].map(
                   (s) => (
-                    <DropdownItem key={s} onClick={() => setStatusFilter(s as any)}>
+                    <DropdownItem
+                      key={s}
+                      onClick={() => setStatusFilter(s as any)}
+                    >
                       {s}
                     </DropdownItem>
                   )
@@ -322,15 +362,25 @@ export default function RidersPage() {
               </Dropdown>
             </div>
 
-            <div className="relative w-full max-w-xs">
-              <input
-                type="text"
-                placeholder="Search rider..."
-                className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
+            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+              <div className="relative w-full max-w-xs">
+                <input
+                  type="text"
+                  placeholder="Search rider..."
+                  className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+                <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
+              </div>
+
+              <button
+                onClick={openAddModal}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs sm:text-sm font-semibold shadow hover:bg-emerald-700 transition w-full sm:w-auto justify-center"
+              >
+                <UserPlus className="w-4 h-4" />
+                Register Rider
+              </button>
             </div>
           </div>
 
@@ -469,7 +519,7 @@ export default function RidersPage() {
                           </button>
 
                           <button
-                            className="w-9 h-9 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition shadow-sm flex items-center justifyCenter"
+                            className="w-9 h-9 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition shadow-sm flex items-center justify-center"
                             onClick={() => handleDelete(rider.id)}
                           >
                             <Trash className="w-4 h-4" />
@@ -548,7 +598,9 @@ export default function RidersPage() {
                       )}`}
                     >
                       <CircleDot
-                        className={`w-3 h-3 ${getStatusDot(selectedRider.status)}`}
+                        className={`w-3 h-3 ${getStatusDot(
+                          selectedRider.status
+                        )}`}
                       />
                       {selectedRider.status}
                     </span>
@@ -626,12 +678,15 @@ export default function RidersPage() {
         </div>
       )}
 
-      {/* ===== EDIT MODAL ===== */}
+      {/* ===== ADD / EDIT MODAL ===== */}
       <RiderFormModal
         isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
+        onClose={() => {
+          setIsFormOpen(false);
+          setEditTarget(null);
+        }}
         onSubmit={handleFormSubmit}
-        initialData={editTarget || undefined}
+        initialData={editTarget || null}
       />
     </motion.div>
   );
