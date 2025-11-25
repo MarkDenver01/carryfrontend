@@ -32,7 +32,7 @@ import { RecommendationRuleProvider } from "../../context/RecommendationRulesCon
 import DeliveryRoutes from "../../page/delivery/sub/DeliveryRoutes.tsx";
 
 // ⭐ DRIVER PROVIDER (GLOBAL PER DELIVERY ONLY)
-import { DriverProvider } from "../../context/DriverContext.tsx";
+//import { DriverProvider } from "../../context/DriverContext.tsx";
 
 export default function DashboardLayout() {
   const { user } = useAuth();
@@ -180,11 +180,11 @@ export default function DashboardLayout() {
                     <Route
                       path="delivery/*"
                       element={
-                        <DriverProvider>
+                       
                           <ProtectedRoute requiredRole="SUB_ADMIN">
                             <DeliveryRoutes />
                           </ProtectedRoute>
-                        </DriverProvider>
+       
                       }
                     />
 

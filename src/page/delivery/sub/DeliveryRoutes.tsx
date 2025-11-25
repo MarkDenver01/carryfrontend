@@ -1,8 +1,8 @@
 import { Routes, Route } from "react-router-dom";
 
-import DeliveryPage from "../Delivery";
-import RidersPage from "../sub/Riders";
-import AddDriverPage from "../AddDriver";
+import DeliveryPage from "../Delivery.tsx";
+import RidersPage from "../sub/Riders.tsx";
+import AddDriverPage from "../AddDriver.tsx";
 
 export default function DeliveryRoutes() {
   return (
