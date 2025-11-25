@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
-  
+
 // ⭐ GLOBAL DRIVERS CONTEXT
 import { useDrivers, type Rider } from "../../../context/DriverContext";
 
@@ -110,7 +110,7 @@ export default function AddDriverLayout() {
       timer: 1500,
       showConfirmButton: false,
     }).then(() => {
-      navigate("/dashboard/delivery/riders");
+      navigate("delivery/riders");
     });
 
     handleReset();
