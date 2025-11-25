@@ -110,7 +110,7 @@ export default function AddDriverLayout() {
       timer: 1500,
       showConfirmButton: false,
     }).then(() => {
-      navigate("delivery/riders");
+      navigate("dashboard/delivery/riders");
     });
 
     handleReset();
