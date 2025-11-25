@@ -10,6 +10,9 @@ import SystemSettings from "./page/Settings/SystemSettings.tsx";
 import type { JSX } from "react";
 import { AuthProvider } from "./context/AuthContext.tsx";
 
+// ⭐ GLOBAL DRIVER CONTEXT
+import { DriverProvider } from "./context/DriverContext";
+
 function App(): JSX.Element {
   const location = useLocation();
   const isLoginPage = location.pathname === "/";
@@ -17,51 +20,53 @@ function App(): JSX.Element {
 
   return (
     <AuthProvider>
-      <div
-        className={
-          isAuthPage
-            ? "relative min-h-screen w-full bg-cover bg-no-repeat bg-center flex items-center justify-center"
-            : "min-h-screen w-full"
-        }
-        style={isLoginPage ? { backgroundImage: `url(${bg})` } : {}}
-      >
-        {isLoginPage && (
-          <div className="absolute top-4 right-4 w-[180px] h-[180px] opacity-90">
-            <img
-              src={cary_admin_logo}
-              alt="Logo background"
-              className="w-full h-full opacity-90"
-            />
+      <DriverProvider>   {/* 🔥 MOVE HERE PARA DI MAG RESET */}
+        <div
+          className={
+            isAuthPage
+              ? "relative min-h-screen w-full bg-cover bg-no-repeat bg-center flex items-center justify-center"
+              : "min-h-screen w-full"
+          }
+          style={isLoginPage ? { backgroundImage: `url(${bg})` } : {}}
+        >
+          {isLoginPage && (
+            <div className="absolute top-4 right-4 w-[180px] h-[180px] opacity-90">
+              <img
+                src={cary_admin_logo}
+                alt="Logo background"
+                className="w-full h-full opacity-90"
+              />
+            </div>
+          )}
+
+          <div className={isAuthPage ? "z-10" : ""}>
+            <Routes>
+              {/* LOGIN */}
+              <Route path="/" element={<Login />} />
+
+              {/* DASHBOARD */}
+              <Route
+                path="/dashboard/*"
+                element={
+                  <ProtectedRoute>
+                    <DashboardLayout />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* SETTINGS */}
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <SystemSettings />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
           </div>
-        )}
-
-        <div className={isAuthPage ? "z-10" : ""}>
-          <Routes>
-            {/* LOGIN */}
-            <Route path="/" element={<Login />} />
-
-            {/* DASHBOARD */}
-            <Route
-              path="dashboard/*"
-              element={
-                <ProtectedRoute>
-                  <DashboardLayout />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* ⭐ SETTINGS PAGE (THE MISSING ROUTE) */}
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute>
-                  <SystemSettings />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
         </div>
-      </div>
+      </DriverProvider>
     </AuthProvider>
   );
 }
