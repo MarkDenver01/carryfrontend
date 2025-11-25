@@ -74,6 +74,9 @@ export default function AddDriverLayout() {
   };
 
   const handleSubmit = (e: React.FormEvent) => {
+    console.log("Calling addRider...");
+    console.log("Context object:", useDrivers());
+    console.log("Current riders BEFORE add:", useDrivers().riders)
     e.preventDefault();
 
     if (!validate()) return;
