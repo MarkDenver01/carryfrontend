@@ -1,3 +1,4 @@
+// src/layout/dashboard/DashboardLayout.tsx
 import { Routes, Route, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { useAuth } from "../../context/AuthContext";
@@ -32,6 +33,7 @@ import { ProductsProvider } from "../../context/ProductsContext";
 import { PricesProvider } from "../../context/PricesContext";
 import CategoryProvider from "../../context/CategoryContext";
 import { RecommendationRuleProvider } from "../../context/RecommendationRulesContext";
+import { DriverProvider } from "../../context/DriverContext";
 
 export default function DashboardLayout() {
   const { user } = useAuth();
@@ -51,178 +53,184 @@ export default function DashboardLayout() {
   }, [location.pathname]);
 
   return (
-    <div className="flex h-screen bg-gray-200">
-      <AppSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
+    <DriverProvider>
+      <div className="flex h-screen bg-gray-200">
+        <AppSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
-      <div className={`flex-1 flex flex-col transition-all duration-300 ${collapsed ? "ml-20" : "ml-64"}`}>
-        <Topbar pageTitle={pageTitle} />
+        <div
+          className={`flex-1 flex flex-col transition-all duration-300 ${
+            collapsed ? "ml-20" : "ml-64"
+          }`}
+        >
+          <Topbar pageTitle={pageTitle} />
 
-        <main className="p-4 overflow-y-auto flex-1">
-          <CategoryProvider>
-            <ProductsProvider>
-              <PricesProvider>
-                <RecommendationRuleProvider>
-                  <Routes>
-                    {/* LANDING DASHBOARD PER ROLE */}
-                    <Route
-                      path=""
-                      element={
-                        role === "ADMIN" ? (
+          <main className="p-4 overflow-y-auto flex-1">
+            <CategoryProvider>
+              <ProductsProvider>
+                <PricesProvider>
+                  <RecommendationRuleProvider>
+                    <Routes>
+                      {/* LANDING DASHBOARD PER ROLE */}
+                      <Route
+                        path=""
+                        element={
+                          role === "ADMIN" ? (
+                            <ProtectedRoute requiredRole="ADMIN">
+                              <DashboardPage />
+                            </ProtectedRoute>
+                          ) : (
+                            <ProtectedRoute requiredRole="SUB_ADMIN">
+                              <SubDashboardPage />
+                            </ProtectedRoute>
+                          )
+                        }
+                      />
+
+                      {/* ADMIN EXCLUSIVE */}
+                      <Route
+                        path="analytics/customers"
+                        element={
                           <ProtectedRoute requiredRole="ADMIN">
-                            <DashboardPage />
+                            <CustomerReport />
                           </ProtectedRoute>
-                        ) : (
+                        }
+                      />
+
+                      <Route
+                        path="analytics/sales"
+                        element={
+                          <ProtectedRoute requiredRole="ADMIN">
+                            <SalesReport />
+                          </ProtectedRoute>
+                        }
+                      />
+
+                      {/* SUB ADMIN ROUTES */}
+                      <Route
+                        path="products"
+                        element={
                           <ProtectedRoute requiredRole="SUB_ADMIN">
-                            <SubDashboardPage />
+                            <ProductsPage />
                           </ProtectedRoute>
-                        )
-                      }
-                    />
+                        }
+                      />
 
-                    {/* ADMIN EXCLUSIVE ROUTES */}
-                    <Route
-                      path="analytics/customers"
-                      element={
-                        <ProtectedRoute requiredRole="ADMIN">
-                          <CustomerReport />
-                        </ProtectedRoute>
-                      }
-                    />
+                      <Route
+                        path="products/monitoring"
+                        element={
+                          <ProtectedRoute requiredRole="SUB_ADMIN">
+                            <ProductMonitoring />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    <Route
-                      path="analytics/sales"
-                      element={
-                        <ProtectedRoute requiredRole="ADMIN">
-                          <SalesReport />
-                        </ProtectedRoute>
-                      }
-                    />
+                      <Route
+                        path="products/recommendation"
+                        element={
+                          <ProtectedRoute requiredRole="SUB_ADMIN">
+                            <ProductRecommendation />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    {/* SUB ADMIN EXCLUSIVE ROUTES */}
-                    <Route
-                      path="products"
-                      element={
-                        <ProtectedRoute requiredRole="SUB_ADMIN">
-                          <ProductsPage />
-                        </ProtectedRoute>
-                      }
-                    />
+                      <Route
+                        path="products/rates"
+                        element={
+                          <ProtectedRoute requiredRole="SUB_ADMIN">
+                            <ProductPriceMonitoring />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    <Route
-                      path="products/monitoring"
-                      element={
-                        <ProtectedRoute requiredRole="SUB_ADMIN">
-                          <ProductMonitoring />
-                        </ProtectedRoute>
-                      }
-                    />
+                      <Route
+                        path="products/categories"
+                        element={
+                          <ProtectedRoute requiredRole="SUB_ADMIN">
+                            <ProductCategoryManagement />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    <Route
-                      path="products/recommendation"
-                      element={
-                        <ProtectedRoute requiredRole="SUB_ADMIN">
-                          <ProductRecommendation />
-                        </ProtectedRoute>
-                      }
-                    />
+                      <Route
+                        path="products/banner"
+                        element={
+                          <ProtectedRoute requiredRole="SUB_ADMIN">
+                            <ProductBanner />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    <Route
-                      path="products/rates"
-                      element={
-                        <ProtectedRoute requiredRole="SUB_ADMIN">
-                          <ProductPriceMonitoring />
-                        </ProtectedRoute>
-                      }
-                    />
+                      <Route
+                        path="analytics/products"
+                        element={
+                          <ProtectedRoute requiredRole="SUB_ADMIN">
+                            <ProductReport />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    <Route
-                      path="products/categories"
-                      element={
-                        <ProtectedRoute requiredRole="SUB_ADMIN">
-                          <ProductCategoryManagement />
-                        </ProtectedRoute>
-                      }
-                    />
+                      <Route
+                        path="users"
+                        element={
+                          <ProtectedRoute requiredRole="SUB_ADMIN">
+                            <UsersPage />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    <Route
-                      path="products/banner"
-                      element={
-                        <ProtectedRoute requiredRole="SUB_ADMIN">
-                          <ProductBanner />
-                        </ProtectedRoute>
-                      }
-                    />
+                      <Route
+                        path="delivery/orders"
+                        element={
+                          <ProtectedRoute requiredRole="SUB_ADMIN">
+                            <OrdersPage />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    <Route
-                      path="analytics/products"
-                      element={
-                        <ProtectedRoute requiredRole="SUB_ADMIN">
-                          <ProductReport />
-                        </ProtectedRoute>
-                      }
-                    />
+                      <Route
+                        path="delivery/riders"
+                        element={
+                          <ProtectedRoute requiredRole="SUB_ADMIN">
+                            <RidersPage />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    <Route
-                      path="users"
-                      element={
-                        <ProtectedRoute requiredRole="SUB_ADMIN">
-                          <UsersPage />
-                        </ProtectedRoute>
-                      }
-                    />
+                      <Route
+                        path="delivery/add-riders"
+                        element={
+                          <ProtectedRoute requiredRole="SUB_ADMIN">
+                            <AddDriverPage />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    <Route
-                      path="delivery/orders"
-                      element={
-                        <ProtectedRoute requiredRole="SUB_ADMIN">
-                          <OrdersPage />
-                        </ProtectedRoute>
-                      }
-                    />
+                      {/* BOTH ROLES */}
+                      <Route
+                        path="analytics"
+                        element={
+                          <ProtectedRoute>
+                            <AnalyticsPage />
+                          </ProtectedRoute>
+                        }
+                      />
 
-                    <Route
-                      path="delivery/riders"
-                      element={
-                        <ProtectedRoute requiredRole="SUB_ADMIN">
-                          <RidersPage />
-                        </ProtectedRoute>
-                      }
-                    />
-
-                    <Route
-                      path="delivery/add-riders"
-                      element={
-                        <ProtectedRoute requiredRole="SUB_ADMIN">
-                          <AddDriverPage />
-                        </ProtectedRoute>
-                      }
-                    />
-
-                    {/* ROUTES ACCESSIBLE BY BOTH ROLES */}
-                    <Route
-                      path="analytics"
-                      element={
-                        <ProtectedRoute>
-                          <AnalyticsPage />
-                        </ProtectedRoute>
-                      }
-                    />
-
-                    <Route
-                      path="delivery"
-                      element={
-                        <ProtectedRoute>
-                          <DeliveryPage />
-                        </ProtectedRoute>
-                      }
-                    />
-                  </Routes>
-                </RecommendationRuleProvider>
-              </PricesProvider>
-            </ProductsProvider>
-          </CategoryProvider>
-        </main>
+                      <Route
+                        path="delivery"
+                        element={
+                          <ProtectedRoute>
+                            <DeliveryPage />
+                          </ProtectedRoute>
+                        }
+                      />
+                    </Routes>
+                  </RecommendationRuleProvider>
+                </PricesProvider>
+              </ProductsProvider>
+            </CategoryProvider>
+          </main>
+        </div>
       </div>
-    </div>
+    </DriverProvider>
   );
 }
