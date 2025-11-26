@@ -81,40 +81,41 @@ export default function AddDriverLayout() {
   };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    if (!validate()) return;
+  if (!validate()) return;
 
-    const newDriver: Rider = {
-      id: "RDR-" + Math.floor(Math.random() * 900 + 100),
-      name: form.userName,
-      contact: form.mobileNumber,
-      status: "Available",
-      ordersToday: 0,
-      lastAssigned: "Not yet assigned",
-      rating: 0,
-      completedDeliveries: 0,
-      workload: 0,
-      lastActive: "Online now",
-      homeBase: form.address,
-    };
-
-    // ✅ Save to GLOBAL DriverContext
-    addRider(newDriver);
-
-    // ✅ SweetAlert + redirect to Available Riders
-    Swal.fire({
-      title: "Driver Registered!",
-      text: "Redirecting to Available Riders...",
-      icon: "success",
-      timer: 1500,
-      showConfirmButton: false,
-    }).then(() => {
-      navigate("dashboard/delivery/riders");
-    });
-
-    handleReset();
+  const newDriver: Rider = {
+    id: "RDR-" + Math.floor(Math.random() * 900 + 100),
+    name: form.userName,
+    contact: form.mobileNumber,
+    status: "Available",
+    ordersToday: 0,
+    lastAssigned: "Not yet assigned",
+    rating: 0,
+    completedDeliveries: 0,
+    workload: 0,
+    lastActive: "Online now",
+    homeBase: form.address,
   };
+
+  // Save to GLOBAL DriverContext
+  addRider(newDriver);
+
+  // Success + redirect
+  Swal.fire({
+    title: "Driver Registered!",
+    text: "Redirecting to Available Riders...",
+    icon: "success",
+    timer: 1500,
+    showConfirmButton: false,
+  }).then(() => {
+    navigate("/dashboard/delivery/riders"); // ✅ FIXED
+  });
+
+  handleReset();
+};
+
 
   const handleReset = () => {
     setForm({
