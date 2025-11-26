@@ -9,10 +9,10 @@ export interface ProductDTO {
   productSize: string;
   productStatus: string;
   productImgUrl: string;
-  expiryDate?: string | null;
-  productInDate?: string | null;
+  expiryDate: string | null;
+  productInDate: string | null;
   categoryId: number | null;
-  productCategory: string | null;
+  categoryName: string | null;
 
   // ✅ Replace old ProductRecommendedDTO[]
   recommendations: RecommendationRuleDTO[];

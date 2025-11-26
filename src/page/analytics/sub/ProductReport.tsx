@@ -16,64 +16,38 @@ import { motion } from "framer-motion";
 import ProductLegendLayout from "../../../layout/product/ProductLegendLayout";
 
 // API
-import { getExpiryAnalytics } from "../../../libs/ApiGatewayDatasource";
+import { 
+  getExpiryAnalytics, 
+  getAllProducts 
+} from "../../../libs/ApiGatewayDatasource";
+
 import type { ExpiryAnalyticsDTO } from "../../../libs/ApiGatewayDatasource";
+import type { ProductDTO } from "../../../libs/models/product/Product";
 
 dayjs.extend(relativeTime);
 
-// TYPES
-interface Product {
-  name: string;
-  category: string;
-  stock: number;
-  expiryDate: string;
-}
-
-interface StatusInfo {
-  title: string;
-  color: string;
-  soft: string;
-}
-
-// SAMPLE DATA
-const productData: Product[] = [
-  { name: "Milk", category: "Dairy", stock: 120, expiryDate: "2025-08-10" },
-  { name: "Eggs", category: "Poultry", stock: 80, expiryDate: "2025-07-04" },
-  { name: "Bread", category: "Bakery", stock: 45, expiryDate: "2025-07-02" },
-  { name: "Yogurt", category: "Dairy", stock: 30, expiryDate: "2025-07-01" },
-  { name: "Chicken Breast", category: "Meat", stock: 50, expiryDate: "2025-07-06" },
-];
-
-// DAYS LEFT
-const getDaysLeft = (date: string): number => {
-  const today = dayjs();
-  const expiry = dayjs(date);
-  return expiry.diff(today, "day");
-};
-
 // STATUS COLOR LOGIC
-const getStatus = (days: number): StatusInfo => {
+const getStatus = (days: number) => {
   if (days > 30)
     return {
       title: "Fresh",
-      color: "bg-green-600",
       soft: "bg-green-100 text-green-700",
     };
+
   if (days >= 7)
     return {
       title: "Moderate",
-      color: "bg-yellow-500",
       soft: "bg-yellow-100 text-yellow-700",
     };
+
   if (days >= 3)
     return {
       title: "Near Expiry",
-      color: "bg-orange-500",
       soft: "bg-orange-100 text-orange-700",
     };
+
   return {
     title: "Expired / Expiring",
-    color: "bg-red-600",
     soft: "bg-red-100 text-red-700",
   };
 };
@@ -82,14 +56,17 @@ export default function ProductReport() {
   const [categoryFilter, setCategoryFilter] = useState("All");
   const [productFilter, setProductFilter] = useState("All");
 
-  // Cursor tracking (used for spotlight)
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
-  // Expiry analytics
+  // Analytics
   const [analytics, setAnalytics] = useState<ExpiryAnalyticsDTO | null>(null);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
 
-  // Fetch analytics
+  // REAL PRODUCTS
+  const [products, setProducts] = useState<ProductDTO[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+
+  // FETCH ANALYTICS
   useEffect(() => {
     (async () => {
       try {
@@ -103,19 +80,49 @@ export default function ProductReport() {
     })();
   }, []);
 
-  // Filter table data
+  // FETCH PRODUCTS
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getAllProducts();
+        setProducts(data);
+      } catch (err) {
+        console.error("Failed to load products", err);
+      } finally {
+        setLoadingProducts(false);
+      }
+    })();
+  }, []);
+
+  // MAP BACKEND DATA → TABLE FORMAT
+  const tableData = useMemo(() => {
+    return products.map((p) => ({
+      name: p.productName,
+      category: p.categoryName ?? "Uncategorized",
+      stock: p.stocks,
+      expiryDate: p.expiryDate, // Already in string format
+    }));
+  }, [products]);
+
+  // FILTERING
   const filteredData = useMemo(() => {
-    return productData.filter((item) => {
-      const matchCat =
-        categoryFilter === "All" || item.category === categoryFilter;
-      const matchProd =
-        productFilter === "All" || item.name === productFilter;
+    return tableData.filter((item) => {
+      const matchCat = categoryFilter === "All" || item.category === categoryFilter;
+      const matchProd = productFilter === "All" || item.name === productFilter;
       return matchCat && matchProd;
     });
-  }, [categoryFilter, productFilter]);
+  }, [categoryFilter, productFilter, tableData]);
 
-  const uniqueCategories = [...new Set(productData.map((p) => p.category))];
-  const uniqueProducts = [...new Set(productData.map((p) => p.name))];
+  // UNIQUE FILTER OPTIONS
+  const uniqueCategories = [...new Set(tableData.map((p) => p.category))];
+  const uniqueProducts = [...new Set(tableData.map((p) => p.name))];
+
+  const getDaysLeft = (expiryDate: string | null) => {
+    if (!expiryDate) return 0;
+    const today = dayjs();
+    const expiry = dayjs(expiryDate);
+    return expiry.diff(today, "day");
+  };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -133,7 +140,7 @@ export default function ProductReport() {
       onMouseMove={handleMouseMove}
       className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
     >
-      {/* CURSOR SPOTLIGHT */}
+      {/* SPOTLIGHT */}
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
@@ -143,17 +150,16 @@ export default function ProductReport() {
         transition={{ duration: 10, repeat: Infinity }}
       />
 
-      {/* PAGE HEADER */}
-      <div className="relative">
+      {/* HEADER */}
+      <div>
         <motion.h1
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4 }}
-          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent"
+          className="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 to-green-600 bg-clip-text text-transparent"
         >
           Food Freshness & Expiry Report
         </motion.h1>
-
         <p className="text-gray-500 text-sm mt-1">
           Monitor product lifespan and expiry status.
         </p>
@@ -202,7 +208,9 @@ export default function ProductReport() {
               </button>
             )}
           >
-            <DropdownItem onClick={() => setCategoryFilter("All")}>All</DropdownItem>
+            <DropdownItem onClick={() => setCategoryFilter("All")}>
+              All
+            </DropdownItem>
             {uniqueCategories.map((c) => (
               <DropdownItem key={c} onClick={() => setCategoryFilter(c)}>
                 {c}
@@ -220,7 +228,9 @@ export default function ProductReport() {
               </button>
             )}
           >
-            <DropdownItem onClick={() => setProductFilter("All")}>All</DropdownItem>
+            <DropdownItem onClick={() => setProductFilter("All")}>
+              All
+            </DropdownItem>
             {uniqueProducts.map((p) => (
               <DropdownItem key={p} onClick={() => setProductFilter(p)}>
                 {p}
@@ -230,7 +240,7 @@ export default function ProductReport() {
         </div>
       </div>
 
-      {/* DATA TABLE */}
+      {/* TABLE */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -251,7 +261,13 @@ export default function ProductReport() {
             </thead>
 
             <tbody className="bg-white">
-              {filteredData.length ? (
+              {loadingProducts ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-4">
+                    Loading products…
+                  </td>
+                </tr>
+              ) : filteredData.length ? (
                 filteredData.map((item, i) => {
                   const days = getDaysLeft(item.expiryDate);
                   const status = getStatus(days);
@@ -261,10 +277,12 @@ export default function ProductReport() {
                       <Td>{item.name}</Td>
                       <Td>{item.category}</Td>
                       <Td>{item.stock}</Td>
-                      <Td>{item.expiryDate}</Td>
+                      <Td>{item.expiryDate ?? "N/A"}</Td>
                       <Td>{days} day(s)</Td>
                       <Td>
-                        <span className={`px-3 py-1 rounded-full text-xs font-semibold ${status.soft}`}>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-semibold ${status.soft}`}
+                        >
                           {status.title}
                         </span>
                       </Td>
@@ -289,25 +307,10 @@ export default function ProductReport() {
 }
 
 // SUMMARY CARD COMPONENT
-function SummaryCard({
-  label,
-  count,
-  icon,
-  gradient,
-}: {
-  label: string;
-  count: number | string;
-  icon: React.ReactNode;
-  gradient: string;
-}) {
+function SummaryCard({ label, count, icon, gradient }: any) {
   return (
     <motion.div
-      whileHover={{
-        scale: 1.03,
-        y: -4,
-        rotateX: -4,
-        rotateY: 4,
-      }}
+      whileHover={{ scale: 1.03, y: -4 }}
       className={`relative p-4 rounded-xl shadow-lg text-white bg-gradient-to-br ${gradient} border border-white/20`}
     >
       <div className="relative flex gap-3 items-center">
