@@ -111,7 +111,7 @@ const handleSubmit = (e: React.FormEvent) => {
     confirmButtonColor: "#059669",
   }).then((result) => {
     if (result.isConfirmed) {
-      navigate("/dashboard/delivery/add-riders");
+      navigate("/dashboard/delivery/riders");
     }
   });
 
