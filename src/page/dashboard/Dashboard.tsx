@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-import DashboardTable from "../../layout/dashboard/DashboardTableLayout.tsx";
+//import DashboardTable from "../../layout/dashboard/DashboardTableLayout.tsx";
 
 // TYPES
 type StatConfig = {
@@ -364,15 +364,7 @@ const Dashboard: React.FC = () => {
       </SectionWrapper>
 
       {/* TABLE SECTION */}
-      <motion.div
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, ease: "easeOut" }}
-        className="relative p-5 rounded-xl border border-slate-200/85 dark:border-slate-700/85 bg-white/80 dark:bg-slate-900/70 backdrop-blur-xl shadow-[0_18px_55px_rgba(15,23,42,0.35)] overflow-hidden group"
-      >
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(148,163,184,0.12),transparent_55%)] opacity-80" />
-        <DashboardTable />
-      </motion.div>
+ 
     </motion.div>
   );
 };

@@ -8,7 +8,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import DashboardTable from "../../layout/dashboard/DashboardTableLayout.tsx";
 
 export default function SubDashboard() {
   const [currentTime, setCurrentTime] = useState("");
@@ -66,13 +65,9 @@ export default function SubDashboard() {
     >
       {/* ========== HUD BACKGROUND (GRID + SCANLINES + BLOBS) ========== */}
       <div className="pointer-events-none absolute inset-0 -z-30">
-        {/* Grid */}
         <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.18)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.18)_1px,transparent_1px)] bg-[size:40px_40px]" />
-
-        {/* Scanlines */}
         <div className="absolute inset-0 opacity-[0.07] bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" />
 
-        {/* Ambient blobs */}
         <motion.div
           className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/28 blur-3xl"
           animate={{
@@ -92,7 +87,6 @@ export default function SubDashboard() {
           transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* Micro glowing indicators */}
         <motion.div
           className="absolute top-10 right-10 flex gap-2 text-emerald-400/70"
           animate={{ opacity: [0.4, 1, 0.6] }}
@@ -113,7 +107,7 @@ export default function SubDashboard() {
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* ========== PAGE HEADER (MATCHED CONCEPT W/ REPORTS) ========== */}
+      {/* HEADER */}
       <div className="relative">
         <motion.h1
           initial={{ opacity: 0, x: -15 }}
@@ -125,12 +119,10 @@ export default function SubDashboard() {
         </motion.h1>
 
         <div className="mt-1 flex flex-wrap items-center gap-2">
-          {/* Holographic role badge */}
           <motion.span
             whileHover={{ scale: 1.05, rotateX: -6 }}
             className="relative inline-flex items-center gap-1 px-3 py-1 text-[0.7rem] font-semibold rounded-full border border-emerald-300/70 bg-gradient-to-r from-emerald-50 via-white to-emerald-100 text-emerald-700 shadow-[0_8px_22px_rgba(16,185,129,0.35)] overflow-hidden"
           >
-            <span className="absolute inset-0 opacity-0 bg-[linear-gradient(120deg,transparent,rgba(16,185,129,0.5),transparent)] translate-x-[-120%] group-hover:translate-x-[120%]" />
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.9)]" />
             SUB ADMIN
           </motion.span>
@@ -148,11 +140,10 @@ export default function SubDashboard() {
           📅 {currentDate} • ⏰ {currentTime}
         </p>
 
-        {/* Header underline glow */}
         <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* Dual scanner bars (HUD effect) */}
+      {/* Scanner bars */}
       <motion.div
         className="pointer-events-none absolute left-0 top-[148px] w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-80"
         animate={{ x: ["-30%", "30%", "-30%"] }}
@@ -171,7 +162,6 @@ export default function SubDashboard() {
         transition={{ duration: 0.45, ease: "easeOut" }}
         className="relative rounded-[26px] border border-emerald-500/30 bg-white/95 dark:bg-slate-950/90 shadow-[0_22px_70px_rgba(15,23,42,0.5)] overflow-hidden mt-1"
       >
-        {/* HUD corner brackets */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
           <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
@@ -179,7 +169,6 @@ export default function SubDashboard() {
           <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-400/80" />
         </div>
 
-        {/* Inner subtle halo */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_60%)]" />
 
         <div className="relative flex flex-col gap-6 p-5 md:p-6">
@@ -196,13 +185,12 @@ export default function SubDashboard() {
                 Operational Reminder
               </p>
               <p className="text-xs text-yellow-700 dark:text-yellow-300 mt-0.5">
-                Prioritize packing and dispatching pending orders today to avoid
-                delivery delays.
+                Prioritize packing and dispatching pending orders today.
               </p>
             </div>
           </motion.div>
 
-          {/* STAT CARDS GRID */}
+          {/* STAT CARDS */}
           <section className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-5">
             <SubStatCard
               gradient="from-emerald-600 to-green-700"
@@ -241,30 +229,7 @@ export default function SubDashboard() {
           {/* Divider */}
           <div className="relative h-px w-full bg-gradient-to-r from-transparent via-gray-300/90 dark:via-slate-700/90 to-transparent mt-1" />
 
-          {/* TABLE SECTION */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="relative rounded-2xl border border-gray-200 dark:border-slate-700 bg-white/95 dark:bg-slate-900/90 shadow-[0_18px_55px_rgba(15,23,42,0.35)] p-4 md:p-5 backdrop-blur-xl overflow-hidden"
-          >
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h2 className="text-sm md:text-base font-semibold text-gray-900 dark:text-gray-100">
-                  Order Activity
-                </h2>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Live overview of current orders handled by Sub Admin.
-                </p>
-              </div>
-              <div className="hidden md:flex items-center gap-2 text-[0.7rem] text-gray-500 dark:text-gray-400">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(16,185,129,0.9)]" />
-                <span>Data synced</span>
-              </div>
-            </div>
-
-            <DashboardTable />
-          </motion.div>
+          {/* 🚫 TABLE SECTION REMOVED COMPLETELY 🚫 */}
         </div>
       </motion.div>
     </motion.div>
@@ -272,7 +237,7 @@ export default function SubDashboard() {
 }
 
 /* ============================================================
-   SUB ADMIN STAT CARD (GOD MODE)
+   SUB ADMIN STAT CARD
 ============================================================ */
 
 type SubStatCardProps = {
@@ -307,19 +272,12 @@ function SubStatCard({
       transition={{ duration: 0.35, ease: "easeOut" }}
       className={`relative flex flex-col gap-3 p-4 rounded-2xl border border-white/25 text-white bg-gradient-to-br ${gradient} shadow-xl transform-gpu overflow-hidden group`}
     >
-      {/* Shine + hologram sweep */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.32),transparent_60%)] opacity-80" />
-      <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.45),transparent)] translate-x-[-200%] group-hover:translate-x-[200%]" />
 
-      {/* Top label strip */}
       <div className="relative flex items-center justify-between text-[0.7rem] text-white/80">
         <span className="px-2 py-0.5 rounded-full bg-black/20 border border-white/20">
           Sub Admin Metric
         </span>
-        <div className="flex gap-1 items-center">
-          <span className="h-1 w-1 rounded-full bg-emerald-300 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
-          <span className="h-1 w-1 rounded-full bg-emerald-100/80" />
-        </div>
       </div>
 
       <div className="relative flex items-center gap-3 mt-1">

@@ -51,12 +51,12 @@ export const sidebarMenu: SidebarMenuSection[] = [
                         path: "/dashboard/products/monitoring",
                         role: "SUB_ADMIN",
                     },
-                    {
-                        label: "Product Recommendation",
-                        icon: Star,
-                        path: "/dashboard/products/recommendation",
-                        role: "SUB_ADMIN",
-                    },
+                    //{
+                    //    label: "Product Recommendation",
+                    //    icon: Star,
+                    //    path: "/dashboard/products/recommendation",
+                    //    role: "SUB_ADMIN",
+                   // },
                     {
                         label: "Product Rates",
                         icon: Currency,
