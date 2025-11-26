@@ -34,7 +34,7 @@ export const mapProductDTO = (p: ProductDTO): Product => ({
   imageFile: undefined,
   code: p.productCode ?? "",
   name: p.productName ?? "",
-  description: p.productDescription ?? "",
+  productDescription: p.productDescription ?? "",
   size: p.productSize ?? "",
   stock: p.stocks ?? 0,
   expiryDate: p.expiryDate ? formatDate(p.expiryDate) : "",
@@ -66,7 +66,7 @@ const formatDateForBackend = (d?: string | null): string => {
 export const toProductRequest = (p: Product): ProductRequest => ({
   productCode: clean(p.code),
   productName: clean(p.name),
-  productDescription: clean(p.description),
+  productDescription: clean(p.productDescription),
   stocks: Number(p.stock ?? 0),
   productSize: clean(p.size),
   productStatus: clean(p.status),
@@ -85,7 +85,7 @@ export const toProductFormData = (p: Product, imageFile?: File): FormData => {
   const productJson = {
     productCode: clean(p.code),
     productName: clean(p.name),
-    productDescription: clean(p.description),
+    productDescription: clean(p.productDescription),
     stocks: Number(p.stock ?? 0),
     productSize: clean(p.size),
     productStatus: clean(p.status),

@@ -6,7 +6,7 @@ export interface Product {
   imageUrl?: string;   // for display from backend
   code: string;
   name: string;
-  description: string;
+  productDescription: string;
   size: string;
   stock: number;
   expiryDate?: string | null;

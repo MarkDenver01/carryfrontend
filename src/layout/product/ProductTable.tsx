@@ -92,7 +92,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     {product.name}
                   </p>
                   <p className="text-xs text-gray-500 line-clamp-2">
-                    {product.description}
+                    {product.productDescription}
                   </p>
                 </div>
               </div>

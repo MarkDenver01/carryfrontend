@@ -41,7 +41,7 @@ export default function ProductFormModal({
     imageUrl: "",
     code: "",
     name: "",
-    description: "",
+    productDescription: "",
     size: "",
     stock: 0,
     expiryDate: "",

@@ -99,8 +99,8 @@ export const validateProduct = (p: Product): string | null => {
   if (!p.name?.trim()) return "Product name is required (max 255 characters)";
   if (p.name.length > 255) return "Product name cannot exceed 255 characters";
 
-  if (!p.description?.trim()) return "Product description is required (max 255 characters)";
-  if (p.description.length > 255) return "Product description cannot exceed 255 characters";
+  if (!p.productDescription?.trim()) return "Product description is required (max 255 characters)";
+  if (p.productDescription.length > 255) return "Product description cannot exceed 255 characters";
 
   if (!p.size?.trim()) return "Product size is required (max 50 characters)";
   if (p.size.length > 50) return "Product size cannot exceed 50 characters";

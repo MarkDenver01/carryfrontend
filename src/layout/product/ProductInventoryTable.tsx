@@ -18,7 +18,7 @@ type ProductSortField =
   | "name"
   | "code"
   | "categoryName"
-  | "description"
+  | "productDescription"
   | "size"
   | "stock"
   | "expiryDate"
