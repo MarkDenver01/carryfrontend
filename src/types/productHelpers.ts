@@ -43,11 +43,14 @@ export const mapProductDTO = (p: ProductDTO): Product => ({
     (p.productStatus ?? "").toLowerCase() === "available"
       ? "Available"
       : "Not Available",
-  categoryId: p.categoryId ?? null,
-  categoryName: p.productCategory ?? null,
 
-  // 🔗 Map backend recommendation rules if available
-  recommendations: (p.recommendations ?? []).map(mapRecommendationDTO),
+  categoryId: p.categoryId ?? null,
+  categoryName: p.categoryName ?? null,
+
+  // Fix for ProductDTO without recommendations
+  recommendations: p.recommendations
+    ? p.recommendations.map(mapRecommendationDTO)
+    : [],
 });
 
 /** Clean up text fields */

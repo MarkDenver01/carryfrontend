@@ -14,6 +14,7 @@ export interface ProductDTO {
   categoryId: number | null;
   categoryName: string | null;
 
+
   // ✅ Replace old ProductRecommendedDTO[]
   recommendations: RecommendationRuleDTO[];
 }
