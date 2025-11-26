@@ -7,7 +7,7 @@ import {
     Users,
     ShoppingCart,
     Truck,
-    UserCheck,
+   // UserCheck,
     Currency,
 } from "lucide-react";
 import type { SidebarMenuSection } from "../types/sidebar";
@@ -101,12 +101,12 @@ export const sidebarMenu: SidebarMenuSection[] = [
     {
         section: "Operations",
         items: [
-            {
-                label: "Customer Membership",
-                icon: UserCheck,
-                path: "/dashboard/users",
-                role: "SUB_ADMIN",
-            },
+          //  {
+            //    label: "Customer Membership",
+            //    icon: UserCheck,
+            //    path: "/dashboard/users",
+            //    role: "SUB_ADMIN",
+           // },
             {
                 label: "Delivery Management",
                 icon: Truck,
