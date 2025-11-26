@@ -294,3 +294,18 @@ export async function getExpiryAnalytics(): Promise<ExpiryAnalyticsDTO> {
     throw error.response?.data || { message: "Failed to fetch expiry analytics" };
   }
 }
+export interface InventoryAlertsDTO {
+  lowStockItems: number;
+  outOfStockItems: number;
+  expiringSoonItems: number;
+}
+
+export async function getInventoryAlerts(): Promise<InventoryAlertsDTO> {
+  try {
+    const response = await api.get("/admin/api/product/inventory-alerts");
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Fetch inventory alerts error:", error);
+    throw error.response?.data || { message: "Failed to fetch inventory alerts" };
+  }
+}
