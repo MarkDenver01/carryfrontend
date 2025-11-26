@@ -1,40 +1,61 @@
-import api from './api';
-import type { LoginRequest, LoginResponse } from './models/login';
-import type { ProductDTO } from './models/product/Product';
-import type { ProductPriceDTO } from "../types/pricingTypes";
-import type { ProductPrice } from "../types/pricingTypes";
-import type { CategoryDTO } from './models/product/Category';
-import type { RecommendationRuleDTO, RecommendationRuleRequest } from './models/product/RecommendedRule';
-/**
- * Login.
- */
+import api from "./api";
+
+// ---- TYPES ----
+import type { LoginRequest, LoginResponse } from "./models/login";
+import type { ProductDTO } from "./models/product/Product";
+import type { CategoryDTO } from "./models/product/Category";
+import type {
+  RecommendationRuleDTO,
+  RecommendationRuleRequest,
+} from "./models/product/RecommendedRule";
+
+import type { ProductPriceDTO, ProductPrice } from "../types/pricingTypes";
+
+// ===============================
+//        AUTH APIs
+// ===============================
+
+/** Login */
 export async function login(request: LoginRequest): Promise<LoginResponse> {
   try {
-    const response = await api.post('/user/public/login', request);
+    const response = await api.post("/user/public/login", request);
     return response.data;
   } catch (error: any) {
-    console.error('Login error:', error);
-    throw error.response?.data || { message: 'Login failed' };
+    console.error("Login error:", error);
+    throw error.response?.data || { message: "Login failed" };
   }
 }
 
-/**
- * Fetch all products with recommendations
- */
-export async function getAllProductsWithRecommendations(): Promise<ProductDTO[]> {
+// ===============================
+//       PRODUCT APIs
+// ===============================
+
+/** Fetch ALL PRODUCTS (clean list, no recommendations) */
+export async function getAllProducts(): Promise<ProductDTO[]> {
   try {
-    const response = await api.get('/admin/api/product/get_recommendations');
+    const response = await api.get("/admin/api/product/all");
     return response.data?.data ?? response.data;
   } catch (error: any) {
-    console.error('Fetch products error:', error);
-    throw error.response?.data || { message: 'Failed to fetch products' };
+    console.error("Fetch all products error:", error);
+    throw error.response?.data || { message: "Failed to fetch all products" };
   }
 }
 
-/**
- * Add product with FormData (supports image upload)
- */
-export async function addProductFormData(formData: FormData): Promise<ProductDTO> {
+/** Fetch all products WITH recommendations */
+export async function getAllProductsWithRecommendations(): Promise<ProductDTO[]> {
+  try {
+    const response = await api.get("/admin/api/product/get_recommendations");
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Fetch products error:", error);
+    throw error.response?.data || { message: "Failed to fetch products" };
+  }
+}
+
+/** Add product (multipart form-data) */
+export async function addProductFormData(
+  formData: FormData
+): Promise<ProductDTO> {
   try {
     const response = await api.post("/admin/api/product/add", formData, {
       headers: { "Content-Type": "multipart/form-data" },
@@ -46,15 +67,17 @@ export async function addProductFormData(formData: FormData): Promise<ProductDTO
   }
 }
 
-
-/**
- * Update product with FormData (supports image upload)
- */
-export async function updateProductFormData(productId: number | string, formData: FormData): Promise<ProductDTO> {
+/** Update product (multipart form-data) */
+export async function updateProductFormData(
+  productId: number | string,
+  formData: FormData
+): Promise<ProductDTO> {
   try {
-    const response = await api.put(`/admin/api/product/${productId}/update`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await api.put(
+      `/admin/api/product/${productId}/update`,
+      formData,
+      { headers: { "Content-Type": "multipart/form-data" } }
+    );
     return response.data?.data ?? response.data;
   } catch (error: any) {
     console.error("Update product error:", error);
@@ -62,11 +85,7 @@ export async function updateProductFormData(productId: number | string, formData
   }
 }
 
-
-/**
- * Delete product
- * @param productId product id
- */
+/** Delete product */
 export async function deleteProduct(productId: number): Promise<void> {
   try {
     await api.delete(`/admin/api/product/${productId}/delete`);
@@ -76,17 +95,16 @@ export async function deleteProduct(productId: number): Promise<void> {
   }
 }
 
-/**
- * Update product status only
- */
+/** Update product status only */
 export async function updateProductStatus(
   productId: number | string,
   newStatus: string
 ): Promise<ProductDTO> {
   try {
-    const response = await api.patch(`/admin/api/product/${productId}/update_status`, {
-      productStatus: newStatus,
-    });
+    const response = await api.patch(
+      `/admin/api/product/${productId}/update_status`,
+      { productStatus: newStatus }
+    );
     return response.data?.data ?? response.data;
   } catch (error: any) {
     console.error("Update product status error:", error);
@@ -94,16 +112,32 @@ export async function updateProductStatus(
   }
 }
 
+// ===============================
+//         PRICE APIs
+// ===============================
+
 /** Fetch all product prices */
 export async function getAllPrices(): Promise<ProductPriceDTO[]> {
-  const response = await api.get("/user/public/api/price/all");
-  return response.data?.data ?? response.data;
+  try {
+    const response = await api.get("/user/public/api/price/all");
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Fetch price list error:", error);
+    throw error.response?.data || { message: "Failed to fetch prices" };
+  }
 }
 
-/** Add product price */
-export async function addPriceForm(price: Partial<ProductPrice>): Promise<ProductPriceDTO> {
-  const response = await api.post("/user/public/api/price/add", price);
-  return response.data?.data ?? response.data;
+/** Add new product price */
+export async function addPriceForm(
+  price: Partial<ProductPrice>
+): Promise<ProductPriceDTO> {
+  try {
+    const response = await api.post("/user/public/api/price/add", price);
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Add price error:", error);
+    throw error.response?.data || { message: "Failed to add price" };
+  }
 }
 
 /** Update product price */
@@ -111,18 +145,33 @@ export async function updatePriceForm(
   priceId: number,
   price: Partial<ProductPrice>
 ): Promise<ProductPriceDTO> {
-  const response = await api.put(`/user/public/api/price/update/${priceId}`, price);
-  return response.data?.data ?? response.data;
+  try {
+    const response = await api.put(
+      `/user/public/api/price/update/${priceId}`,
+      price
+    );
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Update price error:", error);
+    throw error.response?.data || { message: "Failed to update price" };
+  }
 }
 
 /** Delete product price */
 export async function deletePriceById(priceId: number): Promise<void> {
-  await api.delete(`/user/public/api/price/delete/${priceId}`);
+  try {
+    await api.delete(`/user/public/api/price/delete/${priceId}`);
+  } catch (error: any) {
+    console.error("Delete price error:", error);
+    throw error.response?.data || { message: "Failed to delete price" };
+  }
 }
 
-/**
- * Fetch all categories
- */
+// ===============================
+//      CATEGORY APIs
+// ===============================
+
+/** Fetch all categories */
 export async function getAllCategories(): Promise<CategoryDTO[]> {
   try {
     const response = await api.get("/admin/api/product-categories");
@@ -133,14 +182,15 @@ export async function getAllCategories(): Promise<CategoryDTO[]> {
   }
 }
 
-/**
- * Add category
- */
+/** Add category */
 export async function addCategory(
   category: Partial<CategoryDTO>
 ): Promise<CategoryDTO> {
   try {
-    const response = await api.post("/admin/api/product-categories", category);
+    const response = await api.post(
+      "/admin/api/product-categories",
+      category
+    );
     return response.data?.data ?? response.data;
   } catch (error: any) {
     console.error("Add category error:", error);
@@ -148,9 +198,7 @@ export async function addCategory(
   }
 }
 
-/**
- * Update category
- */
+/** Update category */
 export async function updateCategory(
   id: number,
   category: Partial<CategoryDTO>
@@ -167,9 +215,7 @@ export async function updateCategory(
   }
 }
 
-/**
- * Delete category
- */
+/** Delete category */
 export async function deleteCategory(id: number): Promise<void> {
   try {
     await api.delete(`/admin/api/product-categories/${id}`);
@@ -179,14 +225,23 @@ export async function deleteCategory(id: number): Promise<void> {
   }
 }
 
+// ===============================
+//   RECOMMENDATION RULE APIs
+// ===============================
+
 export async function fetchAllRules() {
-  const res = await api.get<RecommendationRuleDTO[]>("/admin/api/recommendation-rules");
-  return res.data;
+  const response = await api.get<RecommendationRuleDTO[]>(
+    "/admin/api/recommendation-rules"
+  );
+  return response.data;
 }
 
 export async function createRule(rule: RecommendationRuleRequest) {
-  const res = await api.post<RecommendationRuleDTO>("/admin/api/recommendation-rules", rule);
-  return res.data;
+  const response = await api.post<RecommendationRuleDTO>(
+    "/admin/api/recommendation-rules",
+    rule
+  );
+  return response.data;
 }
 
 export async function deleteRule(id: number) {
@@ -194,26 +249,34 @@ export async function deleteRule(id: number) {
 }
 
 export async function updateRule(id: number, rule: RecommendationRuleRequest) {
-  const res = await api.put<RecommendationRuleDTO>(`/admin/api/rules/${id}`, rule);
-  return res.data;
+  const response = await api.put<RecommendationRuleDTO>(
+    `/admin/api/rules/${id}`,
+    rule
+  );
+  return response.data;
 }
 
-/**
- * Register Driver (Multipart Upload)
- */
+// ===============================
+//        DRIVER APIs
+// ===============================
+
+/** Register driver */
 export async function registerDriver(formData: FormData) {
   try {
     const response = await api.post("/admin/api/driver/register", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-
-    return response.data; // backend returns Driver
+    return response.data;
   } catch (error: any) {
     console.error("Driver registration failed:", error);
     throw error.response?.data || { message: "Failed to register driver" };
   }
 }
-// types/models
+
+// ===============================
+//      EXPIRY ANALYTICS API
+// ===============================
+
 export interface ExpiryAnalyticsDTO {
   freshItems: number;
   moderateItems: number;
@@ -221,15 +284,13 @@ export interface ExpiryAnalyticsDTO {
   expiringOrExpiredItems: number;
 }
 
-// ---- function ----
+/** Fetch expiry analytics */
 export async function getExpiryAnalytics(): Promise<ExpiryAnalyticsDTO> {
   try {
     const response = await api.get("/admin/api/product/expiry-analytics");
-    // because of BaseController.ok(...)
     return response.data?.data ?? response.data;
   } catch (error: any) {
     console.error("Fetch expiry analytics error:", error);
     throw error.response?.data || { message: "Failed to fetch expiry analytics" };
   }
 }
-
