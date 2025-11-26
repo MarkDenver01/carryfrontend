@@ -80,7 +80,7 @@ export default function AddDriverLayout() {
     return true;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+const handleSubmit = (e: React.FormEvent) => {
   e.preventDefault();
 
   if (!validate()) return;
@@ -99,18 +99,20 @@ export default function AddDriverLayout() {
     homeBase: form.address,
   };
 
-  // Save to GLOBAL DriverContext
+  // Add to global Context
   addRider(newDriver);
 
-  // Success + redirect
+  // SweetAlert + redirect on OK click
   Swal.fire({
     title: "Driver Registered!",
-    text: "Redirecting to Available Riders...",
+    text: "Driver added successfully.",
     icon: "success",
-    timer: 1500,
-    showConfirmButton: false,
-  }).then(() => {
-    navigate("/dashboard/delivery/riders"); // ✅ FIXED
+    confirmButtonText: "OK",
+    confirmButtonColor: "#059669",
+  }).then((result) => {
+    if (result.isConfirmed) {
+      navigate("/dashboard/delivery/riders");
+    }
   });
 
   handleReset();
