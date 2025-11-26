@@ -86,7 +86,7 @@ export default function DashboardLayout() {
                         }
                       />
 
-                      {/* ADMIN EXCLUSIVE */}
+                      {/* ADMIN EXCLUSIVE ROUTES */}
                       <Route
                         path="analytics/customers"
                         element={
@@ -105,7 +105,7 @@ export default function DashboardLayout() {
                         }
                       />
 
-                      {/* SUB ADMIN ROUTES */}
+                      {/* SUB ADMIN EXCLUSIVE ROUTES */}
                       <Route
                         path="products"
                         element={
@@ -205,7 +205,7 @@ export default function DashboardLayout() {
                         }
                       />
 
-                      {/* BOTH ROLES */}
+                      {/* ROUTES ACCESSIBLE BY BOTH ROLES */}
                       <Route
                         path="analytics"
                         element={

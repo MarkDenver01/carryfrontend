@@ -1,6 +1,13 @@
-import { createContext, useContext, useState } from "react";
+import { 
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  type ReactNode
+} from "react";
 
-export type RiderStatus = "Available" | "On Delivery" | "Offline";
+
+export type RiderStatus = "Available" | "On Delivery" | "Offline" | "Not Available";
 
 export interface Rider {
   id: string;
@@ -25,8 +32,29 @@ interface DriverContextType {
 
 const DriverContext = createContext<DriverContextType | null>(null);
 
-export const DriverProvider = ({ children }: { children: React.ReactNode }) => {
-  const [riders, setRiders] = useState<Rider[]>([]);
+const STORAGE_KEY = "carry_admin_riders";
+
+export const DriverProvider = ({ children }: { children: ReactNode }) => {
+  const [riders, setRiders] = useState<Rider[]>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed as Rider[];
+    } catch (e) {
+      console.error("Failed to parse riders from localStorage", e);
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(riders));
+    } catch (e) {
+      console.error("Failed to save riders to localStorage", e);
+    }
+  }, [riders]);
 
   const addRider = (r: Rider) => {
     setRiders((prev) => [...prev, r]);
@@ -51,6 +79,8 @@ export const DriverProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useDrivers = () => {
   const ctx = useContext(DriverContext);
-  if (!ctx) throw new Error("useDrivers must be used inside DriverProvider");
+  if (!ctx) {
+    throw new Error("useDrivers must be used inside DriverProvider");
+  }
   return ctx;
 };

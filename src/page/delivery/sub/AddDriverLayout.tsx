@@ -1,3 +1,4 @@
+// src/components/driver/AddDriverLayout.tsx
 import { useState } from "react";
 import {
   UserPlus,
@@ -80,45 +81,6 @@ export default function AddDriverLayout() {
     return true;
   };
 
-const handleSubmit = (e: React.FormEvent) => {
-  e.preventDefault();
-
-  if (!validate()) return;
-
-  const newDriver: Rider = {
-    id: "RDR-" + Math.floor(Math.random() * 900 + 100),
-    name: form.userName,
-    contact: form.mobileNumber,
-    status: "Available",
-    ordersToday: 0,
-    lastAssigned: "Not yet assigned",
-    rating: 0,
-    completedDeliveries: 0,
-    workload: 0,
-    lastActive: "Online now",
-    homeBase: form.address,
-  };
-
-  // Add to global Context
-  addRider(newDriver);
-
-  // SweetAlert + redirect on OK click
-  Swal.fire({
-    title: "Driver Registered!",
-    text: "Driver added successfully.",
-    icon: "success",
-    confirmButtonText: "OK",
-    confirmButtonColor: "#059669",
-  }).then((result) => {
-    if (result.isConfirmed) {
-      navigate("/dashboard/delivery/riders");
-    }
-  });
-
-  handleReset();
-};
-
-
   const handleReset = () => {
     setForm({
       userName: "",
@@ -131,6 +93,44 @@ const handleSubmit = (e: React.FormEvent) => {
       backIdFile: null,
     });
     setPreview({ photo: "", frontId: "", backId: "" });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!validate()) return;
+
+    const newDriver: Rider = {
+      id: "RDR-" + Math.floor(Math.random() * 900 + 100),
+      name: form.userName,
+      contact: form.mobileNumber,
+      status: "Available",
+      ordersToday: 0,
+      lastAssigned: "Not yet assigned",
+      rating: 0,
+      completedDeliveries: 0,
+      workload: 0,
+      lastActive: "Online now",
+      homeBase: form.address,
+    };
+
+    // Add to global Context
+    addRider(newDriver);
+
+    // SweetAlert + redirect on OK click
+    Swal.fire({
+      title: "Driver Registered!",
+      text: "Driver added successfully.",
+      icon: "success",
+      confirmButtonText: "OK",
+      confirmButtonColor: "#059669",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        navigate("/dashboard/delivery/riders");
+      }
+    });
+
+    handleReset();
   };
 
   return (

@@ -1,11 +1,7 @@
-import AddDriverLayout from "./sub/RegisterDriver";
+
+// src/page/delivery/AddDriver.tsx
+import AddDriverLayout from "./sub/AddDriverLayout";;
 
 export default function AddDriverPage() {
-    return (
-        <div className="p-4">
-            {/* Header, nav, etc. */}
-            <AddDriverLayout />
-        
-        </div>
-    );
+  return <AddDriverLayout />;
 }
