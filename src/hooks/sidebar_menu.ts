@@ -2,7 +2,6 @@ import {
     LayoutDashboard,
     Boxes,
     Search,
-    Star,
     BarChart2,
     Users,
     ShoppingCart,
