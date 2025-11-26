@@ -353,15 +353,6 @@ const Dashboard: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/* STORE PERFORMANCE */}
-      <SectionWrapper title="Store Performance Snapshot">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <PerformanceCard label="Today's Revenue" value="₱12,450" />
-          <PerformanceCard label="Orders Today" value="32" />
-          <PerformanceCard label="New Users" value="6" />
-          <PerformanceCard label="Driver Availability" value="82%" />
-        </div>
-      </SectionWrapper>
 
       {/* TABLE SECTION */}
  
@@ -498,34 +489,6 @@ function AlertCard({
   );
 }
 
-/* ============================
-   PERFORMANCE CARD
-============================ */
-function PerformanceCard({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <motion.div
-      whileHover={{ y: -4, scale: 1.02 }}
-      className="p-4 rounded-xl border border-sky-200/80 dark:border-sky-700/80 bg-sky-50/80 dark:bg-sky-900/25 backdrop-blur-md shadow-[0_14px_38px_rgba(30,64,175,0.35)]"
-    >
-      <p className="text-sm font-medium text-sky-800 dark:text-sky-200">
-        {label}
-      </p>
-      <p className="text-2xl font-bold mt-1 text-slate-900 dark:text-slate-50">
-        {value}
-      </p>
-    </motion.div>
-  );
-}
-
-/* ============================
-   COUNT-UP HOOK
-============================ */
 function useCountUp(target: number, duration: number = 700): number {
   const [value, setValue] = useState(0);
 
