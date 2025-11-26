@@ -213,4 +213,23 @@ export async function registerDriver(formData: FormData) {
     throw error.response?.data || { message: "Failed to register driver" };
   }
 }
+// types/models
+export interface ExpiryAnalyticsDTO {
+  freshItems: number;
+  moderateItems: number;
+  nearExpiryItems: number;
+  expiringOrExpiredItems: number;
+}
+
+// ---- function ----
+export async function getExpiryAnalytics(): Promise<ExpiryAnalyticsDTO> {
+  try {
+    const response = await api.get("/admin/api/product/expiry-analytics");
+    // because of BaseController.ok(...)
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Fetch expiry analytics error:", error);
+    throw error.response?.data || { message: "Failed to fetch expiry analytics" };
+  }
+}
 

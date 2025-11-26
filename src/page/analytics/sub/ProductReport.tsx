@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+
 import { Dropdown, DropdownItem } from "flowbite-react";
 import {
   ChevronDown,
@@ -7,10 +8,16 @@ import {
   Clock,
   Layers,
 } from "lucide-react";
+
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import { motion } from "framer-motion";
+
 import ProductLegendLayout from "../../../layout/product/ProductLegendLayout";
+
+// API
+import { getExpiryAnalytics } from "../../../libs/ApiGatewayDatasource";
+import type { ExpiryAnalyticsDTO } from "../../../libs/ApiGatewayDatasource";
 
 dayjs.extend(relativeTime);
 
@@ -44,7 +51,7 @@ const getDaysLeft = (date: string): number => {
   return expiry.diff(today, "day");
 };
 
-// BADGE COLOR SYSTEM
+// STATUS COLOR LOGIC
 const getStatus = (days: number): StatusInfo => {
   if (days > 30)
     return {
@@ -72,20 +79,43 @@ const getStatus = (days: number): StatusInfo => {
 };
 
 export default function ProductReport() {
-  const [categoryFilter, setCategoryFilter] = useState<string>("All");
-  const [productFilter, setProductFilter] = useState<string>("All");
+  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [productFilter, setProductFilter] = useState("All");
+
+  // Cursor tracking (used for spotlight)
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
+  // Expiry analytics
+  const [analytics, setAnalytics] = useState<ExpiryAnalyticsDTO | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
+
+  // Fetch analytics
+  useEffect(() => {
+    (async () => {
+      try {
+        const data = await getExpiryAnalytics();
+        setAnalytics(data);
+      } catch (err) {
+        console.error("Failed to load analytics", err);
+      } finally {
+        setLoadingAnalytics(false);
+      }
+    })();
+  }, []);
+
+  // Filter table data
   const filteredData = useMemo(() => {
     return productData.filter((item) => {
-      const matchCat = categoryFilter === "All" || item.category === categoryFilter;
-      const matchProd = productFilter === "All" || item.name === productFilter;
+      const matchCat =
+        categoryFilter === "All" || item.category === categoryFilter;
+      const matchProd =
+        productFilter === "All" || item.name === productFilter;
       return matchCat && matchProd;
     });
   }, [categoryFilter, productFilter]);
 
-  const uniqueCategories = Array.from(new Set(productData.map((p) => p.category)));
-  const uniqueProducts = Array.from(new Set(productData.map((p) => p.name)));
+  const uniqueCategories = [...new Set(productData.map((p) => p.category))];
+  const uniqueProducts = [...new Set(productData.map((p) => p.name))];
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -103,49 +133,20 @@ export default function ProductReport() {
       onMouseMove={handleMouseMove}
       className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
     >
-      {/* HUD BACKGROUND */}
-      <div className="pointer-events-none absolute inset-0 -z-30">
-        {/* GRID */}
-        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.16)_1px,transparent_1px)] bg-[size:40px_40px]" />
-
-        {/* SCANLINES */}
-        <div className="absolute inset-0 opacity-[0.08] bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" />
-
-        {/* AMBIENT BLOBS */}
-        <motion.div
-          className="absolute -top-24 -left-20 h-64 w-64 bg-emerald-500/25 blur-3xl"
-          animate={{
-            x: [0, 20, 10, -5, 0],
-            y: [0, 10, 15, 5, 0],
-            borderRadius: ["45%", "55%", "50%", "60%", "45%"],
-          }}
-          transition={{ duration: 18, repeat: Infinity }}
-        />
-        <motion.div
-          className="absolute bottom-[-5rem] right-0 h-72 w-72 bg-cyan-400/25 blur-3xl"
-          animate={{
-            x: [0, -15, -25, -10, 0],
-            y: [0, -10, -20, -5, 0],
-            borderRadius: ["50%", "65%", "55%", "70%", "50%"],
-          }}
-          transition={{ duration: 22, repeat: Infinity }}
-        />
-      </div>
-
       {/* CURSOR SPOTLIGHT */}
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
           background: `radial-gradient(520px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.20), transparent 70%)`,
         }}
-        animate={{ opacity: [0.8, 1, 0.85] }}
-        transition={{ duration: 8, repeat: Infinity }}
+        animate={{ opacity: [0.85, 1, 0.9] }}
+        transition={{ duration: 10, repeat: Infinity }}
       />
 
       {/* PAGE HEADER */}
       <div className="relative">
         <motion.h1
-          initial={{ opacity: 0, x: -15 }}
+          initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4 }}
           className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent"
@@ -154,30 +155,36 @@ export default function ProductReport() {
         </motion.h1>
 
         <p className="text-gray-500 text-sm mt-1">
-          Monitor product lifespan, stock condition, and expiry status.
+          Monitor product lifespan and expiry status.
         </p>
-
-        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
-
-      {/* HUD SCANNER BARS */}
-      <motion.div
-        className="pointer-events-none absolute top-[150px] w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-70"
-        animate={{ x: ["-25%", "25%", "-25%"] }}
-        transition={{ duration: 5, repeat: Infinity }}
-      />
-      <motion.div
-        className="pointer-events-none absolute top-[158px] w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-300/80 to-transparent opacity-70"
-        animate={{ x: ["25%", "-25%", "25%"] }}
-        transition={{ duration: 6, repeat: Infinity }}
-      />
 
       {/* SUMMARY CARDS */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <SummaryCard label="Fresh Items" count={32} icon={<Leaf />} gradient="from-green-500 to-green-700" />
-        <SummaryCard label="Moderate" count={14} icon={<Layers />} gradient="from-yellow-500 to-amber-600" />
-        <SummaryCard label="Near Expiry" count={6} icon={<Clock />} gradient="from-orange-500 to-red-500" />
-        <SummaryCard label="Expired" count={3} icon={<AlertCircle />} gradient="from-red-600 to-red-800" />
+        <SummaryCard
+          label="Fresh Items"
+          count={loadingAnalytics ? "…" : analytics?.freshItems ?? 0}
+          icon={<Leaf />}
+          gradient="from-green-500 to-green-700"
+        />
+        <SummaryCard
+          label="Moderate"
+          count={loadingAnalytics ? "…" : analytics?.moderateItems ?? 0}
+          icon={<Layers />}
+          gradient="from-yellow-500 to-amber-600"
+        />
+        <SummaryCard
+          label="Near Expiry"
+          count={loadingAnalytics ? "…" : analytics?.nearExpiryItems ?? 0}
+          icon={<Clock />}
+          gradient="from-orange-500 to-red-500"
+        />
+        <SummaryCard
+          label="Expired"
+          count={loadingAnalytics ? "…" : analytics?.expiringOrExpiredItems ?? 0}
+          icon={<AlertCircle />}
+          gradient="from-red-600 to-red-800"
+        />
       </div>
 
       {/* FILTERS */}
@@ -185,6 +192,7 @@ export default function ProductReport() {
         <h2 className="font-semibold text-gray-700 text-lg">Filters</h2>
 
         <div className="flex gap-4">
+          {/* Category Filter */}
           <Dropdown
             dismissOnClick
             renderTrigger={() => (
@@ -202,6 +210,7 @@ export default function ProductReport() {
             ))}
           </Dropdown>
 
+          {/* Product Filter */}
           <Dropdown
             dismissOnClick
             renderTrigger={() => (
@@ -221,22 +230,13 @@ export default function ProductReport() {
         </div>
       </div>
 
-      {/* TABLE WRAPPER (HUD STYLE) */}
+      {/* DATA TABLE */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="relative rounded-2xl border border-emerald-500/25 bg-white/95 shadow-[0_18px_55px_rgba(15,23,42,0.35)] overflow-hidden mt-3 backdrop-blur-xl"
+        transition={{ duration: 0.45 }}
+        className="relative rounded-2xl border border-emerald-500/25 bg-white shadow-xl overflow-hidden mt-3 backdrop-blur-xl"
       >
-        {/* CORNER BRACKETS */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
-          <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
-          <div className="absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-emerald-400/80" />
-          <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-400/80" />
-        </div>
-
-        {/* TABLE */}
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm text-left text-gray-700">
             <thead className="bg-emerald-600 text-white">
@@ -283,13 +283,12 @@ export default function ProductReport() {
         </div>
       </motion.div>
 
-      {/* LEGEND */}
       <ProductLegendLayout />
     </motion.div>
   );
 }
 
-// COMPONENTS
+// SUMMARY CARD COMPONENT
 function SummaryCard({
   label,
   count,
@@ -297,7 +296,7 @@ function SummaryCard({
   gradient,
 }: {
   label: string;
-  count: number;
+  count: number | string;
   icon: React.ReactNode;
   gradient: string;
 }) {
@@ -308,12 +307,9 @@ function SummaryCard({
         y: -4,
         rotateX: -4,
         rotateY: 4,
-        boxShadow:
-          "0 22px 55px rgba(15,23,42,0.28), 0 0 20px rgba(34,197,94,0.35)",
       }}
       className={`relative p-4 rounded-xl shadow-lg text-white bg-gradient-to-br ${gradient} border border-white/20`}
     >
-      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top,white,transparent)]" />
       <div className="relative flex gap-3 items-center">
         <div className="p-3 bg-white/20 rounded-full shadow">{icon}</div>
         <div>
