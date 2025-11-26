@@ -309,3 +309,18 @@ export async function getInventoryAlerts(): Promise<InventoryAlertsDTO> {
     throw error.response?.data || { message: "Failed to fetch inventory alerts" };
   }
 }
+export async function getTotalSales() {
+  const response = await api.get("/admin/api/dashboard/total-sales");
+  return response.data.totalSales;
+}
+
+export async function getTotalOrders() {
+  const response = await api.get("/admin/api/dashboard/total-orders");
+  return response.data.totalOrders;
+}
+
+export async function getTotalCustomers() {
+  const response = await api.get("/admin/api/dashboard/total-customers");
+  return response.data.totalCustomers;
+}
+

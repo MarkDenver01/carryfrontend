@@ -9,7 +9,12 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-//import DashboardTable from "../../layout/dashboard/DashboardTableLayout.tsx";
+// ⭐ IMPORT DASHBOARD STATS APIs
+import {
+  getTotalSales,
+  getTotalOrders,
+  getTotalCustomers,
+} from "../../libs/ApiGatewayDatasource";
 
 // TYPES
 type StatConfig = {
@@ -28,6 +33,11 @@ const Dashboard: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(
     typeof window !== "undefined" && localStorage.getItem("darkMode") === "true"
   );
+
+  // ⭐ DASHBOARD STATS STATE
+  const [totalSales, setTotalSales] = useState(0);
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [totalCustomers, setTotalCustomers] = useState(0);
 
   // Apply dark mode
   useEffect(() => {
@@ -53,28 +63,48 @@ const Dashboard: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
+  // ⭐ LOAD DASHBOARD STATS FROM BACKEND
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const [sales, orders, customers] = await Promise.all([
+          getTotalSales(),
+          getTotalOrders(),
+          getTotalCustomers(),
+        ]);
+
+        setTotalSales(Number(sales) || 0);
+        setTotalOrders(Number(orders) || 0);
+        setTotalCustomers(Number(customers) || 0);
+      } catch (error) {
+        console.error("Failed to load dashboard stats:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
   const stats: StatConfig[] = [
     {
-      id: "newOrders",
-      title: "New Orders",
-      value: 15,
+      id: "totalOrders",
+      title: "Total Orders",
+      value: totalOrders,
       gradient: "from-emerald-500 to-emerald-600",
       iconBg: "bg-emerald-100 text-emerald-600",
       icon: <ShoppingCart size={28} />,
     },
     {
-      id: "saleRate",
-      title: "Sale Rate",
-      value: 30,
-      suffix: "%",
+      id: "totalSales",
+      title: "Total Sales (₱)",
+      value: totalSales,
       gradient: "from-amber-400 to-amber-500",
       iconBg: "bg-amber-100 text-amber-500",
       icon: <Percent size={28} />,
     },
     {
-      id: "users",
-      title: "Users",
-      value: 100,
+      id: "totalCustomers",
+      title: "Total Customers",
+      value: totalCustomers,
       gradient: "from-sky-500 to-sky-600",
       iconBg: "bg-sky-100 text-sky-500",
       icon: <Users size={28} />,
@@ -82,7 +112,7 @@ const Dashboard: React.FC = () => {
     {
       id: "drivers",
       title: "Available Drivers",
-      value: 10,
+      value: 10, // static for now, pwede mo na rin i-connect later
       gradient: "from-indigo-500 to-indigo-600",
       iconBg: "bg-indigo-100 text-indigo-500",
       icon: <Truck size={28} />,
@@ -246,7 +276,9 @@ const Dashboard: React.FC = () => {
               <span className="inline-flex items-center gap-1">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 animate-pulse shadow-[0_0_10px_rgba(52,211,153,0.9)]" />
                 Updated{" "}
-                {secondsSinceUpdate <= 1 ? "just now" : `${secondsSinceUpdate}s ago`}
+                {secondsSinceUpdate <= 1
+                  ? "just now"
+                  : `${secondsSinceUpdate}s ago`}
               </span>
             </div>
 
@@ -353,9 +385,8 @@ const Dashboard: React.FC = () => {
         </div>
       </SectionWrapper>
 
-
       {/* TABLE SECTION */}
- 
+      {/* You can add future table / charts here */}
     </motion.div>
   );
 };
