@@ -1,20 +1,10 @@
 import React, { useEffect, useMemo, useState } from "react";
 import {
-  Search,
-  Eye,
-  Phone,
   Truck,
   CheckCircle,
   XCircle,
-  Filter,
   Package,
-  MapPin,
-  User,
-  Clock,
-  CreditCard,
-  Route,
 } from "lucide-react";
-import { motion } from "framer-motion";
 import {  fetchAllOrders } from "../../../libs/ApiGatewayDatasource";
 import { useDrivers } from "../../../context/DriverContext";
 
