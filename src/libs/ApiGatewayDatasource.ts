@@ -310,17 +310,19 @@ export async function getInventoryAlerts(): Promise<InventoryAlertsDTO> {
   }
 }
 export async function getTotalSales() {
-  const response = await api.get("/admin/api/dashboard/total-sales");
+  const response = await api.get("/user/public/api/orders/total-orders-sales");
   return response.data.totalSales;
 }
 
 export async function getTotalOrders() {
-  const response = await api.get("/admin/api/dashboard/total-orders");
+  const response = await api.get("/user/public/api/orders/total-orders");
   return response.data.totalOrders;
 }
 
 export async function getTotalCustomers() {
-  const response = await api.get("/admin/api/dashboard/total-customers");
+  const response = await api.get("/user/public/customers/total");
   return response.data.totalCustomers;
 }
+
+
 
