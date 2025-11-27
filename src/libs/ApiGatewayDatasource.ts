@@ -324,5 +324,27 @@ export async function getTotalCustomers() {
   return response.data.totalCustomers;
 }
 
+export async function fetchAllOrders(): Promise<any[]> {
+  try {
+    const res = await api.get("/user/public/api/orders/all");
+    return res.data;
+  } catch (err) {
+    console.error("❌ Error fetching orders:", err);
+    return [];
+  }
+}
+
+export async function fetchOrdersByCustomer(customerId: number) {
+  return api.get(`/user/public/api/orders/customer/${customerId}`);
+}
+
+export async function fetchOrder(orderId: number) {
+  return api.get(`/user/public/api/orders/${orderId}`);
+}
+
+export async function checkoutOrder(payload: any) {
+  return api.post(`/user/public/api/orders/checkout`, payload);
+}
+
 
 
