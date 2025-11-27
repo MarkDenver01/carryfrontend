@@ -68,14 +68,14 @@ const getStatusColor = (s: OrderStatus) => {
   return "bg-gray-100 text-gray-600";
 };
 
-const getStatusIcon = (s: OrderStatus) => {
-  if (s === "Pending") return <Package className="w-4 h-4" />;
-  if (s === "Processing") return <Package className="w-4 h-4" />;
-  if (s === "In Transit") return <Truck className="w-4 h-4" />;
-  if (s === "Delivered") return <CheckCircle className="w-4 h-4" />;
-  if (s === "Cancelled") return <XCircle className="w-4 h-4" />;
-  return <Package className="w-4 h-4" />;
-};
+// const getStatusIcon = (s: OrderStatus) => {
+//   if (s === "Pending") return <Package className="w-4 h-4" />;
+//   if (s === "Processing") return <Package className="w-4 h-4" />;
+//   if (s === "In Transit") return <Truck className="w-4 h-4" />;
+//   if (s === "Delivered") return <CheckCircle className="w-4 h-4" />;
+//   if (s === "Cancelled") return <XCircle className="w-4 h-4" />;
+//   return <Package className="w-4 h-4" />;
+// };
 
 const getPaymentColor = (p?: Order["paymentStatus"]) => {
   if (p === "Paid") return "bg-emerald-50 text-emerald-700";
@@ -984,7 +984,6 @@ function CancelOrderModal({
 
 /* ---- MARK AS DELIVERED ---- */
 function MarkDeliveredModal({
-  order,
   onConfirm,
   onClose,
 }: {
