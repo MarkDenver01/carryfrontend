@@ -86,8 +86,20 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const addRider = (r: Rider) => setRiders((prev) => [...prev, r]);
-  const deleteRider = (id: string) =>
-    setRiders((prev) => prev.filter((r) => r.id !== id));
+  const deleteRider = async (id: string) => {
+  // 🔹 Optimistic update sa UI
+  setRiders((prev) => prev.filter((r) => r.id !== id));
+
+  try {
+    await api.delete(`/user/public/api/riders/${id}`);
+    console.log("✅ Rider deleted in backend:", id);
+  } catch (err) {
+    console.error("❌ Failed to delete rider in backend:", err);
+    // Optional: rollback / reload from backend para sure
+    await loadRidersFromBackend();
+  }
+};
+
 
   const updateRider = (id: string, data: Partial<Rider>) =>
     setRiders((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
