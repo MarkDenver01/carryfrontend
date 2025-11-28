@@ -44,7 +44,11 @@ type Order = {
   total: number;
   status: OrderStatus;
   scheduledTime?: string;
-  rider?: string;
+
+  // 🔥 FIXED: we now track rider by ID + Name
+  riderId?: string | null;
+  riderName?: string;
+
   distanceKm?: number;
   paymentStatus?: "Paid" | "COD" | "Unpaid";
   notes?: string;
@@ -133,6 +137,8 @@ export default function Orders() {
       const mobileOnly = raw ?? [];
 
       const mapped: Order[] = mobileOnly.map((o: any) => {
+        // console.log("🔥 RAW BACKEND ORDER:", o);
+
         // Map backend enum/string status → UI OrderStatus
         let status: OrderStatus = "Pending";
         switch (o.status) {
@@ -176,7 +182,15 @@ export default function Orders() {
           createdAt: o.createdAt
             ? new Date(o.createdAt).toLocaleString()
             : "Unknown date",
-          rider: o.riderName ?? "Unassigned", // ✅ uses riderName from backend
+
+          // 🔥 FIX: rider info
+          riderId:
+            o.riderId != null
+              ? o.riderId.toString()
+              : o.rider?.riderId != null
+              ? o.rider.riderId.toString()
+              : null,
+          riderName: o.riderName ?? o.rider?.name ?? "Unassigned",
         };
       });
 
@@ -309,7 +323,8 @@ export default function Orders() {
           o.id === selectedOrder.id
             ? {
                 ...o,
-                rider: rider.name,
+                riderId: rider.id,
+                riderName: rider.name,
                 status: "In Transit",
               }
             : o
@@ -322,7 +337,8 @@ export default function Orders() {
           o.id === selectedOrder.id
             ? {
                 ...o,
-                rider: rider.name,
+                riderId: rider.id,
+                riderName: rider.name,
                 status: "In Transit",
               }
             : o
@@ -334,7 +350,8 @@ export default function Orders() {
         prev
           ? {
               ...prev,
-              rider: rider.name,
+              riderId: rider.id,
+              riderName: rider.name,
               status: "In Transit",
             }
           : prev
@@ -399,12 +416,24 @@ export default function Orders() {
     payload: { note?: string }
   ) => {
     try {
-      // 🔎 Hanapin muna kung may rider yung order na 'to (by name)
+      // 🔎 Hanapin muna yung order sa state
       const currentOrder =
         allOrders.find((o) => o.id === orderId) || selectedOrder;
-      const riderForOrder = riders.find(
-        (r) => r.name === (currentOrder?.rider ?? "")
-      );
+
+      // 🔎 Try match by riderId first, fallback to name
+      let riderForOrder: Rider | undefined;
+
+      if (currentOrder?.riderId) {
+        riderForOrder = riders.find(
+          (r) => r.id === currentOrder.riderId
+        );
+      }
+
+      if (!riderForOrder && currentOrder?.riderName) {
+        riderForOrder = riders.find(
+          (r) => r.name === currentOrder.riderName
+        );
+      }
 
       // ✅ CALL BACKEND TO PERSIST DELIVERED STATUS
       await markDelivered(orderId, payload);
@@ -805,8 +834,9 @@ export default function Orders() {
 
                       <Td>
                         <span className="text-xs text-slate-700">
-                          {order.rider && order.rider !== "Unassigned"
-                            ? order.rider
+                          {order.riderName &&
+                          order.riderName !== "Unassigned"
+                            ? order.riderName
                             : "Unassigned"}
                         </span>
                       </Td>
