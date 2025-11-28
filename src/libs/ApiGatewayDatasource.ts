@@ -345,6 +345,16 @@ export async function fetchOrder(orderId: number) {
 export async function checkoutOrder(payload: any) {
   return api.post(`/user/public/api/orders/checkout`, payload);
 }
-
-
+export async function cancelOrder(orderId: string, reason: string) {
+  try {
+    const res = await api.put(
+      `/user/public/api/orders/cancel/${orderId}`,
+      { reason }
+    );
+    return res.data;
+  } catch (error: any) {
+    console.error("❌ Cancel order error:", error);
+    throw error.response?.data || { message: "Failed to cancel order" };
+  }
+}
 
