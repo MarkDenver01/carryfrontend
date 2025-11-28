@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Search,
   Eye,
@@ -20,7 +20,7 @@ import { useDrivers } from "../../../context/DriverContext";
 import {
   fetchAllOrders,
   cancelOrder,
-  markDelivered, // ✅ ADD: call backend to persist delivered
+  markDelivered,
 } from "../../../libs/ApiGatewayDatasource";
 
 /* ============================================================
@@ -51,6 +51,13 @@ type Order = {
 
 type SummaryTone = "blue" | "amber" | "indigo" | "emerald" | "red";
 
+type ToastState =
+  | {
+      type: "success" | "error";
+      message: string;
+    }
+  | null;
+
 /* ============================================================
    CONSTANTS / HELPERS
 ============================================================ */
@@ -78,12 +85,6 @@ const getPaymentColor = (p?: Order["paymentStatus"]) => {
   if (p === "Unpaid") return "bg-rose-50 text-rose-700";
   return "bg-gray-50 text-gray-600";
 };
-
-/* Simple toast state */
-type ToastState = {
-  type: "success" | "error";
-  message: string;
-} | null;
 
 /* ============================================================
    MAIN COMPONENT
@@ -118,7 +119,7 @@ export default function Orders() {
      🚀 LOAD REAL BACKEND ORDERS
   ============================================================= */
 
-  React.useEffect(() => {
+  useEffect(() => {
     loadOrders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -127,7 +128,6 @@ export default function Orders() {
     try {
       setIsLoading(true);
       const raw = await fetchAllOrders();
-
       const mobileOnly = raw ?? [];
 
       const mapped: Order[] = mobileOnly.map((o: any) => ({
@@ -173,8 +173,8 @@ export default function Orders() {
       }));
 
       // 🔥 FRONTEND RULE:
-      // - allOrders: lahat (for summary counts)
-      // - orders: HIDE Delivered + Cancelled from list, kahit ibalik ng backend
+      // - allOrders: lahat (for summary counts & history)
+      // - orders: HIDE Delivered + Cancelled from list
       const activeOnly = mapped.filter(
         (o) => o.status !== "Delivered" && o.status !== "Cancelled"
       );
@@ -193,23 +193,39 @@ export default function Orders() {
     }
   }
 
+  /* ============================================================
+     FILTERED ORDERS
+  ============================================================= */
+
   const filteredOrders = useMemo(() => {
-  const source =
-    filter === "Delivered" || filter === "Cancelled" ? allOrders : orders;
+    const source =
+      filter === "Delivered" || filter === "Cancelled" ? allOrders : orders;
 
-  return source.filter((order) => {
-    const matchesStatus = filter === "All" || order.status === filter;
-    const term = searchTerm.toLowerCase().trim();
-    const matchesSearch =
-      order.name.toLowerCase().includes(term) ||
-      order.id.toLowerCase().includes(term);
-    return matchesStatus && matchesSearch;
-  });
-}, [orders, allOrders, filter, searchTerm]);
+    return source.filter((order) => {
+      const matchesStatus = filter === "All" || order.status === filter;
+      const term = searchTerm.toLowerCase().trim();
+      const matchesSearch =
+        order.name.toLowerCase().includes(term) ||
+        order.id.toLowerCase().includes(term);
+      return matchesStatus && matchesSearch;
+    });
+  }, [orders, allOrders, filter, searchTerm]);
 
-  // 📊 SUMMARY COUNTS
+  // Para sa "Showing X of Y ..." text
+  const currentSource = useMemo(() => {
+    if (filter === "Delivered" || filter === "Cancelled") {
+      return allOrders.filter((o) => o.status === filter);
+    }
+    return orders;
+  }, [allOrders, orders, filter]);
+
+  /* ============================================================
+     SUMMARY COUNTS
+  ============================================================= */
+
   // 👉 Total Orders = ACTIVE orders only (bumababa pag cancel/deliver)
   const totalOrders = orders.length;
+
   // 👉 Other stats based on ALL orders para may history view ka pa rin
   const totalPending = allOrders.filter((o) => o.status === "Pending").length;
   const totalInTransit = allOrders.filter(
@@ -222,6 +238,10 @@ export default function Orders() {
     (o) => o.status === "Cancelled"
   ).length;
 
+  /* ============================================================
+     HANDLERS
+  ============================================================= */
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setCursorPos({
@@ -229,8 +249,6 @@ export default function Orders() {
       y: e.clientY - rect.top,
     });
   };
-
-  /* ----------------- ACTIONS ----------------- */
 
   const openDetails = (order: Order) => {
     setSelectedOrder(order);
@@ -328,7 +346,7 @@ export default function Orders() {
         )
       );
 
-      // 🔥 Update active orders: REMOVE from list
+      // 🔥 Update active orders: REMOVE from list (bababa yung Total Orders)
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
 
       if (selectedOrder && selectedOrder.id === orderId) {
@@ -375,7 +393,7 @@ export default function Orders() {
         )
       );
 
-      // 🔥 Remove from active orders list
+      // 🔥 Remove from active orders list (bababa yung Total Orders)
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
 
       if (selectedOrder && selectedOrder.id === orderId) {
@@ -615,7 +633,13 @@ export default function Orders() {
             <span className="font-semibold text-emerald-600">
               {filteredOrders.length}
             </span>{" "}
-            of {orders.length} active mobile orders
+            of{" "}
+            <span className="font-semibold text-slate-700">
+              {currentSource.length}
+            </span>{" "}
+            {filter === "All"
+              ? "active mobile orders"
+              : `${filter.toLowerCase()} orders`}
           </span>
         </div>
 
@@ -652,129 +676,135 @@ export default function Orders() {
               </thead>
 
               <tbody className="divide-y divide-slate-100">
-                {filteredOrders.map((order) => (
-                  <tr
-                    key={order.id}
-                    className="hover:bg-slate-50/70 transition-colors"
-                  >
-                    <Td>
-                      <span className="font-semibold text-slate-800 text-xs sm:text-sm">
-                        #{order.id}
-                      </span>
-                      <div className="text-[10px] text-slate-400">
-                        {order.createdAt}
-                      </div>
-                    </Td>
+                {filteredOrders.map((order) => {
+                  const isTerminal =
+                    order.status === "Delivered" ||
+                    order.status === "Cancelled";
 
-                    <Td>
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-                          <User className="w-3.5 h-3.5 text-emerald-600" />
-                        </div>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-slate-800 text-xs sm:text-sm">
-                            {order.name}
-                          </span>
-                          <span className="text-[10px] text-slate-400 truncate max-w-[220px]">
-                            {order.address}
-                          </span>
-                        </div>
-                      </div>
-                    </Td>
-
-                    <Td>
-                      <span className="text-slate-700 text-xs sm:text-sm">
-                        {order.products.slice(0, 2).join(", ")}
-                      </span>
-                      {order.products.length > 2 && (
-                        <span className="text-[10px] text-gray-400 ml-1">
-                          +{order.products.length - 2} more
+                  return (
+                    <tr
+                      key={order.id}
+                      className="hover:bg-slate-50/70 transition-colors"
+                    >
+                      <Td>
+                        <span className="font-semibold text-slate-800 text-xs sm:text-sm">
+                          #{order.id}
                         </span>
-                      )}
-                    </Td>
+                        <div className="text-[10px] text-slate-400">
+                          {order.createdAt}
+                        </div>
+                      </Td>
 
-                    <Td>
-                      <span className="font-semibold text-slate-900 text-xs sm:text-sm">
-                        ₱{order.total.toLocaleString()}
-                      </span>
-                    </Td>
+                      <Td>
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                            <User className="w-3.5 h-3.5 text-emerald-600" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-slate-800 text-xs sm:text-sm">
+                              {order.name}
+                            </span>
+                            <span className="text-[10px] text-slate-400 truncate max-w-[220px]">
+                              {order.address}
+                            </span>
+                          </div>
+                        </div>
+                      </Td>
 
-                    <Td>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold ${getStatusColor(
-                          order.status
-                        )}`}
-                      >
-                        {order.status}
-                      </span>
-                    </Td>
+                      <Td>
+                        <span className="text-slate-700 text-xs sm:text-sm">
+                          {order.products.slice(0, 2).join(", ")}
+                        </span>
+                        {order.products.length > 2 && (
+                          <span className="text-[10px] text-gray-400 ml-1">
+                            +{order.products.length - 2} more
+                          </span>
+                        )}
+                      </Td>
 
-                    <Td>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold ${getPaymentColor(
-                          order.paymentStatus
-                        )}`}
-                      >
-                        {order.paymentStatus}
-                      </span>
-                    </Td>
+                      <Td>
+                        <span className="font-semibold text-slate-900 text-xs sm:text-sm">
+                          ₱{order.total.toLocaleString()}
+                        </span>
+                      </Td>
 
-                    <Td>
-                      <span className="text-xs text-slate-700">
-                        {order.rider && order.rider !== "Unassigned"
-                          ? order.rider
-                          : "Unassigned"}
-                      </span>
-                    </Td>
-
-                    <Td align="right">
-                      <div className="flex justify-end gap-1.5">
-                        <IconActionButton
-                          title="View details"
-                          onClick={() => openDetails(order)}
-                          variant="blue"
+                      <Td>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold ${getStatusColor(
+                            order.status
+                          )}`}
                         >
-                          <Eye className="w-3.5 h-3.5" />
-                        </IconActionButton>
+                          {order.status}
+                        </span>
+                      </Td>
 
-                        <IconActionButton
-                          title="Contact customer"
-                          onClick={() => openContact(order)}
-                          variant="green"
+                      <Td>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold ${getPaymentColor(
+                            order.paymentStatus
+                          )}`}
                         >
-                          <Phone className="w-3.5 h-3.5" />
-                        </IconActionButton>
+                          {order.paymentStatus}
+                        </span>
+                      </Td>
 
-                        <IconActionButton
-                          title="View route"
-                          onClick={() => openRoute(order)}
-                          variant="indigo"
-                        >
-                          <Route className="w-3.5 h-3.5" />
-                        </IconActionButton>
+                      <Td>
+                        <span className="text-xs text-slate-700">
+                          {order.rider && order.rider !== "Unassigned"
+                            ? order.rider
+                            : "Unassigned"}
+                        </span>
+                      </Td>
 
-                        {order.status !== "Delivered" && (
+                      <Td align="right">
+                        <div className="flex justify-end gap-1.5">
                           <IconActionButton
-                            title="Cancel order"
-                            onClick={() => openCancel(order)}
-                            variant="red"
+                            title="View details"
+                            onClick={() => openDetails(order)}
+                            variant="blue"
                           >
-                            <XCircle className="w-3.5 h-3.5" />
+                            <Eye className="w-3.5 h-3.5" />
                           </IconActionButton>
-                        )}
 
-                        {getPrimaryActionLabel(order) && (
-                          <button
-                            onClick={() => handlePrimaryAction(order)}
-                            className="hidden sm:inline-flex px-3 py-1.5 text-[11px] rounded-full bg-emerald-600 text-white hover:bg-emerald-700 font-semibold shadow-sm shadow-emerald-500/30"
+                          <IconActionButton
+                            title="Contact customer"
+                            onClick={() => openContact(order)}
+                            variant="green"
                           >
-                            {getPrimaryActionLabel(order)}
-                          </button>
-                        )}
-                      </div>
-                    </Td>
-                  </tr>
-                ))}
+                            <Phone className="w-3.5 h-3.5" />
+                          </IconActionButton>
+
+                          <IconActionButton
+                            title="View route"
+                            onClick={() => openRoute(order)}
+                            variant="indigo"
+                          >
+                            <Route className="w-3.5 h-3.5" />
+                          </IconActionButton>
+
+                          {!isTerminal && (
+                            <IconActionButton
+                              title="Cancel order"
+                              onClick={() => openCancel(order)}
+                              variant="red"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                            </IconActionButton>
+                          )}
+
+                          {!isTerminal && getPrimaryActionLabel(order) && (
+                            <button
+                              onClick={() => handlePrimaryAction(order)}
+                              className="hidden sm:inline-flex px-3 py-1.5 text-[11px] rounded-full bg-emerald-600 text-white hover:bg-emerald-700 font-semibold shadow-sm shadow-emerald-500/30"
+                            >
+                              {getPrimaryActionLabel(order)}
+                            </button>
+                          )}
+                        </div>
+                      </Td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -1046,9 +1076,7 @@ function OrderDetailsModal({
         animate={{ opacity: 1, scale: 1 }}
         className="bg-white rounded-xl p-6 w-full max-w-lg space-y-4 shadow-xl"
       >
-        <h2 className="text-xl font-bold text-slate-800">
-          Order Details
-        </h2>
+        <h2 className="text-xl font-bold text-slate-800">Order Details</h2>
 
         <div className="text-sm space-y-2 text-slate-700">
           <p>
@@ -1264,7 +1292,7 @@ function CancelOrderModal({
   onConfirm: (reason: string) => void;
   onClose: () => void;
 }) {
-  const [reason, setReason] = React.useState("");
+  const [reason, setReason] = useState("");
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
@@ -1278,8 +1306,8 @@ function CancelOrderModal({
         </h2>
 
         <p className="text-xs text-slate-500">
-          This will remove the order from the active list. You can still
-          keep the record in backend as cancelled.
+          This will remove the order from the active list. You can still keep
+          the record in backend as cancelled.
         </p>
 
         <textarea
@@ -1318,7 +1346,7 @@ function MarkDeliveredModal({
   onConfirm: (payload: { note?: string }) => void;
   onClose: () => void;
 }) {
-  const [note, setNote] = React.useState("");
+  const [note, setNote] = useState("");
 
   return (
     <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
@@ -1332,8 +1360,8 @@ function MarkDeliveredModal({
         </h2>
 
         <p className="text-xs text-slate-500">
-          Order #{order.id}. Optionally add a note, like drop-off
-          details or special remarks.
+          Order #{order.id}. Optionally add a note, like drop-off details or
+          special remarks.
         </p>
 
         <textarea
