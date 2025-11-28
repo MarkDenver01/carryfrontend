@@ -356,9 +356,14 @@ export async function cancelOrder(orderId: string, reason: string) {
   }
 }
 
-export async function markDelivered(orderId: string, payload: any) {
+// 🚀 FIXED VERSION — UPDATES BOTH ORDER + RIDER
+export async function markDelivered(orderId: string, payload: any, riderId?: string) {
   try {
     const res = await api.put(`/user/public/api/orders/${orderId}/deliver`, payload);
+
+    if (riderId) {
+      await api.put(`/user/public/api/riders/${riderId}/complete`);
+    }
 
     return res.data;
   } catch (error: any) {
@@ -366,6 +371,8 @@ export async function markDelivered(orderId: string, payload: any) {
     throw error.response?.data || { message: "Failed to mark delivered" };
   }
 }
+
+
 export async function markInTransit(orderId: string) {
   try {
     const res = await api.put(`/user/public/api/orders/${orderId}/in-transit`);

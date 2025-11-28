@@ -60,8 +60,11 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
       const res = await api.get("/user/public/api/riders/all");
       const raw = res.data ?? [];
 
-      const mapped: Rider[] = raw.map((d: any) => ({
-        id: d.riderId?.toString() ?? "",
+      const mapped: Rider[] = Array.isArray(raw)
+  ? raw
+      .filter((item: any) => item && item.riderId != null)
+      .map((d: any) => ({
+        id: d.riderId.toString(),
         name: d.name ?? "Unnamed Driver",
         contact: d.contact ?? "",
         status: mapStatus(d.status),
@@ -72,7 +75,9 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
         lastActive: d.lastActive ?? null,
         homeBase: d.homeBase ?? "N/A",
         rating: d.rating ?? 5,
-      }));
+      }))
+  : [];
+
 
       setRiders(mapped);
     } catch (err) {
@@ -126,27 +131,19 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
-  const completeDelivery = (riderId: string) => {
-    const now = new Date().toLocaleString();
+  const completeDelivery = async (riderId: string) => {
+  try {
+    // 1. Tell backend that this rider has completed the delivery
+    await api.put(`/user/public/api/riders/${riderId}/complete`);
 
-    setRiders((prev) =>
-      prev.map((r) =>
-        r.id === riderId
-          ? {
-              ...r,
-              status: "Available",
-              completedDeliveries: r.completedDeliveries + 1,
-              workload: Math.max(0, r.workload - 10),
-              lastActive: now,
-            }
-          : r
-      )
-    );
+    // 2. Refresh riders from backend para 100% accurate
+    await loadRidersFromBackend();
 
-    void api.put(`/user/public/api/riders/${riderId}/complete`).catch((e) =>
-      console.error("❌ Complete failed:", e)
-    );
-  };
+    console.log("✅ Rider refreshed after delivery:", riderId);
+  } catch (err) {
+    console.error("❌ Complete delivery failed:", err);
+  }
+};
 
   return (
     <DriverContext.Provider

@@ -14,7 +14,9 @@ import {
 import { motion } from "framer-motion";
 
 // ✅ IMPORT GLOBAL RIDERS CONTEXT
-import { useDrivers, type Rider } from "../../../context/DriverContext";
+import { useDrivers } from "../../../context/DriverContext";
+import type { Rider } from "../../../context/DriverContext";
+
 
 // ✅ IMPORT BACKEND API
 import {
@@ -118,7 +120,7 @@ export default function Orders() {
   const [toast, setToast] = useState<ToastState>(null);
 
   // ✅ RIDER CONTEXT (may assignRider + completeDelivery)
-  const { riders, assignRider, completeDelivery } = useDrivers();
+  const { riders, assignRider, completeDelivery, resetRiders } = useDrivers();
   const availableRiders = riders.filter((r) => r.status === "Available");
 
   /* ============================================================
@@ -412,86 +414,87 @@ export default function Orders() {
   };
 
   const handleMarkDelivered = async (
-    orderId: string,
-    payload: { note?: string }
-  ) => {
-    try {
-      // 🔎 Hanapin muna yung order sa state
-      const currentOrder =
-        allOrders.find((o) => o.id === orderId) || selectedOrder;
+  orderId: string,
+  payload: { note?: string }
+) => {
+  try {
+    // 🔎 Hanapin muna yung order sa state
+    const currentOrder =
+      allOrders.find((o) => o.id === orderId) || selectedOrder;
 
-      // 🔎 Try match by riderId first, fallback to name
-      let riderForOrder: Rider | undefined;
+    // 🔎 Hanapin rider by ID or Name
+    let riderForOrder: Rider | undefined = undefined;
 
-      if (currentOrder?.riderId) {
-        riderForOrder = riders.find(
-          (r) => r.id === currentOrder.riderId
-        );
-      }
-
-      if (!riderForOrder && currentOrder?.riderName) {
-        riderForOrder = riders.find(
-          (r) => r.name === currentOrder.riderName
-        );
-      }
-
-      // ✅ CALL BACKEND TO PERSIST DELIVERED STATUS
-      await markDelivered(orderId, payload);
-
-      // 🧠 Update allOrders: mark as Delivered + note
-      setAllOrders((prev) =>
-        prev.map((o) =>
-          o.id === orderId
-            ? {
-                ...o,
-                status: "Delivered",
-                notes:
-                  payload.note && payload.note.trim().length > 0
-                    ? `Delivered: ${payload.note}`
-                    : o.notes || "Marked as delivered.",
-              }
-            : o
-        )
-      );
-
-      // 🔥 Remove from active orders list (bababa yung Total Orders)
-      setOrders((prev) => prev.filter((o) => o.id !== orderId));
-
-      if (selectedOrder && selectedOrder.id === orderId) {
-        setSelectedOrder((prev) =>
-          prev
-            ? {
-                ...prev,
-                status: "Delivered",
-                notes:
-                  payload.note && payload.note.trim().length > 0
-                    ? `Delivered: ${payload.note}`
-                    : prev.notes || "Marked as delivered.",
-              }
-            : prev
-        );
-      }
-
-      // ✅ Update RiderContext if may rider (completeDelivery → status = Available)
-      if (riderForOrder) {
-        completeDelivery(riderForOrder.id);
-      }
-
-      setToast({
-        type: "success",
-        message: `Order #${orderId} marked as delivered.`,
-      });
-    } catch (error: any) {
-      console.error("❌ Mark delivered failed:", error);
-      setToast({
-        type: "error",
-        message:
-          error?.message || "Failed to mark as delivered. Please try again.",
-      });
-    } finally {
-      closeDelivered();
+    if (currentOrder?.riderId) {
+      riderForOrder = riders.find((r) => r.id === currentOrder.riderId);
     }
-  };
+
+    if (!riderForOrder && currentOrder?.riderName) {
+      riderForOrder = riders.find((r) => r.name === currentOrder.riderName);
+    }
+
+    // 🔥 Call backend: mark order as delivered
+    await markDelivered(orderId, payload, currentOrder?.riderId ?? undefined);
+
+    // 🔥 Refresh riders
+    await resetRiders();
+
+    // 🧠 Update allOrders: mark as Delivered + note
+    setAllOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: "Delivered",
+              notes:
+                payload.note && payload.note.trim().length > 0
+                  ? `Delivered: ${payload.note}`
+                  : o.notes || "Marked as delivered.",
+            }
+          : o
+      )
+    );
+
+    // 🔥 Remove from active orders
+    setOrders((prev) => prev.filter((o) => o.id !== orderId));
+
+    // 🧹 Update modal order
+    if (selectedOrder?.id === orderId) {
+      setSelectedOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "Delivered",
+              notes:
+                payload.note && payload.note.trim().length > 0
+                  ? `Delivered: ${payload.note}`
+                  : prev.notes || "Marked as delivered.",
+            }
+          : prev
+      );
+    }
+
+    // 🔥 Update rider if known
+    if (riderForOrder) {
+      await completeDelivery(riderForOrder.id);
+    }
+
+    setToast({
+      type: "success",
+      message: `Order #${orderId} marked as delivered.`,
+    });
+  } catch (error: any) {
+    console.error("❌ Mark delivered failed:", error);
+    setToast({
+      type: "error",
+      message:
+        error?.message || "Failed to mark as delivered. Please try again.",
+    });
+  } finally {
+    closeDelivered();
+  }
+};
+
 
   const getPrimaryActionLabel = (order: Order): string | null => {
     if (order.status === "Pending") return "Accept Order";
