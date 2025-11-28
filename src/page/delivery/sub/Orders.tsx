@@ -193,18 +193,19 @@ export default function Orders() {
     }
   }
 
-  const filteredOrders = useMemo(
-    () =>
-      orders.filter((order) => {
-        const matchesStatus = filter === "All" || order.status === filter;
-        const term = searchTerm.toLowerCase().trim();
-        const matchesSearch =
-          order.name.toLowerCase().includes(term) ||
-          order.id.toLowerCase().includes(term);
-        return matchesStatus && matchesSearch;
-      }),
-    [orders, filter, searchTerm]
-  );
+  const filteredOrders = useMemo(() => {
+  const source =
+    filter === "Delivered" || filter === "Cancelled" ? allOrders : orders;
+
+  return source.filter((order) => {
+    const matchesStatus = filter === "All" || order.status === filter;
+    const term = searchTerm.toLowerCase().trim();
+    const matchesSearch =
+      order.name.toLowerCase().includes(term) ||
+      order.id.toLowerCase().includes(term);
+    return matchesStatus && matchesSearch;
+  });
+}, [orders, allOrders, filter, searchTerm]);
 
   // 📊 SUMMARY COUNTS
   // 👉 Total Orders = ACTIVE orders only (bumababa pag cancel/deliver)
