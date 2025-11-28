@@ -89,7 +89,11 @@ type ToastState = {
 ============================================================ */
 
 export default function Orders() {
+  // 🔹 allOrders = lahat ng orders galing backend (kasama Delivered/Cancelled)
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  // 🔹 orders = ACTIVE ORDERS lang (hindi Delivered / Cancelled)
   const [orders, setOrders] = useState<Order[]>([]);
+
   const [filter, setFilter] = useState<"All" | OrderStatus>("All");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -115,6 +119,7 @@ export default function Orders() {
 
   React.useEffect(() => {
     loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function loadOrders() {
@@ -126,48 +131,56 @@ export default function Orders() {
       const mobileOnly = raw ?? [];
 
       const mapped: Order[] = mobileOnly.map((o: any) => ({
-  id: o.orderId?.toString() ?? "",
+        id: o.orderId?.toString() ?? "",
 
-  // Backend only returns customerId, so fallback tayo
-  name: o.customerName ?? `Customer #${o.customerId}`,
+        // Backend only returns customerId, so fallback tayo
+        name: o.customerName ?? `Customer #${o.customerId}`,
 
-  address: o.deliveryAddress ?? "No address provided",
+        address: o.deliveryAddress ?? "No address provided",
 
-  products: o.items?.map(
-    (i: any) => `${i.productName ?? "Item"} x${i.quantity ?? 0}`
-  ) ?? [],
+        products:
+          o.items?.map(
+            (i: any) => `${i.productName ?? "Item"} x${i.quantity ?? 0}`
+          ) ?? [],
 
-  total: Number(o.totalAmount) || 0,
+        total: Number(o.totalAmount) || 0,
 
-  status:
-    o.status === "PENDING"
-      ? "Pending"
-      : o.status === "PROCESSING"
-      ? "Processing"
-      : o.status === "IN_TRANSIT"
-      ? "In Transit"
-      : o.status === "DELIVERED"
-      ? "Delivered"
-      : "Cancelled",
+        status:
+          o.status === "PENDING"
+            ? "Pending"
+            : o.status === "PROCESSING"
+            ? "Processing"
+            : o.status === "IN_TRANSIT"
+            ? "In Transit"
+            : o.status === "DELIVERED"
+            ? "Delivered"
+            : "Cancelled",
 
-  paymentStatus:
-    o.paymentMethod === "WALLET"
-      ? "Paid"
-      : o.paymentMethod === "COD"
-      ? "COD"
-      : "Unpaid",
+        paymentStatus:
+          o.paymentMethod === "WALLET"
+            ? "Paid"
+            : o.paymentMethod === "COD"
+            ? "COD"
+            : "Unpaid",
 
-  notes: o.notes,
+        notes: o.notes,
 
-  createdAt: o.createdAt
-    ? new Date(o.createdAt).toLocaleString()
-    : "Unknown date",
+        createdAt: o.createdAt
+          ? new Date(o.createdAt).toLocaleString()
+          : "Unknown date",
 
-  rider: o.riderName ?? "Unassigned",
-}));
+        rider: o.riderName ?? "Unassigned",
+      }));
 
+      // 🔥 FRONTEND RULE:
+      // - allOrders: lahat (for summary counts)
+      // - orders: HIDE Delivered + Cancelled from list, kahit ibalik ng backend
+      const activeOnly = mapped.filter(
+        (o) => o.status !== "Delivered" && o.status !== "Cancelled"
+      );
 
-      setOrders(mapped);
+      setAllOrders(mapped);
+      setOrders(activeOnly);
     } catch (error: any) {
       console.error("❌ Error loading orders:", error);
       setToast({
@@ -185,27 +198,25 @@ export default function Orders() {
       orders.filter((order) => {
         const matchesStatus =
           filter === "All" || order.status === filter;
+        const term = searchTerm.toLowerCase().trim();
         const matchesSearch =
-          order.name
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase().trim()) ||
-          order.id
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase().trim());
+          order.name.toLowerCase().includes(term) ||
+          order.id.toLowerCase().includes(term);
         return matchesStatus && matchesSearch;
       }),
     [orders, filter, searchTerm]
   );
 
-  const totalOrders = orders.length;
-  const totalPending = orders.filter((o) => o.status === "Pending").length;
-  const totalInTransit = orders.filter(
+  // 📊 SUMMARY COUNTS – based on ALL ORDERS (including Delivered/Cancelled)
+  const totalOrders = allOrders.length;
+  const totalPending = allOrders.filter((o) => o.status === "Pending").length;
+  const totalInTransit = allOrders.filter(
     (o) => o.status === "In Transit"
   ).length;
-  const totalDelivered = orders.filter(
+  const totalDelivered = allOrders.filter(
     (o) => o.status === "Delivered"
   ).length;
-  const totalCancelled = orders.filter(
+  const totalCancelled = allOrders.filter(
     (o) => o.status === "Cancelled"
   ).length;
 
@@ -259,7 +270,21 @@ export default function Orders() {
   const assignRiderToOrder = (riderName: string) => {
     if (!selectedOrder) return;
 
+    // Update active list
     setOrders((prev) =>
+      prev.map((o) =>
+        o.id === selectedOrder.id
+          ? {
+              ...o,
+              rider: riderName,
+              status: o.status === "Processing" ? "In Transit" : o.status,
+            }
+          : o
+      )
+    );
+
+    // Update allOrders list as well (for summary)
+    setAllOrders((prev) =>
       prev.map((o) =>
         o.id === selectedOrder.id
           ? {
@@ -293,6 +318,15 @@ export default function Orders() {
   const handleCancelOrder = async (orderId: string, reason: string) => {
     try {
       await cancelOrder(orderId, reason || "No reason provided");
+
+      // 🧠 Update allOrders: mark as Cancelled
+      setAllOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId ? { ...o, status: "Cancelled" } : o
+        )
+      );
+
+      // 🔥 Update active orders: REMOVE from list
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
 
       if (selectedOrder && selectedOrder.id === orderId) {
@@ -319,7 +353,8 @@ export default function Orders() {
     orderId: string,
     payload: { deliveredAt?: string; note?: string }
   ) => {
-    setOrders((prev) =>
+    // 🧠 Update allOrders: mark as Delivered + note
+    setAllOrders((prev) =>
       prev.map((o) =>
         o.id === orderId
           ? {
@@ -333,6 +368,9 @@ export default function Orders() {
           : o
       )
     );
+
+    // 🔥 Remove from active orders list
+    setOrders((prev) => prev.filter((o) => o.id !== orderId));
 
     if (selectedOrder && selectedOrder.id === orderId) {
       setSelectedOrder((prev) =>
@@ -367,6 +405,12 @@ export default function Orders() {
   const handlePrimaryAction = (order: Order) => {
     if (order.status === "Pending") {
       setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id ? { ...o, status: "Processing" } : o
+        )
+      );
+
+      setAllOrders((prev) =>
         prev.map((o) =>
           o.id === order.id ? { ...o, status: "Processing" } : o
         )
@@ -557,7 +601,7 @@ export default function Orders() {
             <span className="font-semibold text-emerald-600">
               {filteredOrders.length}
             </span>{" "}
-            of {orders.length} mobile orders
+            of {orders.length} active mobile orders
           </span>
         </div>
 
@@ -1255,7 +1299,7 @@ function CancelOrderModal({
 
 /* ---- MARK AS DELIVERED ---- */
 function MarkDeliveredModal({
-  
+  order,
   onConfirm,
   onClose,
 }: {
@@ -1277,8 +1321,8 @@ function MarkDeliveredModal({
         </h2>
 
         <p className="text-xs text-slate-500">
-          Optionally add a note, like drop-off details or special
-          remarks.
+          Order #{order.id}. Optionally add a note, like drop-off
+          details or special remarks.
         </p>
 
         <textarea
