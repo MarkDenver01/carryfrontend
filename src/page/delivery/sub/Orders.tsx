@@ -14,7 +14,10 @@ import {
 import { motion } from "framer-motion";
 
 // ✅ IMPORT GLOBAL RIDERS CONTEXT
-import { useDrivers } from "../../../context/DriverContext";
+import {
+  useDrivers,
+  type Rider,
+} from "../../../context/DriverContext";
 
 // ✅ IMPORT BACKEND API
 import {
@@ -41,8 +44,9 @@ type Order = {
   products: string[];
   total: number;
   status: OrderStatus;
-  scheduledTime?: string;
+  riderId?: string;
   rider?: string;
+  scheduledTime?: string;
   distanceKm?: number;
   paymentStatus?: "Paid" | "COD" | "Unpaid";
   notes?: string;
@@ -111,8 +115,8 @@ export default function Orders() {
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
-  // GET RIDERS
-  const { riders } = useDrivers();
+  // GET RIDERS + ACTIONS
+  const { riders, assignRider, completeDelivery, updateRider } = useDrivers();
   const availableRiders = riders.filter((r) => r.status === "Available");
 
   /* ============================================================
@@ -169,6 +173,7 @@ export default function Orders() {
           ? new Date(o.createdAt).toLocaleString()
           : "Unknown date",
 
+        riderId: o.riderId ? String(o.riderId) : undefined,
         rider: o.riderName ?? "Unassigned",
       }));
 
@@ -223,7 +228,7 @@ export default function Orders() {
      SUMMARY COUNTS
   ============================================================= */
 
-  // 👉 Total Orders = ACTIVE orders only (bumababa pag cancel/deliver)
+  // 👉 Total Orders = ACTIVE orders only (bababa pag cancel/deliver)
   const totalOrders = orders.length;
 
   // 👉 Other stats based on ALL orders para may history view ka pa rin
@@ -287,40 +292,49 @@ export default function Orders() {
   const closeCancel = () => setIsCancelOpen(false);
   const closeDelivered = () => setIsDeliveredOpen(false);
 
-  const assignRiderToOrder = (riderName: string) => {
+  /* ---------------- ASSIGN RIDER + UPDATE CONTEXT ---------------- */
+
+  const assignRiderToOrder = (rider: Rider) => {
     if (!selectedOrder) return;
 
-    // Update active list
+    // 1) UPDATE RIDER STATS (GLOBAL CONTEXT)
+    assignRider(rider.id);
+
+    // 2) UPDATE ACTIVE ORDERS LIST
     setOrders((prev) =>
       prev.map((o) =>
         o.id === selectedOrder.id
           ? {
               ...o,
-              rider: riderName,
+              rider: rider.name,
+              riderId: rider.id,
               status: o.status === "Processing" ? "In Transit" : o.status,
             }
           : o
       )
     );
 
-    // Update allOrders list as well (for summary)
+    // 3) UPDATE ALL ORDERS (FOR SUMMARY & HISTORY)
     setAllOrders((prev) =>
       prev.map((o) =>
         o.id === selectedOrder.id
           ? {
               ...o,
-              rider: riderName,
+              rider: rider.name,
+              riderId: rider.id,
               status: o.status === "Processing" ? "In Transit" : o.status,
             }
           : o
       )
     );
 
+    // 4) UPDATE SELECTED ORDER STATE
     setSelectedOrder((prev) =>
       prev
         ? {
             ...prev,
-            rider: riderName,
+            rider: rider.name,
+            riderId: rider.id,
             status:
               prev.status === "Processing" ? "In Transit" : prev.status,
           }
@@ -329,13 +343,20 @@ export default function Orders() {
 
     setToast({
       type: "success",
-      message: `Rider assigned to order #${selectedOrder.id}`,
+      message: `Rider ${rider.name} assigned to order #${selectedOrder.id}`,
     });
 
     closeAssign();
   };
 
+  /* ---------------- CANCEL ORDER ---------------- */
+
   const handleCancelOrder = async (orderId: string, reason: string) => {
+    // Hanapin mo muna current order state bago i-update
+    const currentOrder = allOrders.find((o) => o.id === orderId);
+    const riderId = currentOrder?.riderId;
+    const wasInTransit = currentOrder?.status === "In Transit";
+
     try {
       await cancelOrder(orderId, reason || "No reason provided");
 
@@ -348,6 +369,17 @@ export default function Orders() {
 
       // 🔥 Update active orders: REMOVE from list (bababa yung Total Orders)
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
+
+      // Kung may rider at nasa biyahe siya, ibalik sa Available (pero hindi completed)
+      if (riderId && wasInTransit) {
+        const rider = riders.find((r) => r.id === riderId);
+        const newWorkload = rider ? Math.max(0, rider.workload - 10) : 0;
+
+        updateRider(riderId, {
+          status: "Available",
+          workload: newWorkload,
+        });
+      }
 
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder(null);
@@ -369,10 +401,16 @@ export default function Orders() {
     }
   };
 
+  /* ---------------- MARK DELIVERED ---------------- */
+
   const handleMarkDelivered = async (
     orderId: string,
     payload: { note?: string }
   ) => {
+    // Kunin muna kung sinong rider ang naka-assign
+    const currentOrder = allOrders.find((o) => o.id === orderId);
+    const riderId = currentOrder?.riderId;
+
     try {
       // ✅ CALL BACKEND TO PERSIST DELIVERED STATUS
       await markDelivered(orderId, payload);
@@ -395,6 +433,11 @@ export default function Orders() {
 
       // 🔥 Remove from active orders list (bababa yung Total Orders)
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
+
+      // ✅ UPDATE RIDER STATS IF ANY
+      if (riderId) {
+        completeDelivery(riderId);
+      }
 
       if (selectedOrder && selectedOrder.id === orderId) {
         setSelectedOrder((prev) =>
@@ -427,6 +470,8 @@ export default function Orders() {
     }
   };
 
+  /* ---------------- PRIMARY CTA PER STATUS ---------------- */
+
   const getPrimaryActionLabel = (order: Order): string | null => {
     if (order.status === "Pending") return "Accept Order";
     if (order.status === "Processing") return "Complete & Assign Rider";
@@ -436,6 +481,7 @@ export default function Orders() {
 
   const handlePrimaryAction = (order: Order) => {
     if (order.status === "Pending") {
+      // Accept -> Processing
       setOrders((prev) =>
         prev.map((o) =>
           o.id === order.id ? { ...o, status: "Processing" } : o
@@ -458,11 +504,13 @@ export default function Orders() {
     }
 
     if (order.status === "Processing") {
+      // Open assign rider drawer
       openAssign(order);
       return;
     }
 
     if (order.status === "In Transit") {
+      // Mark as delivered
       openDelivered(order);
       return;
     }
@@ -1116,6 +1164,10 @@ function OrderDetailsModal({
             {order.paymentStatus}
           </p>
           <p>
+            <span className="font-medium">Rider:</span>{" "}
+            {order.rider || "Unassigned"}
+          </p>
+          <p>
             <span className="font-medium">Notes:</span>{" "}
             {order.notes || "—"}
           </p>
@@ -1146,8 +1198,8 @@ function AssignRiderDrawer({
   onClose,
 }: {
   order: Order;
-  availableRiders: any[];
-  onAssign: (rider: string) => void;
+  availableRiders: Rider[];
+  onAssign: (rider: Rider) => void;
   onClose: () => void;
 }) {
   return (
@@ -1170,11 +1222,11 @@ function AssignRiderDrawer({
           </p>
         ) : (
           <ul className="space-y-2 flex-1 overflow-y-auto">
-            {availableRiders.map((rider, idx) => (
+            {availableRiders.map((rider) => (
               <li
-                key={idx}
+                key={rider.id}
                 className="p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50 border border-slate-100 flex items-center justify-between"
-                onClick={() => onAssign(rider.name)}
+                onClick={() => onAssign(rider)}
               >
                 <span className="text-sm text-slate-800">
                   {rider.name}

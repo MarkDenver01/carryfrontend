@@ -1,46 +1,249 @@
-import { useState, useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   Search,
-  ChevronDown,
-  Phone,
-  CalendarClock,
   Eye,
-  Pencil,
-  Trash,
-  CircleDot,
-  MapPin,
-  Star,
-  Activity,
-  Briefcase,
-  MoreVertical,
+  Phone,
+  Truck,
+  CheckCircle,
+  XCircle,
+  Package,
+  User,
+  Clock,
+  Route,
 } from "lucide-react";
-import { Dropdown, DropdownItem } from "flowbite-react";
 import { motion } from "framer-motion";
-import Swal from "sweetalert2";
-import RiderFormModal from "../../../components/driver/RiderFormModal";
 
-// ✅ USE GLOBAL DRIVER CONTEXT
+// ✅ IMPORT GLOBAL RIDERS CONTEXT
 import {
   useDrivers,
   type Rider,
-  type RiderStatus,
 } from "../../../context/DriverContext";
 
-type SortOption = "Name" | "Status" | "Deliveries" | "Rating";
+// ✅ IMPORT BACKEND API
+import {
+  fetchAllOrders,
+  cancelOrder,
+  markDelivered,
+} from "../../../libs/ApiGatewayDatasource";
 
-export default function Riders() {
-  const { riders, deleteRider, updateRider } = useDrivers();
+/* ============================================================
+   TYPES
+============================================================ */
 
+type OrderStatus =
+  | "Pending"
+  | "Processing"
+  | "In Transit"
+  | "Delivered"
+  | "Cancelled";
+
+type Order = {
+  id: string;
+  name: string;
+  address: string;
+  products: string[];
+  total: number;
+  status: OrderStatus;
+  scheduledTime?: string;
+  rider?: string;
+  distanceKm?: number;
+  paymentStatus?: "Paid" | "COD" | "Unpaid";
+  notes?: string;
+  createdAt: string;
+};
+
+type SummaryTone = "blue" | "amber" | "indigo" | "emerald" | "red";
+
+type ToastState =
+  | {
+      type: "success" | "error";
+      message: string;
+    }
+  | null;
+
+/* ============================================================
+   CONSTANTS / HELPERS
+============================================================ */
+
+const summaryToneGradient: Record<SummaryTone, string> = {
+  blue: "from-sky-500 to-sky-700",
+  amber: "from-amber-500 to-amber-700",
+  indigo: "from-indigo-500 to-indigo-700",
+  emerald: "from-emerald-500 to-emerald-700",
+  red: "from-rose-500 to-rose-700",
+};
+
+const getStatusColor = (s: OrderStatus) => {
+  if (s === "Pending") return "bg-amber-100 text-amber-700";
+  if (s === "Processing") return "bg-sky-100 text-sky-700";
+  if (s === "In Transit") return "bg-indigo-100 text-indigo-700";
+  if (s === "Delivered") return "bg-emerald-100 text-emerald-700";
+  if (s === "Cancelled") return "bg-rose-100 text-rose-700";
+  return "bg-gray-100 text-gray-600";
+};
+
+const getPaymentColor = (p?: Order["paymentStatus"]) => {
+  if (p === "Paid") return "bg-emerald-50 text-emerald-700";
+  if (p === "COD") return "bg-amber-50 text-amber-700";
+  if (p === "Unpaid") return "bg-rose-50 text-rose-700";
+  return "bg-gray-50 text-gray-600";
+};
+
+/* ============================================================
+   MAIN COMPONENT
+============================================================ */
+
+export default function Orders() {
+  // 🔹 allOrders = lahat ng orders galing backend (kasama Delivered/Cancelled)
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
+  // 🔹 orders = ACTIVE ORDERS lang (hindi Delivered / Cancelled)
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  const [filter, setFilter] = useState<"All" | OrderStatus>("All");
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"All" | RiderStatus>("All");
-  const [sortBy, setSortBy] = useState<SortOption>("Name");
-  const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
-  // 🔥 Modal for EDIT only
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Rider | null>(null);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isAssignOpen, setIsAssignOpen] = useState(false);
+  const [isRouteOpen, setIsRouteOpen] = useState(false);
+  const [isContactOpen, setIsContactOpen] = useState(false);
+  const [isCancelOpen, setIsCancelOpen] = useState(false);
+  const [isDeliveredOpen, setIsDeliveredOpen] = useState(false);
+
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+  const [isLoading, setIsLoading] = useState(false);
+  const [toast, setToast] = useState<ToastState>(null);
+
+  // ✅ RIDER CONTEXT (may assignRider + completeDelivery)
+  const { riders, assignRider, completeDelivery } = useDrivers();
+  const availableRiders = riders.filter((r) => r.status === "Available");
+
+  /* ============================================================
+     🚀 LOAD REAL BACKEND ORDERS
+  ============================================================= */
+
+  useEffect(() => {
+    loadOrders();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadOrders() {
+    try {
+      setIsLoading(true);
+      const raw = await fetchAllOrders();
+      const mobileOnly = raw ?? [];
+
+      const mapped: Order[] = mobileOnly.map((o: any) => ({
+        id: o.orderId?.toString() ?? "",
+
+        // Backend only returns customerId, so fallback tayo
+        name: o.customerName ?? `Customer #${o.customerId}`,
+
+        address: o.deliveryAddress ?? "No address provided",
+
+        products:
+          o.items?.map(
+            (i: any) => `${i.productName ?? "Item"} x${i.quantity ?? 0}`
+          ) ?? [],
+
+        total: Number(o.totalAmount) || 0,
+
+        status:
+          o.status === "PENDING"
+            ? "Pending"
+            : o.status === "PROCESSING"
+            ? "Processing"
+            : o.status === "IN_TRANSIT"
+            ? "In Transit"
+            : o.status === "DELIVERED"
+            ? "Delivered"
+            : "Cancelled",
+
+        paymentStatus:
+          o.paymentMethod === "WALLET"
+            ? "Paid"
+            : o.paymentMethod === "COD"
+            ? "COD"
+            : "Unpaid",
+
+        notes: o.notes,
+
+        createdAt: o.createdAt
+          ? new Date(o.createdAt).toLocaleString()
+          : "Unknown date",
+
+        rider: o.riderName ?? "Unassigned",
+      }));
+
+      // 🔥 FRONTEND RULE:
+      // - allOrders: lahat (for summary counts & history)
+      // - orders: HIDE Delivered + Cancelled from list
+      const activeOnly = mapped.filter(
+        (o) => o.status !== "Delivered" && o.status !== "Cancelled"
+      );
+
+      setAllOrders(mapped);
+      setOrders(activeOnly);
+    } catch (error: any) {
+      console.error("❌ Error loading orders:", error);
+      setToast({
+        type: "error",
+        message:
+          error?.message || "Failed to load orders. Please try again.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  /* ============================================================
+     FILTERED ORDERS
+  ============================================================= */
+
+  const filteredOrders = useMemo(() => {
+    const source =
+      filter === "Delivered" || filter === "Cancelled" ? allOrders : orders;
+
+    return source.filter((order) => {
+      const matchesStatus = filter === "All" || order.status === filter;
+      const term = searchTerm.toLowerCase().trim();
+      const matchesSearch =
+        order.name.toLowerCase().includes(term) ||
+        order.id.toLowerCase().includes(term);
+      return matchesStatus && matchesSearch;
+    });
+  }, [orders, allOrders, filter, searchTerm]);
+
+  // Para sa "Showing X of Y ..." text
+  const currentSource = useMemo(() => {
+    if (filter === "Delivered" || filter === "Cancelled") {
+      return allOrders.filter((o) => o.status === filter);
+    }
+    return orders;
+  }, [allOrders, orders, filter]);
+
+  /* ============================================================
+     SUMMARY COUNTS
+  ============================================================= */
+
+  // 👉 Total Orders = ACTIVE orders only (bumababa pag cancel/deliver)
+  const totalOrders = orders.length;
+
+  // 👉 Other stats based on ALL orders para may history view ka pa rin
+  const totalPending = allOrders.filter((o) => o.status === "Pending").length;
+  const totalInTransit = allOrders.filter(
+    (o) => o.status === "In Transit"
+  ).length;
+  const totalDelivered = allOrders.filter(
+    (o) => o.status === "Delivered"
+  ).length;
+  const totalCancelled = allOrders.filter(
+    (o) => o.status === "Cancelled"
+  ).length;
+
+  /* ============================================================
+     HANDLERS
+  ============================================================= */
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -50,93 +253,246 @@ export default function Riders() {
     });
   };
 
-  const getStatusStyles = (status: RiderStatus) => {
-    if (status === "Available") return "bg-emerald-100 text-emerald-700";
-    if (status === "On Delivery") return "bg-amber-100 text-amber-700";
-    if (status === "Offline") return "bg-slate-100 text-slate-700";
-    return "bg-rose-100 text-rose-700";
+  const openDetails = (order: Order) => {
+    setSelectedOrder(order);
+    setIsDetailOpen(true);
   };
 
-  const getStatusDot = (status: RiderStatus) => {
-    if (status === "Available") return "text-emerald-500";
-    if (status === "On Delivery") return "text-amber-500";
-    if (status === "Offline") return "text-slate-400";
-    return "text-rose-500";
+  const openAssign = (order: Order) => {
+    setSelectedOrder(order);
+    setIsAssignOpen(true);
   };
 
-  const openProfile = (rider: Rider) => {
-    setSelectedRider(rider);
-    setIsProfileOpen(true);
+  const openRoute = (order: Order) => {
+    setSelectedOrder(order);
+    setIsRouteOpen(true);
   };
 
-  const closeProfile = () => setIsProfileOpen(false);
-
-  // 🔥 OPEN EDIT MODAL
-  const openEditModal = (rider: Rider) => {
-    setEditTarget(rider);
-    setIsFormOpen(true);
+  const openContact = (order: Order) => {
+    setSelectedOrder(order);
+    setIsContactOpen(true);
   };
 
-  // 🔥 DELETE RIDER — NOW USING GLOBAL CONTEXT
-  const handleDelete = (id: string) => {
-    Swal.fire({
-      title: "Delete Rider?",
-      text: "This action cannot be undone.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Delete",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        deleteRider(id);
-        Swal.fire("Deleted!", "The rider has been removed.", "success");
-      }
-    });
+  const openCancel = (order: Order) => {
+    setSelectedOrder(order);
+    setIsCancelOpen(true);
   };
 
-  // 🔥 EDIT ONLY — UPDATE GLOBAL CONTEXT
-  const handleFormSubmit = (data: any) => {
-    if (editTarget) {
-      updateRider(editTarget.id, {
-        name: data.name,
-        contact: data.contact,
-        homeBase: data.homeBase,
-        status: data.status,
-        ordersToday: data.ordersToday ?? 0,
-      });
-
-      Swal.fire("Updated!", "Rider details updated successfully.", "success");
-    }
-
-    setIsFormOpen(false);
+  const openDelivered = (order: Order) => {
+    setSelectedOrder(order);
+    setIsDeliveredOpen(true);
   };
 
-  const filteredRiders = useMemo(() => {
-    let data = riders.filter(
-      (rider) =>
-        rider.name.toLowerCase().includes(searchTerm.toLowerCase().trim()) &&
-        (statusFilter === "All" || rider.status === statusFilter)
+  const closeDetails = () => setIsDetailOpen(false);
+  const closeAssign = () => setIsAssignOpen(false);
+  const closeRoute = () => setIsRouteOpen(false);
+  const closeContact = () => setIsContactOpen(false);
+  const closeCancel = () => setIsCancelOpen(false);
+  const closeDelivered = () => setIsDeliveredOpen(false);
+
+  // 🔗 Assign Rider + update RiderContext (assignRider)
+  const assignRiderToOrder = (rider: Rider) => {
+    if (!selectedOrder) return;
+
+    // 1) Update orders list (frontend)
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === selectedOrder.id
+          ? {
+              ...o,
+              rider: rider.name,
+              status: o.status === "Processing" ? "In Transit" : o.status,
+            }
+          : o
+      )
     );
 
-    data = [...data].sort((a, b) => {
-      if (sortBy === "Name") return a.name.localeCompare(b.name);
-      if (sortBy === "Status") return a.status.localeCompare(b.status);
-      if (sortBy === "Deliveries")
-        return b.completedDeliveries - a.completedDeliveries;
-      if (sortBy === "Rating") return b.rating - a.rating;
-      return 0;
+    // 2) Update allOrders list
+    setAllOrders((prev) =>
+      prev.map((o) =>
+        o.id === selectedOrder.id
+          ? {
+              ...o,
+              rider: rider.name,
+              status: o.status === "Processing" ? "In Transit" : o.status,
+            }
+          : o
+      )
+    );
+
+    // 3) Update selectedOrder (UI detail)
+    setSelectedOrder((prev) =>
+      prev
+        ? {
+            ...prev,
+            rider: rider.name,
+            status:
+              prev.status === "Processing" ? "In Transit" : prev.status,
+          }
+        : prev
+    );
+
+    // 4) Update RiderContext (ordersToday, workload, status, lastAssigned)
+    assignRider(rider.id);
+
+    setToast({
+      type: "success",
+      message: `Rider ${rider.name} assigned to order #${selectedOrder.id}`,
     });
 
-    return data;
-  }, [riders, searchTerm, statusFilter, sortBy]);
+    closeAssign();
+  };
 
-  const totalRiders = riders.length;
-  const availableCount = riders.filter((r) => r.status === "Available").length;
-  const onDeliveryCount = riders.filter(
-    (r) => r.status === "On Delivery"
-  ).length;
-  const offlineCount = riders.filter((r) => r.status === "Offline").length;
+  const handleCancelOrder = async (orderId: string, reason: string) => {
+    try {
+      await cancelOrder(orderId, reason || "No reason provided");
+
+      // 🧠 Update allOrders: mark as Cancelled
+      setAllOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId ? { ...o, status: "Cancelled" } : o
+        )
+      );
+
+      // 🔥 Update active orders: REMOVE from list (bababa yung Total Orders)
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder(null);
+      }
+
+      setToast({
+        type: "success",
+        message: `Order #${orderId} has been cancelled and removed.`,
+      });
+    } catch (error: any) {
+      console.error("❌ Cancel order failed:", error);
+      setToast({
+        type: "error",
+        message:
+          error?.message || "Failed to cancel order. Please try again.",
+      });
+    } finally {
+      closeCancel();
+    }
+  };
+
+  const handleMarkDelivered = async (
+    orderId: string,
+    payload: { note?: string }
+  ) => {
+    try {
+      // 🔎 Hanapin muna kung may rider yung order na 'to (by name)
+      const currentOrder =
+        allOrders.find((o) => o.id === orderId) || selectedOrder;
+      const riderForOrder = riders.find(
+        (r) => r.name === (currentOrder?.rider ?? "")
+      );
+
+      // ✅ CALL BACKEND TO PERSIST DELIVERED STATUS
+      await markDelivered(orderId, payload);
+
+      // 🧠 Update allOrders: mark as Delivered + note
+      setAllOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                status: "Delivered",
+                notes:
+                  payload.note && payload.note.trim().length > 0
+                    ? `Delivered: ${payload.note}`
+                    : o.notes || "Marked as delivered.",
+              }
+            : o
+        )
+      );
+
+      // 🔥 Remove from active orders list (bababa yung Total Orders)
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: "Delivered",
+                notes:
+                  payload.note && payload.note.trim().length > 0
+                    ? `Delivered: ${payload.note}`
+                    : prev.notes || "Marked as delivered.",
+              }
+            : prev
+        );
+      }
+
+      // ✅ Update RiderContext if may rider (completeDelivery = Option A)
+      if (riderForOrder) {
+        completeDelivery(riderForOrder.id);
+      }
+
+      setToast({
+        type: "success",
+        message: `Order #${orderId} marked as delivered.`,
+      });
+    } catch (error: any) {
+      console.error("❌ Mark delivered failed:", error);
+      setToast({
+        type: "error",
+        message:
+          error?.message || "Failed to mark as delivered. Please try again.",
+      });
+    } finally {
+      closeDelivered();
+    }
+  };
+
+  const getPrimaryActionLabel = (order: Order): string | null => {
+    if (order.status === "Pending") return "Accept Order";
+    if (order.status === "Processing") return "Complete & Assign Rider";
+    if (order.status === "In Transit") return "Mark Delivered";
+    return null;
+  };
+
+  const handlePrimaryAction = (order: Order) => {
+    if (order.status === "Pending") {
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id ? { ...o, status: "Processing" } : o
+        )
+      );
+
+      setAllOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id ? { ...o, status: "Processing" } : o
+        )
+      );
+
+      if (selectedOrder?.id === order.id) {
+        setSelectedOrder((prev) =>
+          prev ? { ...prev, status: "Processing" } : prev
+        );
+      }
+
+      return;
+    }
+
+    if (order.status === "Processing") {
+      openAssign(order);
+      return;
+    }
+
+    if (order.status === "In Transit") {
+      openDelivered(order);
+      return;
+    }
+  };
+
+  const handleCloseToast = () => setToast(null);
+
+  /* ============================================================
+     RENDER
+  ============================================================= */
 
   return (
     <motion.div
@@ -146,500 +502,390 @@ export default function Riders() {
       className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
       onMouseMove={handleMouseMove}
     >
-      {/* 🔥 ENTIRE UI SAME AS BEFORE, STATE NOW GLOBAL */}
-
-      {/* ===== GLOBAL HUD BACKDROP ===== */}
+      {/* ---------- BACKDROP GRID + BLOB ---------- */}
       <div className="pointer-events-none absolute inset-0 -z-30">
-        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:40px_40px]" />
-
-        <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.85)_0px,rgba(15,23,42,0.85)_1px,transparent_1px,transparent_3px)]" />
+        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" />
 
         <motion.div
-          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/28 blur-3xl"
+          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/30 blur-3xl"
           animate={{
-            x: [0, 20, 10, -5, 0],
-            y: [0, 10, 20, 5, 0],
+            x: [0, 18, 8, -6, 0],
+            y: [0, 8, 18, 4, 0],
             borderRadius: ["45%", "60%", "55%", "65%", "45%"],
           }}
           transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
         />
-
         <motion.div
-          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/24 blur-3xl"
+          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/26 blur-3xl"
           animate={{
-            x: [0, -15, -25, -10, 0],
-            y: [0, -10, -20, -5, 0],
+            x: [0, -15, -25, -8, 0],
+            y: [0, -10, -16, -5, 0],
             borderRadius: ["50%", "65%", "55%", "70%", "50%"],
           }}
           transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
-      {/* ===== SPOTLIGHT ===== */}
+      {/* ---------- CURSOR SPOTLIGHT ---------- */}
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
-          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)`,
+          background: `radial-gradient(520px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.25), transparent 70%)`,
         }}
       />
 
-      {/* ===== PAGE HEADER ===== */}
+      {/* ---------- HEADER ---------- */}
       <div className="relative flex flex-col gap-3">
         <motion.h1
           initial={{ opacity: 0, x: -18 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent"
+          transition={{ duration: 0.4 }}
+          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-sky-500 bg-clip-text text-transparent"
         >
-          Riders Management
+          Orders Management
         </motion.h1>
 
         <p className="text-gray-500 text-sm max-w-xl">
-          Live{" "}
+          Central view for{" "}
           <span className="font-medium text-emerald-700">
-            rider performance & availability
-          </span>{" "}
-          dashboard to track assignments, workload, and status.
+            live mobile orders & deliveries
+          </span>
+          . Filter by status, review details, and manage riders in one flow.
         </p>
 
-        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
+        <div className="mt-3 h-[3px] w-32 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* ===== MAIN HUD CONTAINER ===== */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-[26px] border border-emerald-500/30 bg-white/90 shadow-[0_22px_70px_rgba(15,23,42,0.40)] overflow-hidden"
-      >
-        {/* brackets */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
-          <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
-          <div className="absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-emerald-400/80" />
-          <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-400/80" />
+      {/* ---------- SUMMARY CARDS (CLICKABLE FILTERS) ---------- */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-5 mt-2">
+        <SummaryCard
+          title="Total Orders"
+          value={totalOrders}
+          tone="indigo"
+          icon={<Package className="w-6 h-6" />}
+          subtitle="Active mobile orders"
+          isActive={filter === "All"}
+          onClick={() => setFilter("All")}
+        />
+        <SummaryCard
+          title="Pending"
+          value={totalPending}
+          tone="amber"
+          icon={<Clock className="w-6 h-6" />}
+          subtitle="Waiting acceptance"
+          isActive={filter === "Pending"}
+          onClick={() => setFilter("Pending")}
+        />
+        <SummaryCard
+          title="In Transit"
+          value={totalInTransit}
+          tone="blue"
+          icon={<Truck className="w-6 h-6" />}
+          subtitle="On the road"
+          isActive={filter === "In Transit"}
+          onClick={() => setFilter("In Transit")}
+        />
+        <SummaryCard
+          title="Delivered"
+          value={totalDelivered}
+          tone="emerald"
+          icon={<CheckCircle className="w-6 h-6" />}
+          subtitle="Completed drops"
+          isActive={filter === "Delivered"}
+          onClick={() => setFilter("Delivered")}
+        />
+        <SummaryCard
+          title="Cancelled"
+          value={totalCancelled}
+          tone="red"
+          icon={<XCircle className="w-6 h-6" />}
+          subtitle="Removed orders"
+          isActive={filter === "Cancelled"}
+          onClick={() => setFilter("Cancelled")}
+        />
+      </div>
+
+      {/* ---------- SEARCH + STATUS FILTER ---------- */}
+      <div className="mt-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-3 w-full md:w-2/3">
+          <div className="relative flex-1">
+            <input
+              type="text"
+              placeholder="Search by customer name or order ID..."
+              className="w-full px-4 py-2.5 bg-white/70 backdrop-blur-md rounded-xl border border-gray-200 shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none text-sm"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Search className="absolute right-3 top-2.5 text-gray-400 w-5 h-5" />
+          </div>
         </div>
 
-        <div className="relative flex flex-col gap-8 p-5 md:p-6 lg:p-7">
-          {/* scanning line */}
-          <motion.div
-            className="pointer-events-none absolute top-10 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-70"
-            animate={{ x: ["-20%", "20%", "-20%"] }}
-            transition={{ duration: 5, repeat: Infinity }}
-          />
+        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+          <label className="text-xs font-medium text-gray-500">
+            Status Filter
+          </label>
+          <select
+            className="px-3 py-2 rounded-xl border border-gray-200 bg-white/80 text-sm shadow-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+            value={filter}
+            onChange={(e) =>
+              setFilter(e.target.value as "All" | OrderStatus)
+            }
+          >
+            <option value="All">All statuses</option>
+            <option value="Pending">Pending</option>
+            <option value="Processing">Processing</option>
+            <option value="In Transit">In Transit</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Cancelled">Cancelled</option>
+          </select>
+        </div>
+      </div>
 
-          {/* ===== TABS + SUMMARY ===== */}
-          <div className="flex flex-col gap-6">
-            <div className="flex flex-wrap gap-3 overflow-x-auto pb-1">
-              {["All", "Available", "On Delivery", "Offline", "Not Available"].map(
-                (tab) => (
-                  <button
-                    key={tab}
-                    onClick={() =>
-                      setStatusFilter(tab as "All" | RiderStatus)
-                    }
-                    className={`px-4 py-2 rounded-full text-xs sm:text-sm font-semibold border transition whitespace-nowrap
-                      ${
-                        statusFilter === tab
-                          ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-400/50"
-                          : "bg-white/90 border-gray-300 text-gray-700 hover:bg-emerald-50"
-                      }`}
-                  >
-                    {tab}
-                  </button>
-                )
-              )}
-            </div>
+      {/* ---------- ORDERS TABLE ---------- */}
+      <div className="mt-6 rounded-2xl border border-slate-200/80 bg-white/80 backdrop-blur-md shadow-[0_18px_45px_rgba(15,23,42,0.12)] overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-slate-200/80 bg-slate-50/80">
+          <span className="text-sm font-semibold text-slate-700">
+            Orders List
+          </span>
+          <span className="text-xs text-slate-500">
+            Showing{" "}
+            <span className="font-semibold text-emerald-600">
+              {filteredOrders.length}
+            </span>{" "}
+            of{" "}
+            <span className="font-semibold text-slate-700">
+              {currentSource.length}
+            </span>{" "}
+            {filter === "All"
+              ? "active mobile orders"
+              : `${filter.toLowerCase()} orders`}
+          </span>
+        </div>
 
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <RiderSummaryCard
-                icon={<Activity className="w-7 h-7" />}
-                label="Available Riders"
-                value={availableCount.toString()}
-                accent="Ready to accept new orders"
-                color="emerald"
-              />
-              <RiderSummaryCard
-                icon={<Briefcase className="w-7 h-7" />}
-                label="On Delivery"
-                value={onDeliveryCount.toString()}
-                accent="Currently delivering orders"
-                color="amber"
-              />
-              <RiderSummaryCard
-                icon={<CalendarClock className="w-7 h-7" />}
-                label="Offline Riders"
-                value={offlineCount.toString()}
-                accent="Currently off-duty"
-                color="slate"
-              />
-              <RiderSummaryCard
-                icon={<MoreVertical className="w-7 h-7" />}
-                label="Total Riders"
-                value={totalRiders.toString()}
-                accent="Overall capacity"
-                color="indigo"
-              />
-            </section>
+        {isLoading ? (
+          <div className="py-10 flex items-center justify-center text-sm text-gray-500">
+            Loading orders...
           </div>
-
-          {/* ===== FILTERS ===== */}
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-3 w-full md:w-auto">
-              <Dropdown
-                dismissOnClick
-                renderTrigger={() => (
-                  <button className="flex items-center gap-2 border border-emerald-500 bg-emerald-50 text-emerald-900 font-semibold text-xs sm:text-sm px-4 py-2 rounded-full shadow hover:bg-emerald-100 transition">
-                    Status: {statusFilter}
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
-                )}
-              >
-                {["All", "Available", "On Delivery", "Offline", "Not Available"].map(
-                  (s) => (
-                    <DropdownItem
-                      key={s}
-                      onClick={() => setStatusFilter(s as any)}
-                    >
-                      {s}
-                    </DropdownItem>
-                  )
-                )}
-              </Dropdown>
-
-              <Dropdown
-                dismissOnClick
-                renderTrigger={() => (
-                  <button className="flex items-center gap-2 border border-gray-300 bg-white text-gray-800 font-medium text-xs sm:text-sm px-4 py-2 rounded-full shadow-sm hover:bg-gray-50 transition">
-                    Sort by: {sortBy}
-                    <ChevronDown className="w-4 h-4" />
-                  </button>
-                )}
-              >
-                {["Name", "Status", "Deliveries", "Rating"].map((opt) => (
-                  <DropdownItem
-                    key={opt}
-                    onClick={() => setSortBy(opt as SortOption)}
-                  >
-                    {opt}
-                  </DropdownItem>
-                ))}
-              </Dropdown>
+        ) : filteredOrders.length === 0 ? (
+          <div className="py-10 flex flex-col items-center justify-center text-sm text-gray-500">
+            <div className="w-10 h-10 rounded-full border border-dashed border-emerald-400/60 flex items-center justify-center mb-2">
+              <Package className="w-5 h-5 text-emerald-500" />
             </div>
-
-            <div className="relative w-full max-w-xs">
-              <input
-                type="text"
-                placeholder="Search rider..."
-                className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none fokus:ring-2 focus:ring-emerald-500 text-sm"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
-            </div>
+            <p className="font-medium text-gray-600">
+              No orders found for this view.
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Try adjusting the status filter or search keyword.
+            </p>
           </div>
-
-          {/* ===== TABLE ===== */}
-          <div className="overflow-x-auto rounded-xl shadow-[0_18px_55px_rgba(15,23,42,0.18)] border border-gray-200 bg-slate-50/70">
-            <table className="min-w-full text-sm bg-white table-fixed">
-              <thead className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-slate-100 sticky top-0 shadow">
-                <tr>
-                  {[
-                    "Rider",
-                    "Contact",
-                    "Status",
-                    "Rating",
-                    "Completed",
-                    "Orders Today",
-                    "Last Assigned",
-                    "Actions",
-                  ].map((h) => (
-                    <th
-                      key={h}
-                      className="p-4 text-left font-semibold border-b text-xs md:text-sm"
-                    >
-                      {h}
-                    </th>
-                  ))}
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-xs sm:text-sm">
+              <thead className="bg-slate-50 text-slate-600 border-b border-slate-200/80">
+                <tr className="text-left">
+                  <Th>Order ID</Th>
+                  <Th>Customer</Th>
+                  <Th>Items</Th>
+                  <Th>Total</Th>
+                  <Th>Status</Th>
+                  <Th>Payment</Th>
+                  <Th>Rider</Th>
+                  <Th align="right">Actions</Th>
                 </tr>
               </thead>
 
-              <tbody>
-                {filteredRiders.length > 0 ? (
-                  filteredRiders.map((rider, index) => (
+              <tbody className="divide-y divide-slate-100">
+                {filteredOrders.map((order) => {
+                  const isTerminal =
+                    order.status === "Delivered" ||
+                    order.status === "Cancelled";
+
+                  return (
                     <tr
-                      key={index}
-                      className="hover:bg-emerald-50/70 transition border-b last:border-none"
+                      key={order.id}
+                      className="hover:bg-slate-50/70 transition-colors"
                     >
-                      {/* Rider */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-semibold text-lg">
-                            {rider.name.charAt(0)}
+                      <Td>
+                        <span className="font-semibold text-slate-800 text-xs sm:text-sm">
+                          #{order.id}
+                        </span>
+                        <div className="text-[10px] text-slate-400">
+                          {order.createdAt}
+                        </div>
+                      </Td>
+
+                      <Td>
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center">
+                            <User className="w-3.5 h-3.5 text-emerald-600" />
                           </div>
-                          <div>
-                            <p className="font-semibold text-gray-800">
-                              {rider.name}
-                            </p>
-                            <span className="text-gray-400 text-xs">
-                              {rider.id}
+                          <div className="flex flex-col">
+                            <span className="font-medium text-slate-800 text-xs sm:text-sm">
+                              {order.name}
                             </span>
-                            <p className="flex items-center gap-1 text-[11px] text-gray-500 mt-1">
-                              <MapPin className="w-3 h-3 text-emerald-500" />
-                              {rider.homeBase}
-                            </p>
+                            <span className="text-[10px] text-slate-400 truncate max-w-[220px]">
+                              {order.address}
+                            </span>
                           </div>
                         </div>
-                      </td>
+                      </Td>
 
-                      {/* Contact */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center gap-2 text-gray-700 text-xs md:text-sm">
-                          <Phone className="w-4 h-4 text-emerald-500" />
-                          {rider.contact}
-                        </div>
-                      </td>
+                      <Td>
+                        <span className="text-slate-700 text-xs sm:text-sm">
+                          {order.products.slice(0, 2).join(", ")}
+                        </span>
+                        {order.products.length > 2 && (
+                          <span className="text-[10px] text-gray-400 ml-1">
+                            +{order.products.length - 2} more
+                          </span>
+                        )}
+                      </Td>
 
-                      {/* Status */}
-                      <td className="p-4 align-middle">
+                      <Td>
+                        <span className="font-semibold text-slate-900 text-xs sm:text-sm">
+                          ₱{order.total.toLocaleString()}
+                        </span>
+                      </Td>
+
+                      <Td>
                         <span
-                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyles(
-                            rider.status
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold ${getStatusColor(
+                            order.status
                           )}`}
                         >
-                          <CircleDot
-                            className={`w-3 h-3 ${getStatusDot(rider.status)}`}
-                          />
-                          {rider.status}
+                          {order.status}
                         </span>
-                        <p className="text-[11px] text-gray-500 mt-1">
-                          {rider.lastActive}
-                        </p>
-                      </td>
+                      </Td>
 
-                      {/* Rating */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center gap-1 text-yellow-500">
-                          <Star className="w-4 h-4 fill-yellow-400" />
-                          <span className="font-semibold text-gray-800">
-                            {rider.rating.toFixed(1)}
-                          </span>
-                        </div>
-                      </td>
+                      <Td>
+                        <span
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-semibold ${getPaymentColor(
+                            order.paymentStatus
+                          )}`}
+                        >
+                          {order.paymentStatus}
+                        </span>
+                      </Td>
 
-                      {/* Completed */}
-                      <td className="p-4 align-middle text-gray-800 font-medium">
-                        {rider.completedDeliveries}
-                      </td>
+                      <Td>
+                        <span className="text-xs text-slate-700">
+                          {order.rider && order.rider !== "Unassigned"
+                            ? order.rider
+                            : "Unassigned"}
+                        </span>
+                      </Td>
 
-                      {/* Orders Today */}
-                      <td className="p-4 align-middle">
-                        <p className="font-medium text-gray-700 text-sm">
-                          {rider.ordersToday}
-                        </p>
-                        <div className="mt-1 w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-2 bg-emerald-500"
-                            style={{ width: `${rider.workload}%` }}
-                          />
-                        </div>
-                        <p className="text-[11px] text-gray-500 mt-0.5">
-                          Workload: {rider.workload}%
-                        </p>
-                      </td>
-
-                      {/* Last Assigned */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center gap-2 text-gray-700 text-xs md:text-sm">
-                          <CalendarClock className="w-4 h-4 text-gray-500" />
-                          {rider.lastAssigned}
-                        </div>
-                      </td>
-
-                      {/* ACTIONS */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            className="w-9 h-9 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition shadow-sm flex items-center justify-center"
-                            onClick={() => openProfile(rider)}
+                      <Td align="right">
+                        <div className="flex justify-end gap-1.5">
+                          <IconActionButton
+                            title="View details"
+                            onClick={() => openDetails(order)}
+                            variant="blue"
                           >
-                            <Eye className="w-4 h-4" />
-                          </button>
+                            <Eye className="w-3.5 h-3.5" />
+                          </IconActionButton>
 
-                          <button
-                            className="w-9 h-9 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition shadow-sm flex items-center justify-center"
-                            onClick={() => openEditModal(rider)}
+                          <IconActionButton
+                            title="Contact customer"
+                            onClick={() => openContact(order)}
+                            variant="green"
                           >
-                            <Pencil className="w-4 h-4" />
-                          </button>
+                            <Phone className="w-3.5 h-3.5" />
+                          </IconActionButton>
 
-                          <button
-                            className="w-9 h-9 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition shadow-sm flex items-center justify-center"
-                            onClick={() => handleDelete(rider.id)}
+                          <IconActionButton
+                            title="View route"
+                            onClick={() => openRoute(order)}
+                            variant="indigo"
                           >
-                            <Trash className="w-4 h-4" />
-                          </button>
+                            <Route className="w-3.5 h-3.5" />
+                          </IconActionButton>
+
+                          {!isTerminal && (
+                            <IconActionButton
+                              title="Cancel order"
+                              onClick={() => openCancel(order)}
+                              variant="red"
+                            >
+                              <XCircle className="w-3.5 h-3.5" />
+                            </IconActionButton>
+                          )}
+
+                          {!isTerminal && getPrimaryActionLabel(order) && (
+                            <button
+                              onClick={() => handlePrimaryAction(order)}
+                              className="hidden sm:inline-flex px-3 py-1.5 text-[11px] rounded-full bg-emerald-600 text-white hover:bg-emerald-700 font-semibold shadow-sm shadow-emerald-500/30"
+                            >
+                              {getPrimaryActionLabel(order)}
+                            </button>
+                          )}
                         </div>
-                      </td>
+                      </Td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="text-center p-5 text-gray-500 bg-gray-50 text-sm"
-                    >
-                      No riders found.
-                    </td>
-                  </tr>
-                )}
+                  );
+                })}
               </tbody>
             </table>
           </div>
-        </div>
-      </motion.div>
+        )}
+      </div>
 
-      {/* ===== RIDER PROFILE DRAWER ===== */}
-      {isProfileOpen && selectedRider && (
-        <div className="fixed inset-0 z-40 flex">
-          <div
-            className="flex-1 bg-slate-950/70 backdrop-blur-sm"
-            onClick={closeProfile}
-          />
-
-          <motion.div
-            initial={{ x: 320, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.25 }}
-            className="w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50 shadow-[0_25px_80px_rgba(15,23,42,0.9)] p-6 border-l border-emerald-500/40 overflow-y-auto"
-          >
-            <div className="pointer-events-none absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.45),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.45),transparent_55%)]" />
-
-            <div className="relative z-10">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-50">
-                    Rider Profile
-                  </h2>
-                  <p className="text-[11px] text-slate-400">
-                    {selectedRider.id}
-                  </p>
-                </div>
-                <button
-                  className="text-slate-400 hover:text-slate-200 text-sm px-2 py-1 rounded-full bg-slate-800/80 border border-slate-600/70"
-                  onClick={closeProfile}
-                >
-                  ✕
-                </button>
-              </div>
-
-              {/* HEADER */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-300 to-teal-300 text-emerald-950 flex items-center justify-center font-bold text-xl shadow-lg shadow-emerald-500/40">
-                  {selectedRider.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="font-semibold text-slate-50">
-                    {selectedRider.name}
-                  </p>
-                  <p className="text-[11px] text-slate-400 flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-emerald-400" />
-                    {selectedRider.homeBase}
-                  </p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span
-                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold ${getStatusStyles(
-                        selectedRider.status
-                      )}`}
-                    >
-                      <CircleDot
-                        className={`w-3 h-3 ${getStatusDot(
-                          selectedRider.status
-                        )}`}
-                      />
-                      {selectedRider.status}
-                    </span>
-                    <span className="inline-flex items-center gap-1 text-[11px] text-slate-400">
-                      <CalendarClock className="w-3 h-3" />
-                      {selectedRider.lastActive}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* STATS */}
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
-                  <p className="text-[11px] text-slate-400">Rating</p>
-                  <div className="flex items-center gap-1 mt-1 text-yellow-400">
-                    <Star className="w-4 h-4 fill-yellow-400" />
-                    <span className="font-semibold text-slate-50">
-                      {selectedRider.rating.toFixed(1)}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
-                  <p className="text-[11px] text-slate-400">Deliveries</p>
-                  <p className="font-semibold text-slate-50 mt-1">
-                    {selectedRider.completedDeliveries}
-                  </p>
-                </div>
-
-                <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
-                  <p className="text-[11px] text-slate-400">
-                    Today&apos;s Load
-                  </p>
-                  <p className="font-semibold text-slate-50 mt-1">
-                    {selectedRider.ordersToday} orders
-                  </p>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <p className="text-[11px] text-slate-400 mb-1">Workload</p>
-                <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-2 bg-emerald-400"
-                    style={{ width: `${selectedRider.workload}%` }}
-                  />
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  {selectedRider.workload}% estimated load for today
-                </p>
-              </div>
-
-              {/* CONTACT */}
-              <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70 mb-4">
-                <p className="text-[11px] text-slate-400 mb-1">Contact</p>
-                <p className="flex items-center gap-2 text-sm text-slate-100">
-                  <Phone className="w-4 h-4 text-emerald-400" />
-                  {selectedRider.contact}
-                </p>
-                <p className="flex items-center gap-2 text-[11px] text-slate-400 mt-2">
-                  <CalendarClock className="w-3 h-3 text-slate-400" />
-                  Last assigned: {selectedRider.lastAssigned}
-                </p>
-              </div>
-
-              <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/80 mb-2">
-                <p className="text-[11px] text-slate-400 mb-1">
-                  Notes / Next Actions
-                </p>
-                <p className="text-xs text-slate-200">
-                  Connect this to your API later for detailed profile features.
-                </p>
-              </div>
-            </div>
-          </motion.div>
-        </div>
+      {/* ============= TOAST ============= */}
+      {toast && (
+        <ToastBanner
+          type={toast.type}
+          message={toast.message}
+          onClose={handleCloseToast}
+        />
       )}
 
-      {/* ===== EDIT MODAL ===== */}
-      <RiderFormModal
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleFormSubmit}
-        initialData={editTarget || undefined}
-      />
+      {/* ============= DETAILS MODAL ============= */}
+      {isDetailOpen && selectedOrder && (
+        <OrderDetailsModal order={selectedOrder} onClose={closeDetails} />
+      )}
+
+      {/* ============= ASSIGN RIDER DRAWER ============= */}
+      {isAssignOpen && selectedOrder && (
+        <AssignRiderDrawer
+          order={selectedOrder}
+          availableRiders={availableRiders}
+          onAssign={assignRiderToOrder}
+          onClose={closeAssign}
+        />
+      )}
+
+      {/* ============= ROUTE DRAWER ============= */}
+      {isRouteOpen && selectedOrder && (
+        <RouteDrawer order={selectedOrder} onClose={closeRoute} />
+      )}
+
+      {/* ============= CONTACT DRAWER ============= */}
+      {isContactOpen && selectedOrder && (
+        <ContactDrawer order={selectedOrder} onClose={closeContact} />
+      )}
+
+      {/* ============= CANCEL MODAL ============= */}
+      {isCancelOpen && selectedOrder && (
+        <CancelOrderModal
+          order={selectedOrder}
+          onConfirm={(reason) =>
+            handleCancelOrder(selectedOrder.id, reason)
+          }
+          onClose={closeCancel}
+        />
+      )}
+
+      {/* ============= DELIVERED MODAL ============= */}
+      {isDeliveredOpen && selectedOrder && (
+        <MarkDeliveredModal
+          order={selectedOrder}
+          onConfirm={(payload) =>
+            handleMarkDelivered(selectedOrder.id, payload)
+          }
+          onClose={closeDelivered}
+        />
+      )}
     </motion.div>
   );
 }
@@ -648,54 +894,519 @@ export default function Riders() {
    SUB COMPONENTS
 ============================================================ */
 
-function RiderSummaryCard({
-  icon,
-  label,
+function SummaryCard({
+  title,
   value,
-  accent,
-  color = "emerald",
+  tone,
+  icon,
+  subtitle,
+  isActive,
+  onClick,
 }: {
+  title: string;
+  value: number;
+  tone: SummaryTone;
   icon: React.ReactNode;
-  label: string;
-  value: string;
-  accent: string;
-  color: "emerald" | "amber" | "slate" | "indigo";
+  subtitle?: string;
+  isActive?: boolean;
+  onClick?: () => void;
 }) {
-  const colors: Record<typeof color, string> = {
-    emerald: "from-emerald-500 to-emerald-700",
-    amber: "from-amber-500 to-amber-700",
-    slate: "from-slate-600 to-slate-800",
-    indigo: "from-indigo-500 to-indigo-700",
-  };
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
+    <motion.button
+      type="button"
+      onClick={onClick}
+      initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
-      whileHover={{
-        y: -6,
-        scale: 1.03,
-        boxShadow: "0 22px 60px rgba(15,23,42,0.35)",
-      }}
-      transition={{ duration: 0.35 }}
-      className={`relative p-5 rounded-2xl border border-white/40 text-white bg-gradient-to-br ${colors[color]} shadow-xl overflow-hidden`}
+      whileHover={{ y: -4, scale: 1.01 }}
+      whileTap={{ scale: 0.98 }}
+      transition={{ duration: 0.2 }}
+      className={`relative flex flex-col p-4 rounded-xl text-white text-left bg-gradient-to-br ${summaryToneGradient[tone]} shadow-md overflow-hidden ${
+        onClick ? "cursor-pointer" : "cursor-default"
+      } ${isActive ? "ring-2 ring-emerald-300 shadow-lg" : ""}`}
     >
-      <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.5),transparent_55%)]" />
-      <div className="relative flex items-center gap-3">
-        <div className="p-3 bg-white/15 rounded-xl flex items-center justify-center">
+      {isActive && (
+        <div className="absolute inset-0 pointer-events-none border border-emerald-200/60 rounded-xl" />
+      )}
+
+      <div className="flex items-center justify-between z-10">
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium opacity-90">
+            {title}
+          </span>
+          <span className="text-2xl font-extrabold">{value}</span>
+          {subtitle && (
+            <span className="text-[10px] opacity-80">{subtitle}</span>
+          )}
+        </div>
+        <div className="w-9 h-9 flex items-center justify-center rounded-full bg-black/10 backdrop-blur">
           {icon}
         </div>
-
-        <div>
-          <p className="text-[0.7rem] uppercase tracking-[0.16em] text-white/80">
-            {label}
-          </p>
-          <p className="text-2xl md:text-3xl font-bold leading-tight">
-            {value}
-          </p>
-          <p className="text-[0.7rem] text-white/80 mt-1">{accent}</p>
-        </div>
       </div>
+    </motion.button>
+  );
+}
+
+function Th({
+  children,
+  align = "left",
+}: {
+  children: React.ReactNode;
+  align?: "left" | "center" | "right";
+}) {
+  return (
+    <th
+      className={`px-5 py-3 text-xs font-semibold ${
+        align === "right"
+          ? "text-right"
+          : align === "center"
+          ? "text-center"
+          : "text-left"
+      }`}
+    >
+      {children}
+    </th>
+  );
+}
+
+function Td({
+  children,
+  align = "left",
+}: {
+  children: React.ReactNode;
+  align?: "left" | "center" | "right";
+}) {
+  return (
+    <td
+      className={`px-5 py-3 align-middle ${
+        align === "right"
+          ? "text-right"
+          : align === "center"
+          ? "text-center"
+          : "text-left"
+      }`}
+    >
+      {children}
+    </td>
+  );
+}
+
+function IconActionButton({
+  children,
+  onClick,
+  title,
+  variant,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  title: string;
+  variant: "blue" | "green" | "indigo" | "red";
+}) {
+  const map: Record<
+    typeof variant,
+    { bg: string; hover: string; text: string }
+  > = {
+    blue: {
+      bg: "bg-sky-50",
+      hover: "hover:bg-sky-100",
+      text: "text-sky-700",
+    },
+    green: {
+      bg: "bg-emerald-50",
+      hover: "hover:bg-emerald-100",
+      text: "text-emerald-700",
+    },
+    indigo: {
+      bg: "bg-indigo-50",
+      hover: "hover:bg-indigo-100",
+      text: "text-indigo-700",
+    },
+    red: {
+      bg: "bg-rose-50",
+      hover: "hover:bg-rose-100",
+      text: "text-rose-700",
+    },
+  };
+
+  const c = map[variant];
+
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={onClick}
+      className={`inline-flex items-center justify-center w-8 h-8 rounded-full ${c.bg} ${c.hover} ${c.text} text-[11px] shadow-sm`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/* ---- TOAST ---- */
+function ToastBanner({
+  type,
+  message,
+  onClose,
+}: {
+  type: "success" | "error";
+  message: string;
+  onClose: () => void;
+}) {
+  const isSuccess = type === "success";
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.98 }}
+      className={`fixed bottom-5 right-5 z-50 flex items-center gap-3 px-4 py-3 rounded-xl shadow-lg text-sm ${
+        isSuccess
+          ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+          : "bg-rose-50 text-rose-800 border border-rose-200"
+      }`}
+    >
+      <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/80">
+        {isSuccess ? (
+          <CheckCircle className="w-4 h-4 text-emerald-600" />
+        ) : (
+          <XCircle className="w-4 h-4 text-rose-600" />
+        )}
+      </div>
+      <span className="flex-1 text-xs sm:text-sm">{message}</span>
+      <button
+        onClick={onClose}
+        className="text-[11px] font-semibold opacity-70 hover:opacity-100"
+      >
+        Close
+      </button>
     </motion.div>
+  );
+}
+
+/* ---- ORDER DETAILS ---- */
+function OrderDetailsModal({
+  order,
+  onClose,
+}: {
+  order: Order;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white rounded-xl p-6 w-full max-w-lg space-y-4 shadow-xl"
+      >
+        <h2 className="text-xl font-bold text-slate-800">Order Details</h2>
+
+        <div className="text-sm space-y-2 text-slate-700">
+          <p>
+            <span className="font-medium">Order ID:</span> #{order.id}
+          </p>
+          <p>
+            <span className="font-medium">Customer:</span> {order.name}
+          </p>
+          <p>
+            <span className="font-medium">Address:</span> {order.address}
+          </p>
+          <p>
+            <span className="font-medium">Items:</span>
+            <br />
+            {order.products.map((p, i) => (
+              <div key={i} className="ml-4">
+                • {p}
+              </div>
+            ))}
+          </p>
+          <p>
+            <span className="font-medium">Total:</span> ₱
+            {order.total.toLocaleString()}
+          </p>
+          <p className="flex items-center gap-2">
+            <span className="font-medium">Status:</span>
+            <span
+              className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${getStatusColor(
+                order.status
+              )}`}
+            >
+              {order.status}
+            </span>
+          </p>
+          <p>
+            <span className="font-medium">Payment:</span>{" "}
+            {order.paymentStatus}
+          </p>
+          <p>
+            <span className="font-medium">Notes:</span>{" "}
+            {order.notes || "—"}
+          </p>
+          <p>
+            <span className="font-medium">Created:</span>{" "}
+            {order.createdAt}
+          </p>
+        </div>
+
+        <div className="flex justify-end mt-6">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-medium"
+          >
+            Close
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ---- ASSIGN RIDER DRAWER ---- */
+function AssignRiderDrawer({
+  order,
+  availableRiders,
+  onAssign,
+  onClose,
+}: {
+  order: Order;
+  availableRiders: Rider[];
+  onAssign: (rider: Rider) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm">
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        className="w-80 h-full bg-white shadow-xl p-5 flex flex-col"
+      >
+        <h2 className="text-lg font-bold mb-1 text-slate-800">
+          Assign Rider
+        </h2>
+        <p className="text-xs text-slate-500 mb-4">
+          Order #{order.id} • {order.name}
+        </p>
+
+        {availableRiders.length === 0 ? (
+          <p className="text-gray-500 text-sm">
+            No riders available at the moment.
+          </p>
+        ) : (
+          <ul className="space-y-2 flex-1 overflow-y-auto">
+            {availableRiders.map((rider) => (
+              <li
+                key={rider.id}
+                className="p-3 bg-slate-50 rounded-lg cursor-pointer hover:bg-emerald-50 border border-slate-100 flex items-center justify-between"
+                onClick={() => onAssign(rider)}
+              >
+                <span className="text-sm text-slate-800">
+                  {rider.name}
+                </span>
+                <span className="text-[10px] text-emerald-600">
+                  Tap to assign
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <button
+          onClick={onClose}
+          className="mt-4 w-full py-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-sm font-medium text-slate-700"
+        >
+          Close
+        </button>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ---- ROUTE DRAWER ---- */
+function RouteDrawer({
+  order,
+  onClose,
+}: {
+  order: Order;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm">
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        className="w-96 h-full bg-white shadow-xl p-5 flex flex-col"
+      >
+        <h2 className="text-lg font-bold mb-1 text-slate-800">
+          Delivery Route
+        </h2>
+
+        <p className="text-xs text-slate-500 mb-3">
+          Customer Address:
+          <br />
+          <span className="font-semibold text-slate-700">
+            {order.address}
+          </span>
+        </p>
+
+        <div className="flex-1 flex items-center justify-center">
+          <div className="h-64 w-full bg-slate-100 rounded-xl flex items-center justify-center text-gray-400 text-sm border border-dashed border-slate-300">
+            🗺️ Map Placeholder
+          </div>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="mt-4 w-full py-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-sm font-medium text-slate-700"
+        >
+          Close
+        </button>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ---- CONTACT DRAWER ---- */
+function ContactDrawer({
+  order,
+  onClose,
+}: {
+  order: Order;
+  onClose: () => void;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm">
+      <motion.div
+        initial={{ x: "100%" }}
+        animate={{ x: 0 }}
+        className="w-80 h-full bg-white shadow-xl p-5 flex flex-col"
+      >
+        <h2 className="text-lg font-bold mb-1 text-slate-800">
+          Contact Customer
+        </h2>
+
+        <p className="text-sm text-slate-600">
+          <span className="font-semibold">{order.name}</span>
+        </p>
+
+        <div className="mt-4">
+          <button className="w-full py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium shadow-sm">
+            Call Customer
+          </button>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="mt-4 w-full py-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-sm font-medium text-slate-700"
+        >
+          Close
+        </button>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ---- CANCEL ORDER MODAL ---- */
+function CancelOrderModal({
+  order,
+  onConfirm,
+  onClose,
+}: {
+  order: Order;
+  onConfirm: (reason: string) => void;
+  onClose: () => void;
+}) {
+  const [reason, setReason] = useState("");
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white rounded-xl p-6 w-full max-w-md space-y-4 shadow-xl"
+      >
+        <h2 className="text-lg font-bold text-slate-900">
+          Cancel Order #{order.id}
+        </h2>
+
+        <p className="text-xs text-slate-500">
+          This will remove the order from the active list. You can still keep
+          the record in backend as cancelled.
+        </p>
+
+        <textarea
+          placeholder="Reason for cancellation..."
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="w-full h-28 p-3 border rounded-lg bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-rose-400"
+        />
+
+        <div className="flex justify-end gap-3 mt-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-sm font-medium text-slate-700"
+          >
+            Close
+          </button>
+          <button
+            onClick={() => onConfirm(reason)}
+            className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 text-sm font-semibold shadow-sm"
+          >
+            Confirm Cancel
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+}
+
+/* ---- MARK AS DELIVERED ---- */
+function MarkDeliveredModal({
+  order,
+  onConfirm,
+  onClose,
+}: {
+  order: Order;
+  onConfirm: (payload: { note?: string }) => void;
+  onClose: () => void;
+}) {
+  const [note, setNote] = useState("");
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-white rounded-xl p-6 w-full max-w-md space-y-4 shadow-xl"
+      >
+        <h2 className="text-lg font-bold text-slate-900">
+          Mark as Delivered
+        </h2>
+
+        <p className="text-xs text-slate-500">
+          Order #{order.id}. Optionally add a note, like drop-off details or
+          special remarks.
+        </p>
+
+        <textarea
+          placeholder="Add delivery note..."
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
+          className="w-full h-28 p-3 border rounded-lg bg-slate-50 text-sm outline-none focus:ring-2 focus:ring-emerald-400"
+        />
+
+        <div className="flex justify-end gap-3 mt-4">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-slate-100 rounded-lg hover:bg-slate-200 text-sm font-medium text-slate-700"
+          >
+            Close
+          </button>
+
+          <button
+            onClick={() => onConfirm({ note })}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-semibold shadow-sm"
+          >
+            Confirm
+          </button>
+        </div>
+      </motion.div>
+    </div>
   );
 }
