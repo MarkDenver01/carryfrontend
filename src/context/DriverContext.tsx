@@ -7,7 +7,7 @@ import {
 } from "react";
 
 /* ============================================
-    TYPES
+   TYPES
 ============================================ */
 
 export type RiderStatus =
@@ -22,17 +22,17 @@ export interface Rider {
   contact: string;
   status: RiderStatus;
 
-  ordersToday: number;          // total orders assigned today
-  completedDeliveries: number;  // delivered orders result
+  ordersToday: number;          // total assigned today
+  completedDeliveries: number;  // completed drops
   workload: number;             // = ordersToday * 10
-  lastAssigned: string;         // last time na-assign
-  lastActive: string;           // last time nag-complete/active
+  lastAssigned: string | null;
+  lastActive: string | null;
   homeBase: string;
   rating: number;
 }
 
 /* ============================================
-    CONTEXT
+   CONTEXT INTERFACE
 ============================================ */
 
 interface DriverContextType {
@@ -41,31 +41,73 @@ interface DriverContextType {
   deleteRider: (id: string) => void;
   updateRider: (id: string, data: Partial<Rider>) => void;
 
-  // NEW — FOR AUTO-ASSIGN LOGIC
   assignRider: (riderId: string) => void;
   completeDelivery: (riderId: string) => void;
+
+  resetRiders: () => void;
 }
 
+const STORAGE_KEY = "carry_admin_riders_v1";
 const DriverContext = createContext<DriverContextType | null>(null);
-const STORAGE_KEY = "carry_admin_riders";
 
 /* ============================================
-    PROVIDER
+   DEFAULT RIDERS (Auto-create if empty)
+============================================ */
+
+const defaultRiders: Rider[] = [
+  {
+    id: "r1",
+    name: "Rider One",
+    contact: "09xx-xxx-xxxx",
+    status: "Available",
+    ordersToday: 0,
+    completedDeliveries: 0,
+    workload: 0,
+    lastAssigned: null,
+    lastActive: null,
+    homeBase: "Tanauan",
+    rating: 4.9,
+  },
+  {
+    id: "r2",
+    name: "Rider Two",
+    contact: "09xx-xxx-xxxx",
+    status: "Available",
+    ordersToday: 0,
+    completedDeliveries: 0,
+    workload: 0,
+    lastAssigned: null,
+    lastActive: null,
+    homeBase: "Sampaloc",
+    rating: 4.8,
+  },
+];
+
+/* ============================================
+   PROVIDER
 ============================================ */
 
 export const DriverProvider = ({ children }: { children: ReactNode }) => {
   const [riders, setRiders] = useState<Rider[]>(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return [];
-      return JSON.parse(raw) as Rider[];
+      if (!raw) {
+        return defaultRiders; // auto-create
+      }
+
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        return defaultRiders;
+      }
+
+      return parsed;
     } catch {
-      return [];
+      return defaultRiders;
     }
   });
 
   /* ============================================
-      SAVE TO LOCAL STORAGE
+     SAVE TO LOCAL STORAGE
   ============================================ */
   useEffect(() => {
     try {
@@ -74,10 +116,11 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
   }, [riders]);
 
   /* ============================================
-      BASIC CRUD
+     BASICS
   ============================================ */
 
-  const addRider = (r: Rider) => setRiders((prev) => [...prev, r]);
+  const addRider = (r: Rider) =>
+    setRiders((prev) => [...prev, r]);
 
   const deleteRider = (id: string) =>
     setRiders((prev) => prev.filter((r) => r.id !== id));
@@ -88,8 +131,7 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
     );
 
   /* ============================================
-      RIDER ASSIGNMENT LOGIC
-      (WORKLOAD = ordersToday * 10)
+     ASSIGN RIDER
   ============================================ */
 
   const assignRider = (riderId: string) => {
@@ -111,12 +153,7 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
   };
 
   /* ============================================
-      DELIVERY COMPLETED
-      OPTION A (Recommended)
-      - available again
-      - completedDeliveries += 1
-      - workload - 10
-      - lastActive = now
+     COMPLETE DELIVERY (Recommended Option A)
   ============================================ */
 
   const completeDelivery = (riderId: string) => {
@@ -137,6 +174,14 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
+  /* ============================================
+     RESET (for debugging)
+  ============================================ */
+
+  const resetRiders = () => {
+    setRiders(defaultRiders);
+  };
+
   return (
     <DriverContext.Provider
       value={{
@@ -146,6 +191,7 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
         updateRider,
         assignRider,
         completeDelivery,
+        resetRiders,
       }}
     >
       {children}
@@ -154,7 +200,7 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
 };
 
 /* ============================================
-    HOOK
+   HOOK
 ============================================ */
 
 export const useDrivers = () => {

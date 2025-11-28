@@ -21,7 +21,8 @@ import {
   fetchAllOrders,
   cancelOrder,
   markDelivered,
-  markInTransit, // ✅ NEW: persist IN_TRANSIT in backend
+  markInTransit,
+  markProcessing,
 } from "../../../libs/ApiGatewayDatasource";
 
 /* ============================================================
@@ -131,47 +132,53 @@ export default function Orders() {
       const raw = await fetchAllOrders();
       const mobileOnly = raw ?? [];
 
-      const mapped: Order[] = mobileOnly.map((o: any) => ({
-        id: o.orderId?.toString() ?? "",
+      const mapped: Order[] = mobileOnly.map((o: any) => {
+        // Map backend enum/string status → UI OrderStatus
+        let status: OrderStatus = "Pending";
+        switch (o.status) {
+          case "PENDING":
+            status = "Pending";
+            break;
+          case "CONFIRMED": // ⭐ treat as Processing
+          case "PROCESSING":
+            status = "Processing";
+            break;
+          case "IN_TRANSIT":
+            status = "In Transit";
+            break;
+          case "DELIVERED":
+            status = "Delivered";
+            break;
+          case "CANCELLED":
+            status = "Cancelled";
+            break;
+          default:
+            status = "Pending";
+        }
 
-        // Backend only returns customerId, so fallback tayo
-        name: o.customerName ?? `Customer #${o.customerId}`,
-
-        address: o.deliveryAddress ?? "No address provided",
-
-        products:
-          o.items?.map(
-            (i: any) => `${i.productName ?? "Item"} x${i.quantity ?? 0}`
-          ) ?? [],
-
-        total: Number(o.totalAmount) || 0,
-
-        status:
-          o.status === "PENDING"
-            ? "Pending"
-            : o.status === "PROCESSING"
-            ? "Processing"
-            : o.status === "IN_TRANSIT"
-            ? "In Transit"
-            : o.status === "DELIVERED"
-            ? "Delivered"
-            : "Cancelled",
-
-        paymentStatus:
-          o.paymentMethod === "WALLET"
-            ? "Paid"
-            : o.paymentMethod === "COD"
-            ? "COD"
-            : "Unpaid",
-
-        notes: o.notes,
-
-        createdAt: o.createdAt
-          ? new Date(o.createdAt).toLocaleString()
-          : "Unknown date",
-
-        rider: o.riderName ?? "Unassigned",
-      }));
+        return {
+          id: o.orderId?.toString() ?? "",
+          name: o.customerName ?? `Customer #${o.customerId}`,
+          address: o.deliveryAddress ?? "No address provided",
+          products:
+            o.items?.map(
+              (i: any) => `${i.productName ?? "Item"} x${i.quantity ?? 0}`
+            ) ?? [],
+          total: Number(o.totalAmount) || 0,
+          status,
+          paymentStatus:
+            o.paymentMethod === "WALLET"
+              ? "Paid"
+              : o.paymentMethod === "COD"
+              ? "COD"
+              : "Unpaid",
+          notes: o.notes,
+          createdAt: o.createdAt
+            ? new Date(o.createdAt).toLocaleString()
+            : "Unknown date",
+          rider: o.riderName ?? "Unassigned", // ✅ uses riderName from backend
+        };
+      });
 
       // 🔥 FRONTEND RULE:
       // - allOrders: lahat (for summary counts & history)
@@ -436,7 +443,7 @@ export default function Orders() {
         );
       }
 
-      // ✅ Update RiderContext if may rider (completeDelivery)
+      // ✅ Update RiderContext if may rider (completeDelivery → status = Available)
       if (riderForOrder) {
         completeDelivery(riderForOrder.id);
       }
@@ -464,25 +471,42 @@ export default function Orders() {
     return null;
   };
 
-  const handlePrimaryAction = (order: Order) => {
+  const handlePrimaryAction = async (order: Order) => {
     if (order.status === "Pending") {
-      // ⚠️ FRONTEND-ONLY UPDATE (walang backend endpoint for PROCESSING yet)
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === order.id ? { ...o, status: "Processing" } : o
-        )
-      );
+      try {
+        // ✅ Call backend: set PROCESSING
+        await markProcessing(order.id);
 
-      setAllOrders((prev) =>
-        prev.map((o) =>
-          o.id === order.id ? { ...o, status: "Processing" } : o
-        )
-      );
-
-      if (selectedOrder?.id === order.id) {
-        setSelectedOrder((prev) =>
-          prev ? { ...prev, status: "Processing" } : prev
+        // ✅ Optimistic UI update
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.id === order.id ? { ...o, status: "Processing" } : o
+          )
         );
+
+        setAllOrders((prev) =>
+          prev.map((o) =>
+            o.id === order.id ? { ...o, status: "Processing" } : o
+          )
+        );
+
+        if (selectedOrder?.id === order.id) {
+          setSelectedOrder((prev) =>
+            prev ? { ...prev, status: "Processing" } : prev
+          );
+        }
+
+        setToast({
+          type: "success",
+          message: `Order #${order.id} accepted (Processing).`,
+        });
+      } catch (error: any) {
+        console.error("❌ Mark processing failed:", error);
+        setToast({
+          type: "error",
+          message:
+            error?.message || "Failed to accept order. Please try again.",
+        });
       }
 
       return;

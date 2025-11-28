@@ -375,5 +375,14 @@ export async function markInTransit(orderId: string) {
     throw error.response?.data || { message: "Failed to set In Transit" };
   }
 }
+export async function markProcessing(orderId: string) {
+  try {
+    const res = await api.put(`/user/public/api/orders/${orderId}/processing`);
+    return res.data;
+  } catch (error: any) {
+    console.error("❌ Mark processing error:", error);
+    throw error.response?.data || { message: "Failed to set Processing" };
+  }
+}
 
 
