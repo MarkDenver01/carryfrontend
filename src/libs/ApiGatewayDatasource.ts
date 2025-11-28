@@ -404,6 +404,14 @@ export async function deleteDriver(id: string) {
     throw error.response?.data || { message: "Failed to delete driver" };
   }
 }
-
+export async function assignRiderToOrder(orderId: string, riderId: string) {
+  try {
+    const res = await api.put(`/user/public/api/orders/${orderId}/assign-rider/${riderId}`);
+    return res.data;
+  } catch (error: any) {
+    console.error("❌ Assign rider to order error:", error);
+    throw error.response?.data || { message: "Failed to assign rider" };
+  }
+}
 
 

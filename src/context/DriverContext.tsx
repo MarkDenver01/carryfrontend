@@ -42,15 +42,24 @@ interface DriverContextType {
 const DriverContext = createContext<DriverContextType | null>(null);
 
 const mapStatus = (value?: string | null): RiderStatus => {
-  const s = (value || "").replace(/[\s_]/g, "").toUpperCase();
+  if (!value) return "Available";
 
-  if (s === "AVAILABLE") return "Available";
-  if (s === "ONDELIVERY") return "On Delivery";
-  if (s === "OFFLINE") return "Offline";
-  if (s === "NOTAVAILABLE") return "Not Available";
+  const s = value.toUpperCase();
 
-  return "Available";
+  switch (s) {
+    case "AVAILABLE":
+      return "Available";
+    case "ON_DELIVERY":
+      return "On Delivery";
+    case "OFFLINE":
+      return "Offline";
+    case "NOT_AVAILABLE":
+      return "Not Available";
+    default:
+      return "Available";
+  }
 };
+
 
 
 export const DriverProvider = ({ children }: { children: ReactNode }) => {
@@ -61,23 +70,19 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
       const res = await api.get("/user/public/api/riders/all");
       const raw = res.data ?? [];
 
-      const mapped: Rider[] = Array.isArray(raw)
-  ? raw
-      .filter((item: any) => item && item.riderId != null)
-      .map((d: any) => ({
-        id: d.riderId.toString(),
-        name: d.name ?? "Unnamed Driver",
-        contact: d.contact ?? "",
-        status: mapStatus(d.status),
-        ordersToday: d.ordersToday ?? 0,
-        completedDeliveries: d.completedDeliveries ?? 0,
-        workload: d.workload ?? (d.ordersToday ?? 0) * 10,
-        lastAssigned: d.lastAssigned ?? null,
-        lastActive: d.lastActive ?? null,
-        homeBase: d.homeBase ?? "N/A",
-        rating: d.rating ?? 5,
-      }))
-  : [];
+      const mapped: Rider[] = raw.map((d: any) => ({
+    id: d.riderId ? d.riderId.toString() : null,
+    name: d.name ?? "Unnamed Driver",
+    contact: d.contact ?? "",
+    status: mapStatus(d.status),
+    ordersToday: d.ordersToday ?? 0,
+    completedDeliveries: d.completedDeliveries ?? 0,
+    workload: d.workload ?? (d.ordersToday ?? 0) * 10,
+    lastAssigned: d.lastAssigned ?? null,
+    lastActive: d.lastActive ?? null,
+    homeBase: d.homeBase ?? "N/A",
+    rating: d.rating ?? 5,
+}));
 
 
       setRiders(mapped);
@@ -111,7 +116,7 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
     setRiders((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
 
   const assignRider = (riderId: string) => {
-    const now = new Date().toLocaleString();
+  const now = new Date().toLocaleString();
 
     setRiders((prev) =>
       prev.map((r) =>
@@ -127,10 +132,8 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
       )
     );
 
-    void api.put(`/user/public/api/riders/${riderId}/assign`).catch((e) =>
-      console.error("❌ Assign failed:", e)
-    );
   };
+  
 
   const completeDelivery = async (riderId: string) => {
   try {
