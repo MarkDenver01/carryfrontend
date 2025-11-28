@@ -14,16 +14,14 @@ import {
 import { motion } from "framer-motion";
 
 // ✅ IMPORT GLOBAL RIDERS CONTEXT
-import {
-  useDrivers,
-  type Rider,
-} from "../../../context/DriverContext";
+import { useDrivers, type Rider } from "../../../context/DriverContext";
 
 // ✅ IMPORT BACKEND API
 import {
   fetchAllOrders,
   cancelOrder,
   markDelivered,
+  markInTransit, // ✅ NEW: persist IN_TRANSIT in backend
 } from "../../../libs/ApiGatewayDatasource";
 
 /* ============================================================
@@ -290,57 +288,69 @@ export default function Orders() {
   const closeCancel = () => setIsCancelOpen(false);
   const closeDelivered = () => setIsDeliveredOpen(false);
 
-  // 🔗 Assign Rider + update RiderContext (assignRider)
-  const assignRiderToOrder = (rider: Rider) => {
+  // 🔗 Assign Rider + update RiderContext + PERSIST IN_TRANSIT sa backend
+  const assignRiderToOrder = async (rider: Rider) => {
     if (!selectedOrder) return;
 
-    // 1) Update orders list (frontend)
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === selectedOrder.id
+    try {
+      // ✅ 1) Persist IN_TRANSIT sa backend
+      await markInTransit(selectedOrder.id);
+
+      // ✅ 2) Update active orders list (frontend)
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === selectedOrder.id
+            ? {
+                ...o,
+                rider: rider.name,
+                status: "In Transit",
+              }
+            : o
+        )
+      );
+
+      // ✅ 3) Update allOrders list (for summary cards & filters)
+      setAllOrders((prev) =>
+        prev.map((o) =>
+          o.id === selectedOrder.id
+            ? {
+                ...o,
+                rider: rider.name,
+                status: "In Transit",
+              }
+            : o
+        )
+      );
+
+      // ✅ 4) Update selectedOrder (UI detail modal)
+      setSelectedOrder((prev) =>
+        prev
           ? {
-              ...o,
+              ...prev,
               rider: rider.name,
-              status: o.status === "Processing" ? "In Transit" : o.status,
+              status: "In Transit",
             }
-          : o
-      )
-    );
+          : prev
+      );
 
-    // 2) Update allOrders list
-    setAllOrders((prev) =>
-      prev.map((o) =>
-        o.id === selectedOrder.id
-          ? {
-              ...o,
-              rider: rider.name,
-              status: o.status === "Processing" ? "In Transit" : o.status,
-            }
-          : o
-      )
-    );
+      // ✅ 5) Update RiderContext (ordersToday, workload, status, lastAssigned)
+      assignRider(rider.id);
 
-    // 3) Update selectedOrder (UI detail)
-    setSelectedOrder((prev) =>
-      prev
-        ? {
-            ...prev,
-            rider: rider.name,
-            status:
-              prev.status === "Processing" ? "In Transit" : prev.status,
-          }
-        : prev
-    );
-
-    // 4) Update RiderContext (ordersToday, workload, status, lastAssigned)
-    assignRider(rider.id);
-
-    setToast({
-      type: "success",
-      message: `Rider ${rider.name} assigned to order #${selectedOrder.id}`,
-    });
-
-    closeAssign();
+      setToast({
+        type: "success",
+        message: `Rider ${rider.name} assigned to order #${selectedOrder.id} (now In Transit).`,
+      });
+    } catch (error: any) {
+      console.error("❌ Assign rider / mark in-transit failed:", error);
+      setToast({
+        type: "error",
+        message:
+          error?.message ||
+          "Failed to assign rider / set In Transit. Please try again.",
+      });
+    } finally {
+      closeAssign();
+    }
   };
 
   const handleCancelOrder = async (orderId: string, reason: string) => {
@@ -426,7 +436,7 @@ export default function Orders() {
         );
       }
 
-      // ✅ Update RiderContext if may rider (completeDelivery = Option A)
+      // ✅ Update RiderContext if may rider (completeDelivery)
       if (riderForOrder) {
         completeDelivery(riderForOrder.id);
       }
@@ -456,6 +466,7 @@ export default function Orders() {
 
   const handlePrimaryAction = (order: Order) => {
     if (order.status === "Pending") {
+      // ⚠️ FRONTEND-ONLY UPDATE (walang backend endpoint for PROCESSING yet)
       setOrders((prev) =>
         prev.map((o) =>
           o.id === order.id ? { ...o, status: "Processing" } : o

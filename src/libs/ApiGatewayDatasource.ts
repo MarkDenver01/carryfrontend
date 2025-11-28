@@ -366,4 +366,14 @@ export async function markDelivered(orderId: string, payload: any) {
     throw error.response?.data || { message: "Failed to mark delivered" };
   }
 }
+export async function markInTransit(orderId: string) {
+  try {
+    const res = await api.put(`/user/public/api/orders/${orderId}/in-transit`);
+    return res.data;
+  } catch (error: any) {
+    console.error("❌ Mark in transit error:", error);
+    throw error.response?.data || { message: "Failed to set In Transit" };
+  }
+}
+
 
