@@ -20,6 +20,7 @@ import { useDrivers } from "../../../context/DriverContext";
 import {
   fetchAllOrders,
   cancelOrder,
+  markDelivered, // ✅ ADD: call backend to persist delivered
 } from "../../../libs/ApiGatewayDatasource";
 
 /* ============================================================
@@ -127,7 +128,6 @@ export default function Orders() {
       setIsLoading(true);
       const raw = await fetchAllOrders();
 
-      // Optional: filter only "real" mobile orders (best-effort)
       const mobileOnly = raw ?? [];
 
       const mapped: Order[] = mobileOnly.map((o: any) => ({
@@ -196,8 +196,7 @@ export default function Orders() {
   const filteredOrders = useMemo(
     () =>
       orders.filter((order) => {
-        const matchesStatus =
-          filter === "All" || order.status === filter;
+        const matchesStatus = filter === "All" || order.status === filter;
         const term = searchTerm.toLowerCase().trim();
         const matchesSearch =
           order.name.toLowerCase().includes(term) ||
@@ -207,8 +206,10 @@ export default function Orders() {
     [orders, filter, searchTerm]
   );
 
-  // 📊 SUMMARY COUNTS – based on ALL ORDERS (including Delivered/Cancelled)
-  const totalOrders = allOrders.length;
+  // 📊 SUMMARY COUNTS
+  // 👉 Total Orders = ACTIVE orders only (bumababa pag cancel/deliver)
+  const totalOrders = orders.length;
+  // 👉 Other stats based on ALL orders para may history view ka pa rin
   const totalPending = allOrders.filter((o) => o.status === "Pending").length;
   const totalInTransit = allOrders.filter(
     (o) => o.status === "In Transit"
@@ -349,50 +350,62 @@ export default function Orders() {
     }
   };
 
-  const handleMarkDelivered = (
+  const handleMarkDelivered = async (
     orderId: string,
-    payload: { deliveredAt?: string; note?: string }
+    payload: { note?: string }
   ) => {
-    // 🧠 Update allOrders: mark as Delivered + note
-    setAllOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId
-          ? {
-              ...o,
-              status: "Delivered",
-              notes:
-                payload.note && payload.note.trim().length > 0
-                  ? `Delivered: ${payload.note}`
-                  : o.notes || "Marked as delivered.",
-            }
-          : o
-      )
-    );
+    try {
+      // ✅ CALL BACKEND TO PERSIST DELIVERED STATUS
+      await markDelivered(orderId, payload);
 
-    // 🔥 Remove from active orders list
-    setOrders((prev) => prev.filter((o) => o.id !== orderId));
-
-    if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: "Delivered",
-              notes:
-                payload.note && payload.note.trim().length > 0
-                  ? `Delivered: ${payload.note}`
-                  : prev.notes || "Marked as delivered.",
-            }
-          : prev
+      // 🧠 Update allOrders: mark as Delivered + note
+      setAllOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                status: "Delivered",
+                notes:
+                  payload.note && payload.note.trim().length > 0
+                    ? `Delivered: ${payload.note}`
+                    : o.notes || "Marked as delivered.",
+              }
+            : o
+        )
       );
+
+      // 🔥 Remove from active orders list
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+
+      if (selectedOrder && selectedOrder.id === orderId) {
+        setSelectedOrder((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: "Delivered",
+                notes:
+                  payload.note && payload.note.trim().length > 0
+                    ? `Delivered: ${payload.note}`
+                    : prev.notes || "Marked as delivered.",
+              }
+            : prev
+        );
+      }
+
+      setToast({
+        type: "success",
+        message: `Order #${orderId} marked as delivered.`,
+      });
+    } catch (error: any) {
+      console.error("❌ Mark delivered failed:", error);
+      setToast({
+        type: "error",
+        message:
+          error?.message || "Failed to mark as delivered. Please try again.",
+      });
+    } finally {
+      closeDelivered();
     }
-
-    setToast({
-      type: "success",
-      message: `Order #${orderId} marked as delivered.`,
-    });
-
-    closeDelivered();
   };
 
   const getPrimaryActionLabel = (order: Order): string | null => {
@@ -512,7 +525,7 @@ export default function Orders() {
           value={totalOrders}
           tone="indigo"
           icon={<Package className="w-6 h-6" />}
-          subtitle="All mobile orders"
+          subtitle="Active mobile orders"
           isActive={filter === "All"}
           onClick={() => setFilter("All")}
         />
@@ -860,7 +873,6 @@ function SummaryCard({
         onClick ? "cursor-pointer" : "cursor-default"
       } ${isActive ? "ring-2 ring-emerald-300 shadow-lg" : ""}`}
     >
-      {/* Glow outline */}
       {isActive && (
         <div className="absolute inset-0 pointer-events-none border border-emerald-200/60 rounded-xl" />
       )}
@@ -883,7 +895,6 @@ function SummaryCard({
   );
 }
 
-/* Simple table header cell */
 function Th({
   children,
   align = "left",
@@ -906,7 +917,6 @@ function Th({
   );
 }
 
-/* Simple table data cell */
 function Td({
   children,
   align = "left",
