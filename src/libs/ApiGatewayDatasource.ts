@@ -389,5 +389,14 @@ export async function fetchAllRiders() {
   console.log("🔥 BACKEND RIDERS RESPONSE:", res.data);
   return res.data;
 }
+export async function deleteDriver(id: string) {
+  try {
+    await api.delete(`/user/public/api/riders/${id}`);
+  } catch (error: any) {
+    console.error("❌ Delete driver error:", error);
+    throw error.response?.data || { message: "Failed to delete driver" };
+  }
+}
+
 
 

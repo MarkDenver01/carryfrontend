@@ -640,12 +640,15 @@ export default function Riders() {
       )}
 
       {/* EDIT MODAL */}
-      <RiderFormModal
-        isOpen={isFormOpen}
-        onClose={() => setIsFormOpen(false)}
-        onSubmit={handleFormSubmit}
-        initialData={editTarget || undefined}
-      />
+      {isFormOpen && editTarget && (
+  <RiderFormModal
+    isOpen={isFormOpen}
+    onClose={() => setIsFormOpen(false)}
+    onSubmit={handleFormSubmit}
+    initialData={editTarget}
+  />
+)}
+
     </motion.div>
   );
 }
