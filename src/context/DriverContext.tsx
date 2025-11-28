@@ -42,15 +42,16 @@ interface DriverContextType {
 const DriverContext = createContext<DriverContextType | null>(null);
 
 const mapStatus = (value?: string | null): RiderStatus => {
-  const s = (value || "").toUpperCase();
+  const s = (value || "").replace(/[\s_]/g, "").toUpperCase();
 
   if (s === "AVAILABLE") return "Available";
-  if (s === "ON_DELIVERY") return "On Delivery";
+  if (s === "ONDELIVERY") return "On Delivery";
   if (s === "OFFLINE") return "Offline";
-  if (s === "NOT_AVAILABLE") return "Not Available";
+  if (s === "NOTAVAILABLE") return "Not Available";
 
   return "Available";
 };
+
 
 export const DriverProvider = ({ children }: { children: ReactNode }) => {
   const [riders, setRiders] = useState<Rider[]>([]);
