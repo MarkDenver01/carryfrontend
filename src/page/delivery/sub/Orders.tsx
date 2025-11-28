@@ -136,39 +136,46 @@ export default function Orders() {
       });
 
       const mapped: Order[] = mobileOnly.map((o: any) => ({
-        id: o.orderId?.toString() ?? "",
-        name: o.customerName ?? "Unknown Customer",
-        address: o.deliveryAddress ?? "Unknown Address",
-        products: o.items
-          ? o.items.map(
-              (i: any) => `${i.productName ?? "Item"} x${i.quantity ?? 0}`
-            )
-          : [],
-        total: Number(o.totalAmount) || 0,
-        status:
-          o.status === "PENDING"
-            ? "Pending"
-            : o.status === "PROCESSING"
-            ? "Processing"
-            : o.status === "IN_TRANSIT"
-            ? "In Transit"
-            : o.status === "DELIVERED"
-            ? "Delivered"
-            : "Cancelled",
-        paymentStatus:
-          o.paymentMethod === "WALLET"
-            ? "Paid"
-            : o.paymentMethod === "COD"
-            ? "COD"
-            : "Unpaid",
-        notes: o.notes,
-        createdAt: o.createdAt
-          ? new Date(o.createdAt).toLocaleString()
-          : "Unknown date",
-        rider: o.riderName ?? "Unassigned",
-        distanceKm: undefined,
-        scheduledTime: undefined,
-      }));
+  id: o.id?.toString() ?? "",
+  name: o.customer?.username ?? o.customer?.fullName ?? "Unknown Customer",
+  address: o.deliveryAddress ?? o.customer?.address ?? "Unknown Address",
+
+  products: o.items
+    ? o.items.map(
+        (i: any) =>
+          `${i.product?.name ?? "Item"} x${i.quantity ?? 0}`
+      )
+    : [],
+
+  total: Number(o.totalAmount) || 0,
+
+  status:
+    o.status === "PENDING"
+      ? "Pending"
+      : o.status === "PROCESSING"
+      ? "Processing"
+      : o.status === "IN_TRANSIT"
+      ? "In Transit"
+      : o.status === "DELIVERED"
+      ? "Delivered"
+      : "Cancelled",
+
+  paymentStatus:
+    o.paymentMethod === "WALLET"
+      ? "Paid"
+      : o.paymentMethod === "COD"
+      ? "COD"
+      : "Unpaid",
+
+  notes: o.notes,
+
+  createdAt: o.createdAt
+    ? new Date(o.createdAt).toLocaleString()
+    : "Unknown date",
+
+  rider: o.riderName ?? "Unassigned",
+}));
+
 
       setOrders(mapped);
     } catch (error: any) {
