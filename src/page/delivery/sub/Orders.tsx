@@ -123,29 +123,19 @@ export default function Orders() {
       const raw = await fetchAllOrders();
 
       // Optional: filter only "real" mobile orders (best-effort)
-      const mobileOnly = (raw ?? []).filter((o: any) => {
-        // if backend provides a flag, respect it
-        if (o.sourceChannel) return o.sourceChannel === "MOBILE";
-        if (o.orderSource)
-          return (
-            o.orderSource === "MOBILE" || o.orderSource === "MOBILE_APP"
-          );
-
-        // fallback: keep orders that have customerName (likely from mobile app)
-        return !!o.customerName;
-      });
+      const mobileOnly = raw ?? [];
 
       const mapped: Order[] = mobileOnly.map((o: any) => ({
-  id: o.id?.toString() ?? "",
-  name: o.customer?.username ?? o.customer?.fullName ?? "Unknown Customer",
-  address: o.deliveryAddress ?? o.customer?.address ?? "Unknown Address",
+  id: o.orderId?.toString() ?? "",
 
-  products: o.items
-    ? o.items.map(
-        (i: any) =>
-          `${i.product?.name ?? "Item"} x${i.quantity ?? 0}`
-      )
-    : [],
+  // Backend only returns customerId, so fallback tayo
+  name: o.customerName ?? `Customer #${o.customerId}`,
+
+  address: o.deliveryAddress ?? "No address provided",
+
+  products: o.items?.map(
+    (i: any) => `${i.productName ?? "Item"} x${i.quantity ?? 0}`
+  ) ?? [],
 
   total: Number(o.totalAmount) || 0,
 
