@@ -6,9 +6,11 @@ import {
   type ReactNode,
 } from "react";
 
-/* ============================================
+import api from "../libs/api";
+
+/* ================================
    TYPES
-============================================ */
+================================ */
 
 export type RiderStatus =
   | "Available"
@@ -22,21 +24,24 @@ export interface Rider {
   contact: string;
   status: RiderStatus;
 
-  ordersToday: number;          // total assigned today
-  completedDeliveries: number;  // completed drops
-  workload: number;             // = ordersToday * 10
+  ordersToday: number;
+  completedDeliveries: number;
+  workload: number;
+
   lastAssigned: string | null;
   lastActive: string | null;
+
   homeBase: string;
   rating: number;
 }
 
-/* ============================================
-   CONTEXT INTERFACE
-============================================ */
+/* ================================
+   CONTEXT TYPE
+================================ */
 
 interface DriverContextType {
   riders: Rider[];
+
   addRider: (r: Rider) => void;
   deleteRider: (id: string) => void;
   updateRider: (id: string, data: Partial<Rider>) => void;
@@ -47,96 +52,96 @@ interface DriverContextType {
   resetRiders: () => void;
 }
 
-const STORAGE_KEY = "carry_admin_riders_v1";
 const DriverContext = createContext<DriverContextType | null>(null);
 
-/* ============================================
-   DEFAULT RIDERS (Auto-create if empty)
-============================================ */
+/* ================================
+   STATUS MAPPER
+================================ */
 
-const defaultRiders: Rider[] = [
-  {
-    id: "r1",
-    name: "Rider One",
-    contact: "09xx-xxx-xxxx",
-    status: "Available",
-    ordersToday: 0,
-    completedDeliveries: 0,
-    workload: 0,
-    lastAssigned: null,
-    lastActive: null,
-    homeBase: "Tanauan",
-    rating: 4.9,
-  },
-  {
-    id: "r2",
-    name: "Rider Two",
-    contact: "09xx-xxx-xxxx",
-    status: "Available",
-    ordersToday: 0,
-    completedDeliveries: 0,
-    workload: 0,
-    lastAssigned: null,
-    lastActive: null,
-    homeBase: "Sampaloc",
-    rating: 4.8,
-  },
-];
+const mapBackendStatusToFrontend = (value?: string | null): RiderStatus => {
+  const s = (value || "").toUpperCase();
 
-/* ============================================
-   PROVIDER
-============================================ */
+  if (s === "AVAILABLE") return "Available";
+  if (s === "ON_DELIVERY") return "On Delivery";
+  if (s === "OFFLINE") return "Offline";
+  if (s === "NOT_AVAILABLE") return "Not Available";
+
+  return "Available";
+};
+
+/* ================================
+   DRIVER PROVIDER
+================================ */
 
 export const DriverProvider = ({ children }: { children: ReactNode }) => {
-  const [riders, setRiders] = useState<Rider[]>(() => {
+  const [riders, setRiders] = useState<Rider[]>([]);
+
+  /* ------------------------------
+     LOAD FROM BACKEND
+     Correct endpoint:
+     GET /user/public/api/riders/all
+  ------------------------------ */
+
+  const loadRidersFromBackend = async () => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        return defaultRiders; // auto-create
-      }
+      const res = await api.get("/user/public/api/riders/all");
+      const raw = res.data ?? [];
 
-      const parsed = JSON.parse(raw);
-      if (!Array.isArray(parsed) || parsed.length === 0) {
-        return defaultRiders;
-      }
+      const mapped: Rider[] = raw.map((d: any) => {
+        const name =
+          typeof d?.name === "string" && d.name.trim().length > 0
+            ? d.name
+            : "Unknown Rider";
 
-      return parsed;
-    } catch {
-      return defaultRiders;
+        return {
+          id: d.riderId?.toString() ?? "", // correct mapping
+          name,
+          contact: d.contact ?? "",
+          status: mapBackendStatusToFrontend(d.status),
+
+          ordersToday: d.ordersToday ?? 0,
+          completedDeliveries: d.completedDeliveries ?? 0,
+          workload: d.workload ?? (d.ordersToday ?? 0) * 10,
+
+          lastAssigned: d.lastAssigned ?? null,
+          lastActive: d.lastActive ?? null,
+
+          homeBase: d.homeBase ?? "N/A",
+          rating: d.rating ?? 5,
+        };
+      });
+
+      setRiders(mapped);
+    } catch (err) {
+      console.error("❌ Failed to load riders:", err);
+      setRiders([]);
     }
-  });
+  };
 
-  /* ============================================
-     SAVE TO LOCAL STORAGE
-  ============================================ */
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(riders));
-    } catch {}
-  }, [riders]);
+    loadRidersFromBackend();
+  }, []);
 
-  /* ============================================
-     BASICS
-  ============================================ */
+  /* ================================
+     CRUD
+  ================================ */
 
-  const addRider = (r: Rider) =>
-    setRiders((prev) => [...prev, r]);
+  const addRider = (r: Rider) => setRiders((p) => [...p, r]);
 
   const deleteRider = (id: string) =>
-    setRiders((prev) => prev.filter((r) => r.id !== id));
+    setRiders((p) => p.filter((r) => r.id !== id));
 
   const updateRider = (id: string, data: Partial<Rider>) =>
-    setRiders((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, ...data } : r))
-    );
+    setRiders((p) => p.map((r) => (r.id === id ? { ...r, ...data } : r)));
 
-  /* ============================================
+  /* ================================
      ASSIGN RIDER
-  ============================================ */
+  ================================ */
 
   const assignRider = (riderId: string) => {
     const now = new Date().toLocaleString();
 
+    // optimistic update
     setRiders((prev) =>
       prev.map((r) =>
         r.id === riderId
@@ -150,11 +155,20 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
           : r
       )
     );
+
+    // call backend
+    void (async () => {
+      try {
+        await api.put(`/user/public/api/riders/${riderId}/assign`);
+      } catch (e) {
+        console.error("❌ Backend assign failed:", e);
+      }
+    })();
   };
 
-  /* ============================================
-     COMPLETE DELIVERY (Recommended Option A)
-  ============================================ */
+  /* ================================
+     COMPLETE DELIVERY
+  ================================ */
 
   const completeDelivery = (riderId: string) => {
     const now = new Date().toLocaleString();
@@ -172,14 +186,22 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
           : r
       )
     );
+
+    void (async () => {
+      try {
+        await api.put(`/user/public/api/riders/${riderId}/complete`);
+      } catch (e) {
+        console.error("❌ Backend complete failed:", e);
+      }
+    })();
   };
 
-  /* ============================================
-     RESET (for debugging)
-  ============================================ */
+  /* ================================
+     RESET / REFRESH
+  ================================ */
 
   const resetRiders = () => {
-    setRiders(defaultRiders);
+    loadRidersFromBackend();
   };
 
   return (
@@ -199,12 +221,12 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-/* ============================================
+/* ================================
    HOOK
-============================================ */
+================================ */
 
 export const useDrivers = () => {
   const ctx = useContext(DriverContext);
-  if (!ctx) throw new Error("useDrivers must be used inside DriverProvider");
+  if (!ctx) throw new Error("useDrivers must be inside DriverProvider");
   return ctx;
 };

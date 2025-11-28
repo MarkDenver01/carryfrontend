@@ -384,5 +384,10 @@ export async function markProcessing(orderId: string) {
     throw error.response?.data || { message: "Failed to set Processing" };
   }
 }
+export async function fetchAllRiders() {
+  const res = await api.get("/user/public/api/riders/all");
+  console.log("🔥 BACKEND RIDERS RESPONSE:", res.data);
+  return res.data;
+}
 
 
