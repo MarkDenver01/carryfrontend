@@ -1,3 +1,4 @@
+// src/context/DriverContext.tsx
 import {
   createContext,
   useContext,
@@ -7,10 +8,6 @@ import {
 } from "react";
 
 import api from "../libs/api";
-
-/* ================================
-   TYPES
-================================ */
 
 export type RiderStatus =
   | "Available"
@@ -23,42 +20,28 @@ export interface Rider {
   name: string;
   contact: string;
   status: RiderStatus;
-
   ordersToday: number;
   completedDeliveries: number;
   workload: number;
-
   lastAssigned: string | null;
   lastActive: string | null;
-
   homeBase: string;
   rating: number;
 }
 
-/* ================================
-   CONTEXT TYPE
-================================ */
-
 interface DriverContextType {
   riders: Rider[];
-
   addRider: (r: Rider) => void;
   deleteRider: (id: string) => void;
   updateRider: (id: string, data: Partial<Rider>) => void;
-
   assignRider: (riderId: string) => void;
   completeDelivery: (riderId: string) => void;
-
   resetRiders: () => void;
 }
 
 const DriverContext = createContext<DriverContextType | null>(null);
 
-/* ================================
-   STATUS MAPPER
-================================ */
-
-const mapBackendStatusToFrontend = (value?: string | null): RiderStatus => {
+const mapStatus = (value?: string | null): RiderStatus => {
   const s = (value || "").toUpperCase();
 
   if (s === "AVAILABLE") return "Available";
@@ -69,47 +52,27 @@ const mapBackendStatusToFrontend = (value?: string | null): RiderStatus => {
   return "Available";
 };
 
-/* ================================
-   DRIVER PROVIDER
-================================ */
-
 export const DriverProvider = ({ children }: { children: ReactNode }) => {
   const [riders, setRiders] = useState<Rider[]>([]);
-
-  /* ------------------------------
-     LOAD FROM BACKEND
-     Correct endpoint:
-     GET /user/public/api/riders/all
-  ------------------------------ */
 
   const loadRidersFromBackend = async () => {
     try {
       const res = await api.get("/user/public/api/riders/all");
       const raw = res.data ?? [];
 
-      const mapped: Rider[] = raw.map((d: any) => {
-        const name =
-          typeof d?.name === "string" && d.name.trim().length > 0
-            ? d.name
-            : "Unknown Rider";
-
-        return {
-          id: d.riderId?.toString() ?? "", // correct mapping
-          name,
-          contact: d.contact ?? "",
-          status: mapBackendStatusToFrontend(d.status),
-
-          ordersToday: d.ordersToday ?? 0,
-          completedDeliveries: d.completedDeliveries ?? 0,
-          workload: d.workload ?? (d.ordersToday ?? 0) * 10,
-
-          lastAssigned: d.lastAssigned ?? null,
-          lastActive: d.lastActive ?? null,
-
-          homeBase: d.homeBase ?? "N/A",
-          rating: d.rating ?? 5,
-        };
-      });
+      const mapped: Rider[] = raw.map((d: any) => ({
+        id: d.riderId?.toString() ?? "",
+        name: d.name ?? "Unnamed Driver",
+        contact: d.contact ?? "",
+        status: mapStatus(d.status),
+        ordersToday: d.ordersToday ?? 0,
+        completedDeliveries: d.completedDeliveries ?? 0,
+        workload: d.workload ?? (d.ordersToday ?? 0) * 10,
+        lastAssigned: d.lastAssigned ?? null,
+        lastActive: d.lastActive ?? null,
+        homeBase: d.homeBase ?? "N/A",
+        rating: d.rating ?? 5,
+      }));
 
       setRiders(mapped);
     } catch (err) {
@@ -122,26 +85,16 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
     loadRidersFromBackend();
   }, []);
 
-  /* ================================
-     CRUD
-  ================================ */
-
-  const addRider = (r: Rider) => setRiders((p) => [...p, r]);
-
+  const addRider = (r: Rider) => setRiders((prev) => [...prev, r]);
   const deleteRider = (id: string) =>
-    setRiders((p) => p.filter((r) => r.id !== id));
+    setRiders((prev) => prev.filter((r) => r.id !== id));
 
   const updateRider = (id: string, data: Partial<Rider>) =>
-    setRiders((p) => p.map((r) => (r.id === id ? { ...r, ...data } : r)));
-
-  /* ================================
-     ASSIGN RIDER
-  ================================ */
+    setRiders((prev) => prev.map((r) => (r.id === id ? { ...r, ...data } : r)));
 
   const assignRider = (riderId: string) => {
     const now = new Date().toLocaleString();
 
-    // optimistic update
     setRiders((prev) =>
       prev.map((r) =>
         r.id === riderId
@@ -156,19 +109,10 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
       )
     );
 
-    // call backend
-    void (async () => {
-      try {
-        await api.put(`/user/public/api/riders/${riderId}/assign`);
-      } catch (e) {
-        console.error("❌ Backend assign failed:", e);
-      }
-    })();
+    void api.put(`/user/public/api/riders/${riderId}/assign`).catch((e) =>
+      console.error("❌ Assign failed:", e)
+    );
   };
-
-  /* ================================
-     COMPLETE DELIVERY
-  ================================ */
 
   const completeDelivery = (riderId: string) => {
     const now = new Date().toLocaleString();
@@ -187,21 +131,9 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
       )
     );
 
-    void (async () => {
-      try {
-        await api.put(`/user/public/api/riders/${riderId}/complete`);
-      } catch (e) {
-        console.error("❌ Backend complete failed:", e);
-      }
-    })();
-  };
-
-  /* ================================
-     RESET / REFRESH
-  ================================ */
-
-  const resetRiders = () => {
-    loadRidersFromBackend();
+    void api.put(`/user/public/api/riders/${riderId}/complete`).catch((e) =>
+      console.error("❌ Complete failed:", e)
+    );
   };
 
   return (
@@ -213,17 +145,13 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
         updateRider,
         assignRider,
         completeDelivery,
-        resetRiders,
+        resetRiders: loadRidersFromBackend,
       }}
     >
       {children}
     </DriverContext.Provider>
   );
 };
-
-/* ================================
-   HOOK
-================================ */
 
 export const useDrivers = () => {
   const ctx = useContext(DriverContext);

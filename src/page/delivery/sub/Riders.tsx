@@ -17,9 +17,10 @@ import {
 import { Dropdown, DropdownItem } from "flowbite-react";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
+
 import RiderFormModal from "../../../components/driver/RiderFormModal";
 
-// ✅ USE GLOBAL DRIVER CONTEXT
+// ✅ USE GLOBAL DRIVER CONTEXT (connected to backend)
 import {
   useDrivers,
   type Rider,
@@ -34,11 +35,13 @@ export default function Riders() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | RiderStatus>("All");
   const [sortBy, setSortBy] = useState<SortOption>("Name");
+
   const [selectedRider, setSelectedRider] = useState<Rider | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
-  // 🔥 Modal for EDIT only
+  // 🔥 Modal for EDIT
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Rider | null>(null);
 
@@ -77,7 +80,7 @@ export default function Riders() {
     setIsFormOpen(true);
   };
 
-  // 🔥 DELETE RIDER — NOW USING GLOBAL CONTEXT
+  // 🔥 DELETE RIDER — FRONTEND ONLY (no backend delete endpoint)
   const handleDelete = (id: string) => {
     Swal.fire({
       title: "Delete Rider?",
@@ -95,7 +98,7 @@ export default function Riders() {
     });
   };
 
-  // 🔥 EDIT ONLY — UPDATE GLOBAL CONTEXT
+  // 🔥 EDIT RIDER — FRONTEND ONLY (update global context)
   const handleFormSubmit = (data: any) => {
     if (editTarget) {
       updateRider(editTarget.id, {
@@ -112,6 +115,7 @@ export default function Riders() {
     setIsFormOpen(false);
   };
 
+  // 🔍 FILTER + SORT
   const filteredRiders = useMemo(() => {
     let data = riders.filter(
       (rider) =>
@@ -146,9 +150,7 @@ export default function Riders() {
       className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
       onMouseMove={handleMouseMove}
     >
-      {/* 🔥 ENTIRE UI SAME AS BEFORE, STATE NOW GLOBAL */}
-
-      {/* ===== GLOBAL HUD BACKDROP ===== */}
+      {/* 🔳 HUD GRID BACKDROP */}
       <div className="pointer-events-none absolute inset-0 -z-30">
         <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:40px_40px]" />
 
@@ -175,7 +177,7 @@ export default function Riders() {
         />
       </div>
 
-      {/* ===== SPOTLIGHT ===== */}
+      {/* 🎯 SPOTLIGHT FOLLOWING CURSOR */}
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
@@ -183,7 +185,7 @@ export default function Riders() {
         }}
       />
 
-      {/* ===== PAGE HEADER ===== */}
+      {/* HEADER */}
       <div className="relative flex flex-col gap-3">
         <motion.h1
           initial={{ opacity: 0, x: -18 }}
@@ -204,13 +206,13 @@ export default function Riders() {
         <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* ===== MAIN HUD CONTAINER ===== */}
+      {/* MAIN CARD */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         className="relative rounded-[26px] border border-emerald-500/30 bg-white/90 shadow-[0_22px_70px_rgba(15,23,42,0.40)] overflow-hidden"
       >
-        {/* brackets */}
+        {/* Outer brackets */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
           <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
@@ -226,8 +228,9 @@ export default function Riders() {
             transition={{ duration: 5, repeat: Infinity }}
           />
 
-          {/* ===== TABS + SUMMARY ===== */}
+          {/* TABS + SUMMARY */}
           <div className="flex flex-col gap-6">
+            {/* TABS */}
             <div className="flex flex-wrap gap-3 overflow-x-auto pb-1">
               {["All", "Available", "On Delivery", "Offline", "Not Available"].map(
                 (tab) => (
@@ -249,6 +252,7 @@ export default function Riders() {
               )}
             </div>
 
+            {/* SUMMARY CARDS */}
             <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <RiderSummaryCard
                 icon={<Activity className="w-7 h-7" />}
@@ -281,7 +285,7 @@ export default function Riders() {
             </section>
           </div>
 
-          {/* ===== FILTERS ===== */}
+          {/* FILTERS */}
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-3 w-full md:w-auto">
               <Dropdown
@@ -329,7 +333,7 @@ export default function Riders() {
               <input
                 type="text"
                 placeholder="Search rider..."
-                className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none fokus:ring-2 focus:ring-emerald-500 text-sm"
+                className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -337,7 +341,7 @@ export default function Riders() {
             </div>
           </div>
 
-          {/* ===== TABLE ===== */}
+          {/* TABLE */}
           <div className="overflow-x-auto rounded-xl shadow-[0_18px_55px_rgba(15,23,42,0.18)] border border-gray-200 bg-slate-50/70">
             <table className="min-w-full text-sm bg-white table-fixed">
               <thead className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-slate-100 sticky top-0 shadow">
@@ -454,7 +458,7 @@ export default function Riders() {
                         </div>
                       </td>
 
-                      {/* ACTIONS */}
+                      {/* Actions */}
                       <td className="p-4 align-middle">
                         <div className="flex items-center justify-center gap-2">
                           <button
@@ -497,7 +501,7 @@ export default function Riders() {
         </div>
       </motion.div>
 
-      {/* ===== RIDER PROFILE DRAWER ===== */}
+      {/* RIDER PROFILE DRAWER */}
       {isProfileOpen && selectedRider && (
         <div className="fixed inset-0 z-40 flex">
           <div
@@ -509,7 +513,7 @@ export default function Riders() {
             initial={{ x: 320, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.25 }}
-            className="w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50 shadow-[0_25px_80px_rgba(15,23,42,0.9)] p-6 border-l border-emerald-500/40 overflow-y-auto"
+            className="w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50 shadow-[0_25px_80px_rgba(15,23,42,0.9)] p-6 border-l border-emerald-500/40 overflow-y-auto relative"
           >
             <div className="pointer-events-none absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.45),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.45),transparent_55%)]" />
 
@@ -594,6 +598,7 @@ export default function Riders() {
                 </div>
               </div>
 
+              {/* WORKLOAD */}
               <div className="mb-4">
                 <p className="text-[11px] text-slate-400 mb-1">Workload</p>
                 <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
@@ -620,6 +625,7 @@ export default function Riders() {
                 </p>
               </div>
 
+              {/* NOTES */}
               <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/80 mb-2">
                 <p className="text-[11px] text-slate-400 mb-1">
                   Notes / Next Actions
@@ -633,7 +639,7 @@ export default function Riders() {
         </div>
       )}
 
-      {/* ===== EDIT MODAL ===== */}
+      {/* EDIT MODAL */}
       <RiderFormModal
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
