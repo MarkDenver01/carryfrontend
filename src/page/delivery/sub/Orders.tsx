@@ -17,6 +17,7 @@ import { motion } from "framer-motion";
 import { useDrivers } from "../../../context/DriverContext";
 import type { Rider } from "../../../context/DriverContext";
 import DriverTrackerMap from '../../../components/maps/LiveRouteMap';
+import { useDriverLocation } from "../../../hooks/useDriverLocation";
 
 // ✅ IMPORT BACKEND API
 import {
@@ -1294,6 +1295,11 @@ function RouteDrawer({
   order: Order;
   onClose: () => void;
 }) {
+  const liveLocation = useDriverLocation(order.riderId ?? null);
+  const riderLatLng = liveLocation
+  ? { lat: liveLocation.latitude, lng: liveLocation.longitude }
+  : null;
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm">
       <motion.div
@@ -1313,15 +1319,10 @@ function RouteDrawer({
           </span>
         </p>
 
-        {/* 🔥 NEW GOOGLE MAP */}
         <div className="flex-1 rounded-xl overflow-hidden border border-slate-200">
           <DriverTrackerMap
-          customerAddress={order.address}
-          riderLocation={
-            order.riderId
-              ? { lat: 14.08623, lng: 121.14655 } // sample live GPS
-              : undefined
-            }
+            customerAddress={order.address}
+            riderLocation={riderLatLng ?? null}
           />
         </div>
 

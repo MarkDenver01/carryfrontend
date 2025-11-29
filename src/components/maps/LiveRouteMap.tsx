@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 
 type Props = {
   customerAddress: string;
-  riderLocation?: { lat: number; lng: number };
+  riderLocation?: { lat: number; lng: number } | null;
 };
 
 const containerStyle = {

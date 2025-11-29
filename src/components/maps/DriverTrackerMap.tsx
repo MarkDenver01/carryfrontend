@@ -1,14 +1,12 @@
 import { GoogleMap, Marker, DirectionsRenderer, useJsApiLoader } from "@react-google-maps/api";
 import { useState, useEffect } from "react";
 
-
-const STORE_FULL_QUERY = "34QP+XH3 Tanauan, Batangas"; // Better for fallback
-
+const STORE_ADDRESS = "34QP+XH3 Tanauan, Batangas"; // better formatted
 const containerStyle = { width: "100%", height: "100%", borderRadius: "12px" };
 
 type Props = {
   customerAddress: string;
-  riderLocation?: { lat: number; lng: number };
+  riderLocation?: { lat: number; lng: number } | null | undefined;
 };
 
 export default function DriverTrackerMap({ customerAddress, riderLocation }: Props) {
@@ -21,49 +19,28 @@ export default function DriverTrackerMap({ customerAddress, riderLocation }: Pro
     libraries: ["places"],
   });
 
-  // -------------------------------------------------
-  // GEOCODE CUSTOMER ADDRESS
-  // -------------------------------------------------
-  const geocodeCustomer = (geocoder: google.maps.Geocoder) => {
-    geocoder.geocode({ address: customerAddress }, (res, status) => {
-      if (status === "OK" && res?.[0]) {
-        const loc = res[0].geometry.location;
-        setCustomerPos({ lat: loc.lat(), lng: loc.lng() });
-      } else {
-        console.warn("❌ Cannot geocode customer address. Trying fallback...");
-      }
-    });
-  };
-
-  // -------------------------------------------------
-  // GEOCODE STORE PLUS CODE
-  // -------------------------------------------------
-  const geocodeStorePlusCode = (geocoder: google.maps.Geocoder) => {
-    geocoder.geocode({ address: STORE_FULL_QUERY }, (res, status) => {
-      if (status === "OK" && res?.[0]) {
-        const loc = res[0].geometry.location;
-        setStorePos({ lat: loc.lat(), lng: loc.lng() });
-      } else {
-        console.error("❌ Store Plus Code failed to locate:", status);
-      }
-    });
-  };
-
-  // -------------------------------------------------
-  // INITIAL GEOCODING
-  // -------------------------------------------------
+  // geocode addresses
   useEffect(() => {
     if (!isLoaded) return;
 
     const geocoder = new google.maps.Geocoder();
 
-    geocodeCustomer(geocoder);
-    geocodeStorePlusCode(geocoder);
-  }, [isLoaded]);
+    geocoder.geocode({ address: customerAddress }, (res, status) => {
+      if (status === "OK" && res?.[0]) {
+        const loc = res[0].geometry.location;
+        setCustomerPos({ lat: loc.lat(), lng: loc.lng() });
+      }
+    });
 
-  // -------------------------------------------------
-  // BUILD ROUTES
-  // -------------------------------------------------
+    geocoder.geocode({ address: STORE_ADDRESS }, (res, status) => {
+      if (status === "OK" && res?.[0]) {
+        const loc = res[0].geometry.location;
+        setStorePos({ lat: loc.lat(), lng: loc.lng() });
+      }
+    });
+  }, [isLoaded, customerAddress]);
+
+  // build route
   useEffect(() => {
     if (!customerPos || !storePos) return;
 
@@ -83,10 +60,11 @@ export default function DriverTrackerMap({ customerAddress, riderLocation }: Pro
         };
 
     directionsService.route(config, (result, status) => {
-      if (status === "OK") setDirections(result);
-      else console.error("❌ Directions failed:", status);
+      if (status === "OK") {
+        setDirections(result);
+      }
     });
-  }, [customerPos, storePos, riderLocation]);
+  }, [customerPos, storePos, riderLocation?.lat, riderLocation?.lng]);
 
   if (!isLoaded || !customerPos || !storePos)
     return (
@@ -95,12 +73,9 @@ export default function DriverTrackerMap({ customerAddress, riderLocation }: Pro
       </div>
     );
 
-  // -------------------------------------------------
-  // FINAL RENDER
-  // -------------------------------------------------
   return (
     <GoogleMap mapContainerStyle={containerStyle} center={customerPos} zoom={14}>
-      {/* Customer Pin */}
+      {/* Customer */}
       <Marker
         position={customerPos}
         icon={{
@@ -109,7 +84,7 @@ export default function DriverTrackerMap({ customerAddress, riderLocation }: Pro
         }}
       />
 
-      {/* Store Pin */}
+      {/* Store */}
       <Marker
         position={storePos}
         icon={{
@@ -118,7 +93,7 @@ export default function DriverTrackerMap({ customerAddress, riderLocation }: Pro
         }}
       />
 
-      {/* Rider Pin */}
+      {/* Rider */}
       {riderLocation && (
         <Marker
           position={riderLocation}
@@ -129,7 +104,6 @@ export default function DriverTrackerMap({ customerAddress, riderLocation }: Pro
         />
       )}
 
-      {/* Route */}
       {directions && <DirectionsRenderer directions={directions} />}
     </GoogleMap>
   );
