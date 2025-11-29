@@ -58,7 +58,7 @@ interface EnrichedProduct {
   statusPriority: number;
   statusColorClass: string;
   statusSoftClass: string;
-  backendStatus: string | null;
+  backendStatus: string; // normalized inventory status from backend
 }
 
 const STATUS_ORDER: ExpiryStatus[] = [
@@ -73,6 +73,21 @@ const PAGE_SIZE = 120; // For 1000+ products, incremental load
 
 const clamp = (val: number, min: number, max: number) =>
   Math.min(max, Math.max(min, val));
+
+// 🔧 Normalize backend strings to consistent FE standard
+const normalizeStatus = (raw: string | null | undefined): string => {
+  if (!raw) return "Available";
+
+  const s = raw.toLowerCase().trim();
+
+  if (s === "available") return "Available";
+  if (s === "for promo") return "For Promo";
+  if (s === "out of stock" || s === "out_of_stock" || s === "oos")
+    return "Out of Stock";
+  if (s === "not available" || s === "not_available") return "Not Available";
+
+  return raw;
+};
 
 /**
  * Classify purely based on DAYS LEFT (expiry vs today)
@@ -268,7 +283,8 @@ export default function ProductReport() {
         (p.stockInDate && String(p.stockInDate)) ||
         null;
 
-      const backendStatus: string | null = p.productStatus ?? null;
+      // 🔧 Normalize inventory status from backend
+      const backendStatus: string = normalizeStatus(p.productStatus);
 
       let daysLeft: number | null = null;
       let shelfLifeDays: number | null = null;
@@ -331,6 +347,16 @@ export default function ProductReport() {
     });
   }, [products]);
 
+  // 🧹 MONITORED DATA ONLY (exclude Out of Stock / Not Available)
+  const monitoredData: EnrichedProduct[] = useMemo(
+    () =>
+      enrichedData.filter((p) => {
+        const s = normalizeStatus(p.backendStatus).toLowerCase();
+        return s !== "out of stock" && s !== "not available";
+      }),
+    [enrichedData]
+  );
+
   /* =========================
      SUMMARY & CATEGORY
   ========================= */
@@ -344,17 +370,17 @@ export default function ProductReport() {
       Expired: 0,
     };
 
-    enrichedData.forEach((item) => {
+    monitoredData.forEach((item) => {
       counts[item.status]++;
     });
 
-    const total = enrichedData.length;
+    const total = monitoredData.length;
 
     // Expiring soon = Expired + Near Expiry
     const expiringSoon = counts["Expired"] + counts["Near Expiry"];
 
     // STOCK + STATUS-BASED WARNING: products with stock 30–50 AND status Warning / Near Expiry
-    const warningStockCount = enrichedData.filter(
+    const warningStockCount = monitoredData.filter(
       (p) =>
         p.stock >= 30 &&
         p.stock <= 50 &&
@@ -367,20 +393,20 @@ export default function ProductReport() {
       expiringSoon,
       warningStockCount,
     };
-  }, [enrichedData]);
+  }, [monitoredData]);
 
   const uniqueCategories = useMemo(
     () =>
-      Array.from(new Set(enrichedData.map((p) => p.category)))
+      Array.from(new Set(monitoredData.map((p) => p.category)))
         .filter((c) => !!c)
         .sort(),
-    [enrichedData]
+    [monitoredData]
   );
 
   const categorySnapshots = useMemo(
     () =>
       uniqueCategories.map((cat) => {
-        const items = enrichedData.filter((p) => p.category === cat);
+        const items = monitoredData.filter((p) => p.category === cat);
 
         let expired = 0;
         let near = 0;
@@ -400,7 +426,7 @@ export default function ProductReport() {
           warn,
         };
       }),
-    [enrichedData, uniqueCategories]
+    [monitoredData, uniqueCategories]
   );
 
   /* =========================
@@ -408,7 +434,7 @@ export default function ProductReport() {
   ========================= */
 
   const filteredAndSorted = useMemo(() => {
-    let data = enrichedData;
+    let data = monitoredData;
 
     if (statusFilter !== "All") {
       data = data.filter((item) => item.status === statusFilter);
@@ -463,7 +489,7 @@ export default function ProductReport() {
     });
 
     return data;
-  }, [enrichedData, statusFilter, categoryFilter, sortBy, search]);
+  }, [monitoredData, statusFilter, categoryFilter, sortBy, search]);
 
   const paginated = useMemo(
     () => filteredAndSorted.slice(0, page * PAGE_SIZE),
@@ -1145,7 +1171,8 @@ function ProductCard({
       : "bg-emerald-500";
 
   const isWarningStock = stock >= 30 && stock <= 50;
-  const isOutOfStock = stock <= 0;
+  const isOutOfStock =
+    stock <= 0 || normalizeStatus(backendStatus) === "Out of Stock";
 
   const actions: {
     label: string;
@@ -1373,8 +1400,16 @@ function getInsightTags(p: EnrichedProduct): string[] {
 ========================= */
 
 function DrawerContent({ product }: { product: EnrichedProduct }) {
-  const { name, category, stock, stockInDate, expiryDate, daysLeft, percentUsed, status } =
-    product;
+  const {
+    name,
+    category,
+    stock,
+    stockInDate,
+    expiryDate,
+    daysLeft,
+    percentUsed,
+    status,
+  } = product;
 
   const daysLeftLabel =
     daysLeft === null ? "N/A" : `${daysLeft} day${daysLeft === 1 ? "" : "s"}`;

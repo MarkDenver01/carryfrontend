@@ -94,16 +94,12 @@ export async function deleteProduct(productId: number): Promise<void> {
     throw error.response?.data || { message: "Failed to delete product" };
   }
 }
+
 /** Update product status */
 export async function updateProductStatus(
   productId: number | string,
-  status: string | { productStatus: string }
+  payload: { productStatus: string }
 ): Promise<ProductDTO> {
-  const payload =
-    typeof status === "string"
-      ? { productStatus: status }
-      : status;
-
   try {
     const response = await api.patch(
       `/admin/api/product/${productId}/update_status`,
