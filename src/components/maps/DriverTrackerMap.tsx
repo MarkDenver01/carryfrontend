@@ -1,8 +1,9 @@
 import { GoogleMap, Marker, DirectionsRenderer, useJsApiLoader } from "@react-google-maps/api";
 import { useState, useEffect } from "react";
 
-// FIXED LOCATIONS
-const STORE_ADDRESS = "34QP+XH3, Trapiche Rd, Tanauan City, Batangas";
+const STORE_PLUS_CODE = "34QP+XH3"; // Pure Plus Code
+const STORE_FULL_QUERY = "34QP+XH3 Tanauan, Batangas"; // Better for fallback
+
 const containerStyle = { width: "100%", height: "100%", borderRadius: "12px" };
 
 type Props = {
@@ -20,79 +21,83 @@ export default function DriverTrackerMap({ customerAddress, riderLocation }: Pro
     libraries: ["places"],
   });
 
-  // ------------------------------
-  // GEOCODE ADDRESSES → COORDS
-  // ------------------------------
+  // -------------------------------------------------
+  // GEOCODE CUSTOMER ADDRESS
+  // -------------------------------------------------
+  const geocodeCustomer = (geocoder: google.maps.Geocoder) => {
+    geocoder.geocode({ address: customerAddress }, (res, status) => {
+      if (status === "OK" && res?.[0]) {
+        const loc = res[0].geometry.location;
+        setCustomerPos({ lat: loc.lat(), lng: loc.lng() });
+      } else {
+        console.warn("❌ Cannot geocode customer address. Trying fallback...");
+      }
+    });
+  };
+
+  // -------------------------------------------------
+  // GEOCODE STORE PLUS CODE
+  // -------------------------------------------------
+  const geocodeStorePlusCode = (geocoder: google.maps.Geocoder) => {
+    geocoder.geocode({ address: STORE_FULL_QUERY }, (res, status) => {
+      if (status === "OK" && res?.[0]) {
+        const loc = res[0].geometry.location;
+        setStorePos({ lat: loc.lat(), lng: loc.lng() });
+      } else {
+        console.error("❌ Store Plus Code failed to locate:", status);
+      }
+    });
+  };
+
+  // -------------------------------------------------
+  // INITIAL GEOCODING
+  // -------------------------------------------------
   useEffect(() => {
     if (!isLoaded) return;
 
     const geocoder = new google.maps.Geocoder();
 
-    // Customer
-    geocoder.geocode({ address: customerAddress }, (res, status) => {
-      if (status === "OK" && res?.[0]) {
-        setCustomerPos({
-          lat: res[0].geometry.location.lat(),
-          lng: res[0].geometry.location.lng(),
-        });
-      }
-    });
-
-    // Store (Plus Code)
-    geocoder.geocode({ address: STORE_ADDRESS }, (res, status) => {
-      if (status === "OK" && res?.[0]) {
-        setStorePos({
-          lat: res[0].geometry.location.lat(),
-          lng: res[0].geometry.location.lng(),
-        });
-      }
-    });
+    geocodeCustomer(geocoder);
+    geocodeStorePlusCode(geocoder);
   }, [isLoaded]);
 
-  // ------------------------------
+  // -------------------------------------------------
   // BUILD ROUTES
-  // Rider → Store → Customer
-  // ------------------------------
+  // -------------------------------------------------
   useEffect(() => {
     if (!customerPos || !storePos) return;
 
     const directionsService = new google.maps.DirectionsService();
 
-    if (riderLocation) {
-      // Rider → Store → Customer
-      directionsService.route(
-        {
+    const config: google.maps.DirectionsRequest = riderLocation
+      ? {
           origin: riderLocation,
           destination: customerPos,
           waypoints: [{ location: storePos }],
           travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === "OK") setDirections(result);
         }
-      );
-    } else {
-      // Store → Customer only
-      directionsService.route(
-        {
+      : {
           origin: storePos,
           destination: customerPos,
           travelMode: google.maps.TravelMode.DRIVING,
-        },
-        (result, status) => {
-          if (status === "OK") setDirections(result);
-        }
-      );
-    }
+        };
+
+    directionsService.route(config, (result, status) => {
+      if (status === "OK") setDirections(result);
+      else console.error("❌ Directions failed:", status);
+    });
   }, [customerPos, storePos, riderLocation]);
 
   if (!isLoaded || !customerPos || !storePos)
     return (
       <div className="flex items-center justify-center w-full h-full text-gray-400 text-xs">
-        Loading map…
+        Locating addresses…
       </div>
     );
 
+  // -------------------------------------------------
+  // FINAL RENDER
+  // -------------------------------------------------
   return (
     <GoogleMap mapContainerStyle={containerStyle} center={customerPos} zoom={14}>
       {/* Customer Pin */}
@@ -105,17 +110,15 @@ export default function DriverTrackerMap({ customerAddress, riderLocation }: Pro
       />
 
       {/* Store Pin */}
-      {storePos && (
-        <Marker
-          position={storePos}
-          icon={{
-            url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
-            scaledSize: new google.maps.Size(40, 40),
-          }}
-        />
-      )}
+      <Marker
+        position={storePos}
+        icon={{
+          url: "https://maps.google.com/mapfiles/ms/icons/red-dot.png",
+          scaledSize: new google.maps.Size(40, 40),
+        }}
+      />
 
-      {/* Rider Live Pin */}
+      {/* Rider Pin */}
       {riderLocation && (
         <Marker
           position={riderLocation}
