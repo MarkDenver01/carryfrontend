@@ -232,8 +232,9 @@ export default function ProductReport() {
       let percentUsed: number | null = null;
 
       if (stockInDateStr && expiryDateStr) {
-        const stockIn = dayjs(stockInDateStr);
-        const expiry = dayjs(expiryDateStr);
+        const stockIn = dayjs(stockInDateStr, "MMM D, YYYY hh:mm A", true);
+        const expiry = dayjs(expiryDateStr, "MMM D, YYYY hh:mm A", true);
+
 
         if (stockIn.isValid() && expiry.isValid() && expiry.isAfter(stockIn)) {
           shelfLifeDays = expiry.diff(stockIn, "day");
