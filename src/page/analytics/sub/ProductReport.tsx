@@ -40,6 +40,11 @@ type ExpiryStatus =
   | "Expired";
 
 interface EnrichedProduct {
+  // from backend
+  productId: number;
+  productStatus: string | null;
+
+  // display
   id: string;
   name: string;
   category: string;
@@ -47,10 +52,11 @@ interface EnrichedProduct {
   stockInDate: string | null;
   expiryDate: string | null;
 
+  // computed
   daysLeft: number | null;
   shelfLifeDays: number | null;
   elapsedDays: number | null;
-  percentUsed: number | null; // 0–1
+  percentUsed: number | null; // 0–1+
 
   status: ExpiryStatus;
   statusPriority: number;
@@ -66,11 +72,20 @@ const STATUS_ORDER: ExpiryStatus[] = [
   "New Stocks",
 ];
 
-const PAGE_SIZE = 120; // For 1000+ products, incremental load
+const PAGE_SIZE = 120;
 
 const clamp = (val: number, min: number, max: number) =>
   Math.min(max, Math.max(min, val));
 
+/**
+ * Expiry classification (DATE-BASED, then refine)
+ *
+ * Rules:
+ *  - daysLeft < 0     → Expired
+ *  - 0–2 days         → Near Expiry
+ *  - 3–7 days         → Warning
+ *  - > 7 days         → Good / New Stocks (based on usage)
+ */
 const classifyByShelfLife = (
   percentUsed: number | null,
   daysLeft: number | null
@@ -80,8 +95,8 @@ const classifyByShelfLife = (
   colorClass: string;
   softClass: string;
 } => {
-  // Kulang / invalid data -> treat as "Good"
-  if (percentUsed === null || daysLeft === null) {
+  // Walang date → treat as Good (para hindi mawala sa report)
+  if (daysLeft === null) {
     return {
       status: "Good",
       priority: 3,
@@ -91,7 +106,7 @@ const classifyByShelfLife = (
   }
 
   // Expired
-  if (daysLeft <= 0 || percentUsed >= 1) {
+  if (daysLeft < 0) {
     return {
       status: "Expired",
       priority: 0,
@@ -100,8 +115,8 @@ const classifyByShelfLife = (
     };
   }
 
-  // Near Expiry
-  if (percentUsed >= 0.75) {
+  // Near Expiry: 0–2 days left
+  if (daysLeft <= 2) {
     return {
       status: "Near Expiry",
       priority: 1,
@@ -110,8 +125,8 @@ const classifyByShelfLife = (
     };
   }
 
-  // Warning
-  if (percentUsed >= 0.5) {
+  // Warning: 3–7 days left
+  if (daysLeft <= 7) {
     return {
       status: "Warning",
       priority: 2,
@@ -120,8 +135,8 @@ const classifyByShelfLife = (
     };
   }
 
-  // Good
-  if (percentUsed >= 0.25) {
+  // > 7 days left → Good or New Stocks (using percentUsed kung meron)
+  if (percentUsed === null) {
     return {
       status: "Good",
       priority: 3,
@@ -130,12 +145,20 @@ const classifyByShelfLife = (
     };
   }
 
-  // New Stocks
+  if (percentUsed < 0.2) {
+    return {
+      status: "New Stocks",
+      priority: 4,
+      colorClass: "border-emerald-300",
+      softClass: "bg-emerald-50 text-emerald-700",
+    };
+  }
+
   return {
-    status: "New Stocks",
-    priority: 4,
-    colorClass: "border-emerald-300",
-    softClass: "bg-emerald-50 text-emerald-700",
+    status: "Good",
+    priority: 3,
+    colorClass: "border-sky-200",
+    softClass: "bg-sky-50 text-sky-700",
   };
 };
 
@@ -147,6 +170,35 @@ interface ToastState {
   title: string;
   message: string;
   level: ToastLevel;
+}
+
+/* =========================
+   BACKEND HELPERS
+========================= */
+
+/**
+ * Calls backend to update productStatus
+ * PATCH /admin/api/product/{productId}/update_status
+ * body: { productStatus: string }
+ */
+async function updateProductStatusApi(
+  productId: number,
+  newStatus: string
+): Promise<void> {
+  const res = await fetch(
+    `/admin/api/product/${productId}/update_status`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ productStatus: newStatus }),
+    }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Failed to update status (${res.status})`);
+  }
 }
 
 /* =========================
@@ -170,7 +222,11 @@ export default function ProductReport() {
     null
   );
 
-  const [page, setPage] = useState(1); // pagination for large data
+  const [page, setPage] = useState(1);
+
+  const [updatingProductId, setUpdatingProductId] = useState<number | null>(
+    null
+  );
 
   // 🔔 Toast auto-alert state
   const [toast, setToast] = useState<ToastState>({
@@ -197,10 +253,16 @@ export default function ProductReport() {
       const data = await getAllProducts();
       setProducts(data ?? []);
       setLastUpdated(dayjs().format("MMM D, YYYY • HH:mm"));
-      setPage(1); // reset pagination after fresh fetch
-      setHasShownInitialToast(false); // allow auto-toast again on new dataset
+      setPage(1);
+      setHasShownInitialToast(false);
     } catch (err) {
       console.error("Failed to load products", err);
+      setToast({
+        visible: true,
+        title: "Error",
+        message: "Failed to load products from server.",
+        level: "danger",
+      });
     } finally {
       if (isRefresh) setLoadingRefresh(false);
       setLoadingProducts(false);
@@ -216,14 +278,16 @@ export default function ProductReport() {
   ========================= */
 
   const enrichedData: EnrichedProduct[] = useMemo(() => {
-    const today = dayjs();
+    const today = dayjs().startOf("day");
 
     return products.map((p, index) => {
       const name = p.productName;
       const category = p.categoryName ?? "Uncategorized";
       const stock = (p as any).stocks ?? 0;
 
-      const stockInDateStr = (p as any).stockInDate ?? null;
+      // IMPORTANT: backend field is productInDate
+      const stockInDateStr =
+        (p as any).productInDate ?? (p as any).stockInDate ?? null;
       const expiryDateStr = (p as any).expiryDate ?? null;
 
       let daysLeft: number | null = null;
@@ -232,26 +296,41 @@ export default function ProductReport() {
       let percentUsed: number | null = null;
 
       if (stockInDateStr && expiryDateStr) {
-        const stockIn = dayjs(stockInDateStr, "MMM D, YYYY hh:mm A", true);
-        const expiry = dayjs(expiryDateStr, "MMM D, YYYY hh:mm A", true);
+        const stockIn = dayjs(stockInDateStr);
+        const expiry = dayjs(expiryDateStr);
 
+        if (stockIn.isValid() && expiry.isValid()) {
+          const stockInDay = stockIn.startOf("day");
+          const expiryDay = expiry.startOf("day");
 
-        if (stockIn.isValid() && expiry.isValid() && expiry.isAfter(stockIn)) {
-          shelfLifeDays = expiry.diff(stockIn, "day");
-          elapsedDays = today.diff(stockIn, "day");
+          // daysLeft: expiry - today (can be negative)
+          daysLeft = expiryDay.diff(today, "day");
 
-          const diffHours = expiry.diff(today, "hour");
-          daysLeft = Math.ceil(diffHours / 24);
+          // total shelf life
+          const diffShelf = expiryDay.diff(stockInDay, "day");
+          shelfLifeDays = Math.max(diffShelf, 0);
 
-          const safeElapsed = clamp(elapsedDays, 0, shelfLifeDays);
-          percentUsed = clamp(safeElapsed / shelfLifeDays, 0, 1);
+          // elapsed since stock in
+          const diffElapsed = today.diff(stockInDay, "day");
+          elapsedDays = Math.max(diffElapsed, 0);
+
+          // percent used (only meaningful if shelfLifeDays > 0)
+          if (shelfLifeDays > 0) {
+            percentUsed = clamp(elapsedDays / shelfLifeDays, 0, 1.5);
+          } else {
+            // same day expiry or invalid shelf life → if past, treat as >100%
+            percentUsed = daysLeft < 0 ? 1.5 : 0;
+          }
         }
       }
 
       const statusInfo = classifyByShelfLife(percentUsed, daysLeft);
 
       return {
-        id: `${name}-${index}`,
+        productId: p.productId!,
+        productStatus: p.productStatus ?? null,
+
+        id: `${p.productId}-${index}`,
         name,
         category,
         stock,
@@ -431,6 +510,53 @@ export default function ProductReport() {
   const canLoadMore = visibleCount < filteredAndSorted.length;
 
   /* =========================
+     ACTION HANDLER (BACKEND)
+  ========================= */
+
+  const handleUpdateStatus = async (
+    enriched: EnrichedProduct,
+    newStatus: "Unavailable" | "For Promo" | "Available"
+  ) => {
+    try {
+      setUpdatingProductId(enriched.productId);
+      await updateProductStatusApi(enriched.productId, newStatus);
+
+      // update local ProductDTO list
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.productId === enriched.productId
+            ? { ...p, productStatus: newStatus }
+            : p
+        )
+      );
+
+      // update selected drawer product status for UI consistency
+      setSelectedProduct((prev) =>
+        prev && prev.productId === enriched.productId
+          ? { ...prev, productStatus: newStatus }
+          : prev
+      );
+
+      setToast({
+        visible: true,
+        title: "Status Updated",
+        message: `Product marked as "${newStatus}".`,
+        level: "info",
+      });
+    } catch (e) {
+      console.error(e);
+      setToast({
+        visible: true,
+        title: "Update Failed",
+        message: "Could not update product status. Please try again.",
+        level: "danger",
+      });
+    } finally {
+      setUpdatingProductId(null);
+    }
+  };
+
+  /* =========================
      RENDER
   ========================= */
 
@@ -491,7 +617,7 @@ export default function ProductReport() {
         className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
         onMouseMove={handleMouseMove}
       >
-        {/* 🔳 HUD GRID BACKDROP (same concept as Riders) */}
+        {/* Background / grid */}
         <div className="pointer-events-none absolute inset-0 -z-30">
           <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:40px_40px]" />
           <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.85)_0px,rgba(15,23,42,0.85)_1px,transparent_1px,transparent_3px)]" />
@@ -515,7 +641,7 @@ export default function ProductReport() {
           />
         </div>
 
-        {/* 🎯 SPOTLIGHT FOLLOWING CURSOR */}
+        {/* Spotlight */}
         <motion.div
           className="pointer-events-none absolute inset-0 -z-20"
           style={{
@@ -544,7 +670,7 @@ export default function ProductReport() {
           <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
         </div>
 
-        {/* 🔔 TOP ALERT PANEL (dashboard-style) */}
+        {/* TOP ALERT PANEL */}
         <section className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div className="flex items-center gap-3 rounded-2xl border border-red-200 bg-red-50/80 px-4 py-3">
             <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center">
@@ -574,7 +700,8 @@ export default function ProductReport() {
               </p>
               <p className="text-sm font-bold text-amber-700">
                 {summary.counts["Near Expiry"] + summary.counts["Warning"]} item
-                {summary.counts["Near Expiry"] + summary.counts["Warning"] !== 1
+                {summary.counts["Near Expiry"] + summary.counts["Warning"] !==
+                1
                   ? "s"
                   : ""}
               </p>
@@ -605,13 +732,13 @@ export default function ProductReport() {
           </div>
         </section>
 
-        {/* MAIN CARD (same frame concept as Riders) */}
+        {/* MAIN CARD */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="relative rounded-[26px] border border-emerald-500/30 bg-white/95 shadow-[0_22px_70px_rgba(15,23,42,0.40)] overflow-hidden"
         >
-          {/* Outer brackets */}
+          {/* Frame corners */}
           <div className="pointer-events-none absolute inset-0">
             <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
             <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
@@ -620,7 +747,7 @@ export default function ProductReport() {
           </div>
 
           <div className="relative flex flex-col gap-8 p-5 md:p-6 lg:p-7">
-            {/* Scanning line */}
+            {/* scanning line */}
             <motion.div
               className="pointer-events-none absolute top-10 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-70"
               animate={{ x: ["-20%", "20%", "-20%"] }}
@@ -629,7 +756,7 @@ export default function ProductReport() {
 
             {/* TABS + SUMMARY */}
             <div className="flex flex-col gap-6">
-              {/* Status Tabs (big chips, like Riders tabs) */}
+              {/* Status tabs */}
               <div className="flex flex-wrap gap-3 overflow-x-auto pb-1">
                 {(["All", ...STATUS_ORDER] as (ExpiryStatus | "All")[]).map(
                   (tab) => (
@@ -732,7 +859,7 @@ export default function ProductReport() {
                 </div>
               </div>
 
-              {/* Dropdown row + Refresh */}
+              {/* Dropdown row + refresh */}
               <div className="flex flex-wrap gap-3 items-center">
                 {/* Status filter dropdown */}
                 <Dropdown
@@ -829,7 +956,7 @@ export default function ProductReport() {
                   </DropdownItem>
                 </Dropdown>
 
-                {/* Refresh capsule */}
+                {/* Refresh */}
                 <button
                   type="button"
                   onClick={() => fetchProducts(true)}
@@ -851,7 +978,7 @@ export default function ProductReport() {
 
             {/* STATUS & CATEGORY OVERVIEW */}
             <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-              {/* Status Overview – bars */}
+              {/* Status overview */}
               <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -920,7 +1047,7 @@ export default function ProductReport() {
                 </div>
               </div>
 
-              {/* Category Overview – interactive rows */}
+              {/* Category overview */}
               <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white/90 p-4 flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -1003,7 +1130,7 @@ export default function ProductReport() {
               </div>
             </section>
 
-            {/* PRODUCT LIST (grouped by status) */}
+            {/* PRODUCT LIST */}
             <div className="flex flex-col gap-6 mt-1">
               {loadingProducts ? (
                 <div className="text-center text-sm text-slate-500 py-8">
@@ -1098,7 +1225,7 @@ export default function ProductReport() {
                     );
                   })}
 
-                  {/* LOAD MORE for 1000+ products */}
+                  {/* LOAD MORE */}
                   {canLoadMore && (
                     <div className="flex justify-center mt-2">
                       <button
@@ -1139,7 +1266,7 @@ export default function ProductReport() {
           </div>
         </motion.div>
 
-        {/* PRODUCT PROFILE DRAWER – Neon dark like Riders */}
+        {/* DRAWER */}
         {selectedProduct && (
           <div className="fixed inset-0 z-40 flex">
             <div
@@ -1154,11 +1281,10 @@ export default function ProductReport() {
               transition={{ duration: 0.25 }}
               className="w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50 shadow-[0_25px_80px_rgba(15,23,42,0.9)] p-6 border-l border-emerald-500/40 overflow-y-auto relative"
             >
-              {/* Neon radial background */}
+              {/* neon bg */}
               <div className="pointer-events-none absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.45),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.45),transparent_55%)]" />
 
               <div className="relative z-10">
-                {/* Header + close */}
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <h2 className="text-lg font-bold text-slate-50">
@@ -1177,7 +1303,13 @@ export default function ProductReport() {
                   </button>
                 </div>
 
-                <DrawerContent product={selectedProduct} />
+                <DrawerContent
+                  product={selectedProduct}
+                  updating={updatingProductId === selectedProduct.productId}
+                  onUpdateStatus={(status) =>
+                    handleUpdateStatus(selectedProduct, status)
+                  }
+                />
               </div>
             </motion.div>
           </div>
@@ -1244,7 +1376,6 @@ function ProductCard({
         {/* Status Badge + Name */}
         <div className="flex justify-between items-start gap-2">
           <div className="flex items-start gap-3">
-            {/* Avatar-style initial */}
             <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-semibold text-sm">
               {name.charAt(0).toUpperCase()}
             </div>
@@ -1320,7 +1451,7 @@ function ProductCard({
           </span>
         </div>
 
-        {/* Insight tags — only if meron talagang insight */}
+        {/* Insight tags */}
         {insightTags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {insightTags.slice(0, 3).map((tag, idx) => (
@@ -1365,19 +1496,26 @@ function getInsightTags(p: EnrichedProduct): string[] {
     tags.push("Low stock");
   }
 
-  if (p.percentUsed !== null && p.percentUsed < 0.25) {
+  if (p.percentUsed !== null && p.percentUsed < 0.25 && p.daysLeft !== null && p.daysLeft > 7) {
     tags.push("Very fresh");
   }
 
-  // ❌ No default "Healthy inventory" – insights only if may kailangan i-call out
   return tags;
 }
 
 /* =========================
-   DRAWER CONTENT – Neon dark (like Rider Profile)
+   DRAWER CONTENT + ACTIONS
 ========================= */
 
-function DrawerContent({ product }: { product: EnrichedProduct }) {
+function DrawerContent({
+  product,
+  updating,
+  onUpdateStatus,
+}: {
+  product: EnrichedProduct;
+  updating: boolean;
+  onUpdateStatus: (status: "Unavailable" | "For Promo" | "Available") => void;
+}) {
   const {
     name,
     category,
@@ -1385,21 +1523,20 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
     stockInDate,
     expiryDate,
     daysLeft,
-    percentUsed,
     status,
+    productStatus,
   } = product;
 
   const daysLeftLabel =
     daysLeft === null ? "N/A" : `${daysLeft} day${daysLeft === 1 ? "" : "s"}`;
 
   const freshnessLabel = (() => {
-    if (percentUsed === null) return "Not computed";
-    const pct = clamp(percentUsed, 0, 1) * 100;
-    if (pct < 25) return "Very fresh";
-    if (pct < 50) return "Early shelf";
-    if (pct < 75) return "Mid shelf";
-    if (pct < 100) return "Late shelf";
-    return "Past expiry";
+    if (daysLeft === null) return "Not computed";
+    if (daysLeft < 0) return "Expired";
+    if (daysLeft <= 2) return "Expiring any moment";
+    if (daysLeft <= 7) return "Very short shelf life";
+    if (daysLeft <= 30) return "Healthy shelf window";
+    return "Long shelf life";
   })();
 
   const statusBadgeClass =
@@ -1412,6 +1549,12 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
       : status === "Good"
       ? "bg-sky-100 text-sky-700 border-sky-300"
       : "bg-emerald-100 text-emerald-700 border-emerald-300";
+
+  const invStatus = (productStatus ?? "").toLowerCase();
+
+  const isUnavailable = invStatus === "unavailable";
+  const isForPromo = invStatus === "for promo";
+  const isAvailable = invStatus === "available";
 
   return (
     <div className="flex flex-col gap-5">
@@ -1488,13 +1631,85 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
           </div>
         </div>
       </div>
-      {/* ❌ Removed Smart Insights panel & action buttons */}
+
+      {/* INVENTORY STATUS + ACTIONS */}
+      <div className="border border-emerald-500/40 rounded-xl p-4 bg-slate-900/80">
+        <p className="text-[11px] uppercase tracking-wide text-emerald-300 mb-2 font-semibold">
+          Inventory Actions
+        </p>
+
+        <p className="text-[11px] text-slate-300 mb-2">
+          Current status:{" "}
+          <span className="font-semibold text-emerald-300">
+            {productStatus ?? "Not set"}
+          </span>
+        </p>
+
+        <div className="flex flex-wrap gap-2 mt-2">
+          <button
+            type="button"
+            disabled={updating || isUnavailable}
+            onClick={() => onUpdateStatus("Unavailable")}
+            className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border flex items-center gap-1
+              ${
+                isUnavailable
+                  ? "border-slate-600 bg-slate-800 text-slate-400 cursor-default"
+                  : "border-red-400/70 text-red-200 hover:bg-red-500/10"
+              } ${updating ? "opacity-60 cursor-wait" : ""}`}
+          >
+            {updating && isUnavailable ? (
+              <RefreshCw className="w-3 h-3 animate-spin" />
+            ) : (
+              "⛔"
+            )}
+            Out of Stock (Unavailable)
+          </button>
+
+          <button
+            type="button"
+            disabled={updating || isForPromo}
+            onClick={() => onUpdateStatus("For Promo")}
+            className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border flex items-center gap-1
+              ${
+                isForPromo
+                  ? "border-slate-600 bg-slate-800 text-slate-400 cursor-default"
+                  : "border-amber-400/70 text-amber-200 hover:bg-amber-500/10"
+              } ${updating ? "opacity-60 cursor-wait" : ""}`}
+          >
+            {updating && isForPromo ? (
+              <RefreshCw className="w-3 h-3 animate-spin" />
+            ) : (
+              "🏷️"
+            )}
+            Mark For Promo
+          </button>
+
+          <button
+            type="button"
+            disabled={updating || isAvailable}
+            onClick={() => onUpdateStatus("Available")}
+            className={`px-3 py-1.5 rounded-full text-[11px] font-semibold border flex items-center gap-1
+              ${
+                isAvailable
+                  ? "border-slate-600 bg-slate-800 text-slate-400 cursor-default"
+                  : "border-emerald-400/70 text-emerald-200 hover:bg-emerald-500/10"
+              } ${updating ? "opacity-60 cursor-wait" : ""}`}
+          >
+            {updating && isAvailable ? (
+              <RefreshCw className="w-3 h-3 animate-spin" />
+            ) : (
+              "✅"
+            )}
+            Restock / Available
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
 /* =========================
-   SUMMARY CARD (neon gradient, like Riders)
+   SUMMARY CARD
 ========================= */
 
 type SummaryColor = "emerald" | "rose" | "amber" | "indigo";
