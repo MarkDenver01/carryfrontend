@@ -475,21 +475,21 @@ export default function ProductReport() {
                 icon={<Package className="w-7 h-7" />}
                 label="Total Products"
                 value={summary.total.toString()}
-                accent="All active SKUs"
+                accent=""
                 color="emerald"
               />
               <SummaryCard
                 icon={<ShieldAlert className="w-7 h-7" />}
                 label="Expiring / Expired"
                 value={summary.expiringSoon.toString()}
-                accent="Expired + Near expiry"
+                accent=""
                 color="rose"
               />
               <SummaryCard
                 icon={<AlertTriangle className="w-7 h-7" />}
                 label="Warning Stocks"
                 value={summary.counts["Warning"].toString()}
-                accent="Requires close monitoring"
+                accent=""
                 color="amber"
               />
               <SummaryCard
@@ -498,7 +498,7 @@ export default function ProductReport() {
                 value={(
                   summary.counts["Good"] + summary.counts["New Stocks"]
                 ).toString()}
-                accent="Good shelf window"
+                accent=""
                 color="indigo"
               />
             </section>
