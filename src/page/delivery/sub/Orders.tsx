@@ -1294,12 +1294,6 @@ function RouteDrawer({
   order: Order;
   onClose: () => void;
 }) {
-  // Example live rider location (replace with real tracking later)
-  const riderLiveLocation =
-    order.riderId
-      ? { lat: 14.6042, lng: 120.9822 } // example, can replace with backend real-time
-      : undefined;
-
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm">
       <motion.div
