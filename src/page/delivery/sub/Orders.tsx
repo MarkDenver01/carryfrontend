@@ -16,7 +16,7 @@ import { motion } from "framer-motion";
 // ✅ IMPORT GLOBAL RIDERS CONTEXT
 import { useDrivers } from "../../../context/DriverContext";
 import type { Rider } from "../../../context/DriverContext";
-import LiveRouteMap from '../../../components/maps/LiveRouteMap';
+import DriverTrackerMap from '../../../components/maps/LiveRouteMap';
 
 // ✅ IMPORT BACKEND API
 import {
@@ -1321,9 +1321,13 @@ function RouteDrawer({
 
         {/* 🔥 NEW GOOGLE MAP */}
         <div className="flex-1 rounded-xl overflow-hidden border border-slate-200">
-          <LiveRouteMap
-            customerAddress={order.address}
-            riderLocation={riderLiveLocation}
+          <DriverTrackerMap
+          customerAddress={order.address}
+          riderLocation={
+            order.riderId
+              ? { lat: 14.08623, lng: 121.14655 } // sample live GPS
+              : undefined
+            }
           />
         </div>
 
