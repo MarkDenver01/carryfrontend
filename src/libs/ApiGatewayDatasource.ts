@@ -413,5 +413,18 @@ export async function assignRiderToOrder(orderId: string, riderId: string) {
     throw error.response?.data || { message: "Failed to assign rider" };
   }
 }
+/** Mark product as OUT OF STOCK */
+export async function markProductOutOfStock(productId: number | string) {
+  try {
+    const response = await api.patch(
+      `/admin/api/product/${productId}/update_status`,
+      { productStatus: "Out of Stock" }
+    );
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("Mark product OUT OF STOCK error:", error);
+    throw error.response?.data || { message: "Failed to mark as Out of Stock" };
+  }
+}
 
 
