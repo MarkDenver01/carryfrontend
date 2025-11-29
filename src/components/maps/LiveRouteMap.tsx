@@ -22,6 +22,12 @@ export default function LiveRouteMap({ customerAddress, riderLocation }: Props) 
     libraries: ["places"],
   });
 
+  useEffect(() => {
+  if (riderLocation) {
+    setMapCenter(riderLocation);
+  }
+}, [riderLocation]);
+
   // 🔥 Convert address → coordinates
   useEffect(() => {
     if (!isLoaded) return;

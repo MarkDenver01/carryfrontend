@@ -16,34 +16,23 @@ export function useDriverLocation(driverId?: string | null) {
 
     const url = `${import.meta.env.VITE_API_BASE_URL}/api/driver/${driverId}/location/stream`;
 
-    const es = new EventSource(url);
-
-    es.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data) as DriverLocation;
-        setLocation(data);
-      } catch {
-        // ignore parse error
-      }
-    };
+    const es = new EventSource(url, { withCredentials: true });
 
     es.addEventListener("location", (event) => {
       try {
-        const data = JSON.parse((event as MessageEvent).data) as DriverLocation;
+        const data = JSON.parse(event.data);
         setLocation(data);
-      } catch {
-        // ignore
-      }
+      } catch {}
     });
 
     es.onerror = () => {
+      console.error("SSE error");
       es.close();
     };
 
-    return () => {
-      es.close();
-    };
+    return () => es.close();
   }, [driverId]);
 
   return location;
 }
+
