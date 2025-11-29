@@ -16,7 +16,7 @@ import { motion } from "framer-motion";
 // ✅ IMPORT GLOBAL RIDERS CONTEXT
 import { useDrivers } from "../../../context/DriverContext";
 import type { Rider } from "../../../context/DriverContext";
-
+import LiveRouteMap from '../../../components/maps/LiveRouteMap';
 
 // ✅ IMPORT BACKEND API
 import {
@@ -1294,6 +1294,12 @@ function RouteDrawer({
   order: Order;
   onClose: () => void;
 }) {
+  // Example live rider location (replace with real tracking later)
+  const riderLiveLocation =
+    order.riderId
+      ? { lat: 14.6042, lng: 120.9822 } // example, can replace with backend real-time
+      : undefined;
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm">
       <motion.div
@@ -1313,10 +1319,12 @@ function RouteDrawer({
           </span>
         </p>
 
-        <div className="flex-1 flex items-center justify-center">
-          <div className="h-64 w-full bg-slate-100 rounded-xl flex items-center justify-center text-gray-400 text-sm border border-dashed border-slate-300">
-            🗺️ Map Placeholder
-          </div>
+        {/* 🔥 NEW GOOGLE MAP */}
+        <div className="flex-1 rounded-xl overflow-hidden border border-slate-200">
+          <LiveRouteMap
+            customerAddress={order.address}
+            riderLocation={riderLiveLocation}
+          />
         </div>
 
         <button
