@@ -18,41 +18,9 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import dayjs from "dayjs";
 
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-} from "chart.js";
-
-import { Doughnut, Bar } from "react-chartjs-2";
-
-ChartJS.register(
-  ArcElement,
-  Tooltip,
-  Legend,
-  CategoryScale,
-  LinearScale,
-  BarElement
-);
-
-
 import ProductLegendLayout from "../../../layout/product/ProductLegendLayout";
 import { getAllProducts } from "../../../libs/ApiGatewayDatasource";
 import type { ProductDTO } from "../../../libs/models/product/Product";
-
-// =================== CHARTJS REGISTER ===================
-ChartJS.register(
-  ArcElement,
-  ChartTooltip,
-  ChartLegend,
-  CategoryScale,
-  LinearScale,
-  BarElement
-);
 
 // =================== TYPES & CONSTANTS ===================
 
@@ -317,44 +285,8 @@ export default function ProductReport() {
     return { total, counts };
   }, [enrichedData]);
 
-  // chart data (status distribution)
-  const doughnutData = useMemo(() => {
-    const { counts } = summary;
-    return {
-      labels: [
-        "Expired",
-        "Near Expiry",
-        "Warning",
-        "Good",
-        "New Stocks",
-        "No Expiry",
-      ],
-      datasets: [
-        {
-          data: [
-            counts["Expired"],
-            counts["Near Expiry"],
-            counts["Warning"],
-            counts["Good"],
-            counts["New Stocks"],
-            counts["No Expiry"],
-          ],
-          backgroundColor: [
-            "#ef4444", // red
-            "#fb923c", // orange
-            "#facc15", // yellow
-            "#38bdf8", // sky
-            "#22c55e", // green
-            "#9ca3af", // gray
-          ],
-          borderWidth: 1,
-        },
-      ],
-    };
-  }, [summary]);
-
-  // bar data: expiries in next 30 days
-  const barData = useMemo(() => {
+  // bar buckets: expiries in next 30 days (for our custom mini bars)
+  const expiriesBuckets = useMemo(() => {
     const daysRange = 30;
     const buckets = new Array(daysRange).fill(0) as number[];
 
@@ -364,16 +296,7 @@ export default function ProductReport() {
       buckets[item.daysLeft] += 1;
     });
 
-    return {
-      labels: buckets.map((_, idx) => (idx === 0 ? "Today" : `${idx}d`)),
-      datasets: [
-        {
-          label: "Items Expiring",
-          data: buckets,
-          backgroundColor: "#22c55e",
-        },
-      ],
-    };
+    return buckets;
   }, [enrichedData]);
 
   // heatmap data (next 14 days)
@@ -561,46 +484,100 @@ export default function ProductReport() {
           </div>
         </div>
 
-        {/* TOP CHARTS ROW */}
+        {/* TOP SUMMARY / MINI-CHARTS ROW (PURE UI) */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Doughnut */}
+          {/* Status Summary Card */}
           <div
-            className={`col-span-1 rounded-2xl border ${cardBorder} ${cardBg} shadow-sm p-4 flex flex-col`}
+            className={`col-span-1 rounded-2xl border ${cardBorder} ${cardBg} shadow-sm p-4 flex flex-col gap-3`}
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BarChart2 className="w-4 h-4 text-emerald-400" />
                 <p className="text-xs font-semibold uppercase tracking-wide">
-                  Status Distribution
+                  Status Overview
                 </p>
               </div>
               <span className="text-[11px] text-slate-400">
-                Total: {summary.total}
+                Total tracked: {summary.total}
               </span>
             </div>
-            <div className="flex-1 flex items-center justify-center">
-              <Doughnut
-                data={doughnutData}
-                options={{
-                  plugins: {
-                    legend: {
-                      position: "bottom",
-                      labels: {
-                        color: darkMode ? "#e2e8f0" : "#0f172a",
-                        boxWidth: 10,
-                      },
-                    },
-                  },
-                }}
+
+            <div className="grid grid-cols-2 gap-2 mt-1 text-[11px]">
+              <StatusSummaryRow
+                label="Expired"
+                value={summary.counts["Expired"]}
+                colorClass="text-red-500"
+                pillClass="bg-red-100 text-red-700"
               />
+              <StatusSummaryRow
+                label="Near Expiry"
+                value={summary.counts["Near Expiry"]}
+                colorClass="text-orange-500"
+                pillClass="bg-orange-100 text-orange-700"
+              />
+              <StatusSummaryRow
+                label="Warning"
+                value={summary.counts["Warning"]}
+                colorClass="text-amber-500"
+                pillClass="bg-amber-100 text-amber-700"
+              />
+              <StatusSummaryRow
+                label="Good"
+                value={summary.counts["Good"]}
+                colorClass="text-sky-500"
+                pillClass="bg-sky-100 text-sky-700"
+              />
+              <StatusSummaryRow
+                label="New Stocks"
+                value={summary.counts["New Stocks"]}
+                colorClass="text-emerald-500"
+                pillClass="bg-emerald-100 text-emerald-700"
+              />
+              <StatusSummaryRow
+                label="No Expiry"
+                value={summary.counts["No Expiry"]}
+                colorClass="text-slate-500"
+                pillClass="bg-slate-100 text-slate-700"
+              />
+            </div>
+
+            {/* Simple “ring style” summary using CSS only */}
+            <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400">
+              <p>High risk share</p>
+              <div className="flex items-center gap-2">
+                <MiniRing
+                  value={
+                    summary.total === 0
+                      ? 0
+                      : Math.round(
+                          ((summary.counts["Expired"] +
+                            summary.counts["Near Expiry"] +
+                            summary.counts["Warning"]) /
+                            summary.total) *
+                            100
+                        )
+                  }
+                />
+                <span className="font-semibold text-slate-700 dark:text-slate-100">
+                  {summary.total === 0
+                    ? "0%"
+                    : Math.round(
+                        ((summary.counts["Expired"] +
+                          summary.counts["Near Expiry"] +
+                          summary.counts["Warning"]) /
+                          summary.total) *
+                          100
+                      ) + "%"}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Bar chart */}
+          {/* Expiry Trend Card (Next 30 Days) */}
           <div
-            className={`col-span-2 rounded-2xl border ${cardBorder} ${cardBg} shadow-sm p-4 flex flex-col`}
+            className={`col-span-2 rounded-2xl border ${cardBorder} ${cardBg} shadow-sm p-4 flex flex-col gap-3`}
           >
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Clock className="w-4 h-4 text-sky-400" />
                 <p className="text-xs font-semibold uppercase tracking-wide">
@@ -608,40 +585,11 @@ export default function ProductReport() {
                 </p>
               </div>
               <span className="text-[11px] text-slate-400">
-                Focus on upcoming risks
+                Focus on spikes to plan promos
               </span>
             </div>
-            <div className="h-48">
-              <Bar
-                data={barData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    legend: { display: false },
-                  },
-                  scales: {
-                    x: {
-                      ticks: {
-                        color: darkMode ? "#cbd5f5" : "#0f172a",
-                        maxRotation: 0,
-                        minRotation: 0,
-                      },
-                      grid: { display: false },
-                    },
-                    y: {
-                      ticks: {
-                        color: darkMode ? "#cbd5f5" : "#0f172a",
-                        precision: 0,
-                      },
-                      grid: {
-                        color: darkMode ? "#1e293b" : "#e5e7eb",
-                      },
-                    },
-                  },
-                }}
-              />
-            </div>
+
+            <ExpiryMiniBars buckets={expiriesBuckets} darkMode={darkMode} />
           </div>
         </div>
 
@@ -953,6 +901,122 @@ export default function ProductReport() {
   );
 }
 
+// =================== SMALL PURE-UI "CHART" HELPERS ===================
+
+function StatusSummaryRow({
+  label,
+  value,
+  colorClass,
+  pillClass,
+}: {
+  label: string;
+  value: number;
+  colorClass: string;
+  pillClass: string;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-2">
+      <span className={`text-[11px] font-medium ${colorClass}`}>{label}</span>
+      <span
+        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pillClass}`}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function MiniRing({ value }: { value: number }) {
+  const clamped = clamp(value, 0, 100);
+  const circumference = 2 * Math.PI * 18;
+  const offset = circumference - (circumference * clamped) / 100;
+
+  return (
+    <div className="relative w-8 h-8">
+      <svg className="w-full h-full rotate-[-90deg]">
+        <circle
+          cx="50%"
+          cy="50%"
+          r="18"
+          stroke="#e5e7eb"
+          strokeWidth="5"
+          fill="transparent"
+        />
+        <circle
+          cx="50%"
+          cy="50%"
+          r="18"
+          stroke="#22c55e"
+          strokeWidth="5"
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+}
+
+function ExpiryMiniBars({
+  buckets,
+}: {
+  buckets: number[];
+  darkMode: boolean;
+}) {
+  const max = buckets.reduce((m, v) => Math.max(m, v), 0);
+
+  if (max === 0) {
+    return (
+      <div className="h-32 flex items-center justify-center text-xs text-slate-400">
+        No items expiring in the next 30 days.
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      <div className="flex items-end gap-[2px] h-32">
+        {buckets.map((v, i) => {
+          const height = (v / max) * 100;
+          const isToday = i === 0;
+          const isMajorTick = i % 5 === 0;
+
+          return (
+            <div
+              key={i}
+              className="flex-1 flex flex-col items-center gap-1"
+              title={`${v} item${v !== 1 ? "s" : ""} expiring in ${i} day${
+                i === 1 ? "" : "s"
+              }`}
+            >
+              <div className="w-full flex-1 flex items-end">
+                <div
+                  className={`w-full rounded-sm ${
+                    isToday
+                      ? "bg-red-500"
+                      : "bg-emerald-500 hover:bg-emerald-600"
+                  } transition-all`}
+                  style={{ height: `${height}%` }}
+                />
+              </div>
+              {isMajorTick && (
+                <span className="text-[9px] text-slate-400">
+                  {isToday ? "0" : i}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+        <span>Today</span>
+        <span>30 days</span>
+      </div>
+    </div>
+  );
+}
+
 // =================== PRODUCT CARD ===================
 
 function ProductCard({
@@ -1135,6 +1199,7 @@ function getInsightTags(p: EnrichedProduct): string[] {
 function DrawerContent({
   product,
   onClose,
+
 }: {
   product: EnrichedProduct;
   onClose: () => void;
