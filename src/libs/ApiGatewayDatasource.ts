@@ -94,16 +94,15 @@ export async function deleteProduct(productId: number): Promise<void> {
     throw error.response?.data || { message: "Failed to delete product" };
   }
 }
-
-/** Update product status only */
+/** Update product status */
 export async function updateProductStatus(
   productId: number | string,
-  newStatus: string
+  payload: { productStatus: string }
 ): Promise<ProductDTO> {
   try {
     const response = await api.patch(
       `/admin/api/product/${productId}/update_status`,
-      { productStatus: newStatus }
+      payload
     );
     return response.data?.data ?? response.data;
   } catch (error: any) {
@@ -111,6 +110,7 @@ export async function updateProductStatus(
     throw error.response?.data || { message: "Failed to update product status" };
   }
 }
+
 
 // ===============================
 //         PRICE APIs

@@ -1,4 +1,5 @@
 // src/page/analytics/sub/ProductReport.tsx
+
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Dropdown, DropdownItem } from "flowbite-react";
@@ -43,24 +44,20 @@ type ExpiryStatus =
 
 interface EnrichedProduct {
   productId: number;
-
   id: string;
   name: string;
   category: string;
   stock: number;
   stockInDate: string | null;
   expiryDate: string | null;
-
   daysLeft: number | null;
   shelfLifeDays: number | null;
   elapsedDays: number | null;
   percentUsed: number | null; // 0–1
-
   status: ExpiryStatus;
   statusPriority: number;
   statusColorClass: string;
   statusSoftClass: string;
-
   backendStatus: string | null;
 }
 
@@ -80,11 +77,11 @@ const clamp = (val: number, min: number, max: number) =>
 /**
  * Classify purely based on DAYS LEFT (expiry vs today)
  *
- * daysLeft <= 0          → Expired
- * 1–14                   → Near Expiry
- * 15–30                  → Warning
- * 31–90                  → Good
- * > 90                   → New Stocks
+ * daysLeft <= 0  → Expired
+ * 1–4            → Warning
+ * 5–50           → Near Expiry
+ * 51–90          → Good
+ * > 90           → New Stocks
  */
 const classifyByDaysLeft = (
   daysLeft: number | null
@@ -94,8 +91,8 @@ const classifyByDaysLeft = (
   colorClass: string;
   softClass: string;
 } => {
+  // No expiry date → treat as Good
   if (daysLeft === null) {
-    // Walang expiry date → Good
     return {
       status: "Good",
       priority: 3,
@@ -113,16 +110,8 @@ const classifyByDaysLeft = (
     };
   }
 
-  if (daysLeft <= 14) {
-    return {
-      status: "Near Expiry",
-      priority: 1,
-      colorClass: "border-orange-300",
-      softClass: "bg-orange-50 text-orange-700",
-    };
-  }
-
-  if (daysLeft <= 30) {
+  // 1–4 days left → Warning (super lapit na)
+  if (daysLeft <= 4) {
     return {
       status: "Warning",
       priority: 2,
@@ -131,6 +120,17 @@ const classifyByDaysLeft = (
     };
   }
 
+  // 5–50 days left → Near Expiry
+  if (daysLeft <= 50) {
+    return {
+      status: "Near Expiry",
+      priority: 1,
+      colorClass: "border-orange-300",
+      softClass: "bg-orange-50 text-orange-700",
+    };
+  }
+
+  // 51–90 → Good
   if (daysLeft <= 90) {
     return {
       status: "Good",
@@ -140,6 +140,7 @@ const classifyByDaysLeft = (
     };
   }
 
+  // 90+ days → New Stocks
   return {
     status: "New Stocks",
     priority: 4,
@@ -165,9 +166,8 @@ export default function ProductReport() {
   const [loadingRefresh, setLoadingRefresh] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-  const [selectedProduct, setSelectedProduct] = useState<EnrichedProduct | null>(
-    null
-  );
+  const [selectedProduct, setSelectedProduct] =
+    useState<EnrichedProduct | null>(null);
 
   const [page, setPage] = useState(1); // pagination for large data
 
@@ -215,24 +215,29 @@ export default function ProductReport() {
       setStatusUpdatingId(productId);
 
       if (action === "Out of Stock") {
-        // 👉 Out of stock: delete/mark as out-of-stock in backend
+        // 👉 Out of stock: mark in backend + tanggalin sa monitoring list (FE)
         await markProductOutOfStock(productId);
-
-        // FE: tanggalin sa monitoring list
-        setProducts((prev) => prev.filter((p: any) => p.productId !== productId));
+        setProducts((prev) =>
+          prev.filter((p: any) => p.productId !== productId)
+        );
       } else {
-        // For Promo
-        await updateProductStatus(productId, action);
+        // For Promo → backend field productStatus = "For Promo"
+        await updateProductStatus(productId, { productStatus: action });
 
         setProducts((prev: any[]) =>
           prev.map((p: any) =>
-            p.productId === productId ? { ...p, productStatus: action } : p
+            p.productId === productId
+              ? {
+                  ...p,
+                  productStatus: action,
+                }
+              : p
           )
         );
       }
     } catch (err) {
       console.error("Failed to update product status", err);
-      // OPTIONAL: SweetAlert or toast dito kung gusto mo
+      // OPTIONAL: show toast / SweetAlert dito
     } finally {
       setStatusUpdatingId(null);
     }
@@ -246,14 +251,13 @@ export default function ProductReport() {
     const today = dayjs().startOf("day");
 
     return products.map((p: any, index) => {
-      const name = p.productName;
-      const category = p.categoryName ?? "Uncategorized";
+      const name: string = p.productName;
+      const category: string = p.categoryName ?? "Uncategorized";
 
       // ✅ Stock from backend (int stocks)
-      const stock = Number(p.stocks ?? p.stock ?? 0);
+      const stock: number = Number(p.stocks ?? p.stock ?? 0);
 
-      // 🧠 REAL field names from backend (ISO strings)
-      // DTO: LocalDateTime expiryDate
+      // 🧠 Field names from backend (LocalDateTime → JSON string)
       const expiryDateStr: string | null = p.expiryDate
         ? String(p.expiryDate)
         : null;
@@ -299,12 +303,11 @@ export default function ProductReport() {
       if (stockIn && expiry && expiry.isAfter(stockIn)) {
         shelfLifeDays = expiry.diff(stockIn, "day");
         elapsedDays = today.diff(stockIn, "day");
-
         const safeElapsed = clamp(elapsedDays, 0, shelfLifeDays);
         percentUsed = clamp(safeElapsed / shelfLifeDays, 0, 1);
       }
 
-      // 👉 Main status based on DAYS LEFT ONLY
+      // 👉 Main status based on DAYS LEFT ONLY (with your new rules)
       const statusInfo = classifyByDaysLeft(daysLeft);
 
       return {
@@ -346,10 +349,11 @@ export default function ProductReport() {
     });
 
     const total = enrichedData.length;
+
+    // Expiring soon = Expired + Near Expiry
     const expiringSoon = counts["Expired"] + counts["Near Expiry"];
 
-    // ⚠️ STOCK + STATUS-BASED WARNING:
-    // products with stock 30–50 AND status Warning / Near Expiry
+    // STOCK + STATUS-BASED WARNING: products with stock 30–50 AND status Warning / Near Expiry
     const warningStockCount = enrichedData.filter(
       (p) =>
         p.stock >= 30 &&
@@ -357,7 +361,12 @@ export default function ProductReport() {
         (p.status === "Warning" || p.status === "Near Expiry")
     ).length;
 
-    return { total, counts, expiringSoon, warningStockCount };
+    return {
+      total,
+      counts,
+      expiringSoon,
+      warningStockCount,
+    };
   }, [enrichedData]);
 
   const uniqueCategories = useMemo(
@@ -423,6 +432,7 @@ export default function ProductReport() {
         if (a.statusPriority !== b.statusPriority) {
           return a.statusPriority - b.statusPriority;
         }
+
         const aDays =
           a.daysLeft === null ? Number.POSITIVE_INFINITY : a.daysLeft;
         const bDays =
@@ -444,6 +454,7 @@ export default function ProductReport() {
         return b.stock - a.stock;
       }
 
+      // DaysLeft
       const aVal =
         a.daysLeft === null ? Number.POSITIVE_INFINITY : a.daysLeft;
       const bVal =
@@ -515,7 +526,6 @@ export default function ProductReport() {
         >
           Product Expiry Monitor
         </motion.h1>
-
         <p className="text-gray-500 text-sm max-w-xl">
           Live{" "}
           <span className="font-medium text-emerald-700">
@@ -523,7 +533,6 @@ export default function ProductReport() {
           </span>{" "}
           across all products to prevent losses and optimize promos.
         </p>
-
         <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
@@ -561,12 +570,11 @@ export default function ProductReport() {
                       setStatusFilter(tab);
                       setPage(1);
                     }}
-                    className={`px-4 py-2 rounded-full text-xs sm:text-sm font-semibold border transition whitespace-nowrap
-                      ${
-                        statusFilter === tab
-                          ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-400/50"
-                          : "bg-white/90 border-gray-300 text-gray-700 hover:bg-emerald-50"
-                      }`}
+                    className={`px-4 py-2 rounded-full text-xs sm:text-sm font-semibold border transition whitespace-nowrap ${
+                      statusFilter === tab
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-400/50"
+                        : "bg-white/90 border-gray-300 text-gray-700 hover:bg-emerald-50"
+                    }`}
                   >
                     {tab === "All" ? "All Status" : tab}
                   </button>
@@ -894,6 +902,7 @@ export default function ProductReport() {
                               {catSnap.total !== 1 ? "s" : ""}
                             </span>
                           </div>
+
                           {risky && (
                             <div className="flex flex-wrap gap-2 text-[11px]">
                               {catSnap.expired > 0 && (
@@ -917,6 +926,7 @@ export default function ProductReport() {
                             </div>
                           )}
                         </div>
+
                         <span className="text-[11px] text-slate-400">
                           {isActive ? "Clear" : "Filter"}
                         </span>
@@ -974,16 +984,6 @@ export default function ProductReport() {
                       ? "text-sky-600"
                       : "text-emerald-600";
 
-                  const withDays = groupItems.filter(
-                    (g) => g.daysLeft !== null
-                  );
-                  const minDays =
-                    withDays.length > 0
-                      ? Math.min(
-                          ...withDays.map((g) => g.daysLeft ?? Infinity)
-                        )
-                      : null;
-
                   return (
                     <section key={status} className="flex flex-col gap-3">
                       <div className="flex items-center justify-between">
@@ -992,22 +992,13 @@ export default function ProductReport() {
                           <h2
                             className={`text-sm font-semibold uppercase tracking-wide ${headerColor}`}
                           >
-                            {status}{" "}
+                            {status}
                             <span className="text-xs text-slate-400 ml-1 normal-case font-normal">
                               ({groupItems.length} item
                               {groupItems.length > 1 ? "s" : ""})
                             </span>
                           </h2>
                         </div>
-                        {minDays !== null && status !== "Expired" && (
-                          <p className="text-[11px] text-slate-400">
-                            Soonest expiry in{" "}
-                            <span className="font-semibold text-slate-700">
-                              {minDays} day
-                              {minDays === 1 ? "" : "s"}
-                            </span>
-                          </p>
-                        )}
                       </div>
 
                       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -1068,17 +1059,14 @@ export default function ProductReport() {
             className="flex-1 bg-slate-950/70 backdrop-blur-sm"
             onClick={() => setSelectedProduct(null)}
           />
-
           <motion.div
             initial={{ x: 320, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            exit={{ x: 320, opacity: 0 }}
             transition={{ duration: 0.25 }}
             className="w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50 shadow-[0_25px_80px_rgba(15,23,42,0.9)] p-6 border-l border-emerald-500/40 overflow-y-auto relative"
           >
             {/* Neon radial background */}
             <div className="pointer-events-none absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.45),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.45),transparent_55%)]" />
-
             <div className="relative z-10">
               {/* Header + close */}
               <div className="flex justify-between items-start mb-4">
@@ -1137,7 +1125,9 @@ function ProductCard({
     backendStatus,
   } = product;
 
-  const percent = percentUsed !== null ? clamp(percentUsed, 0, 1) * 100 : 0;
+  const percent =
+    percentUsed !== null ? clamp(percentUsed, 0, 1) * 100 : 0;
+
   const daysLeftLabel =
     daysLeft === null ? "N/A" : `${daysLeft} day${daysLeft === 1 ? "" : "s"}`;
 
@@ -1209,6 +1199,7 @@ function ProductCard({
               <p className="text-[11px] text-slate-500">{category}</p>
             </div>
           </div>
+
           <span
             className={`px-2.5 py-1 rounded-full text-[10px] font-semibold inline-flex items-center gap-1 ${statusSoftClass}`}
           >
@@ -1250,7 +1241,9 @@ function ProductCard({
               Stock-In
             </p>
             <p className="font-semibold text-slate-800">
-              {stockInDate ? dayjs(stockInDate).format("MMM D, YYYY") : "N/A"}
+              {stockInDate
+                ? dayjs(stockInDate).format("MMM D, YYYY")
+                : "N/A"}
             </p>
           </div>
           <div>
@@ -1258,7 +1251,9 @@ function ProductCard({
               Expiry
             </p>
             <p className="font-semibold text-slate-800">
-              {expiryDate ? dayjs(expiryDate).format("MMM D, YYYY") : "N/A"}
+              {expiryDate
+                ? dayjs(expiryDate).format("MMM D, YYYY")
+                : "N/A"}
             </p>
           </div>
         </div>
@@ -1278,6 +1273,7 @@ function ProductCard({
               Warning stocks (30–50)
             </span>
           )}
+
           {isOutOfStock && (
             <span className="px-2 py-0.5 rounded-full bg-red-50 text-red-700 border border-red-200 text-[10px] font-semibold">
               Out of stock
@@ -1350,23 +1346,21 @@ function getInsightTags(p: EnrichedProduct): string[] {
   if (p.status === "Expired") {
     tags.push("Requires disposal");
   }
-
   if (p.status === "Near Expiry") {
     tags.push("High priority promo");
   }
-
   if (p.status === "Warning") {
     tags.push("Monitor closely");
   }
-
-  if (p.stock > 50 && (p.status === "Warning" || p.status === "Near Expiry")) {
+  if (
+    p.stock > 50 &&
+    (p.status === "Warning" || p.status === "Near Expiry")
+  ) {
     tags.push("High stock risk");
   }
-
   if (p.stock <= 5 && p.status !== "Expired") {
     tags.push("Low stock");
   }
-
   if (p.percentUsed !== null && p.percentUsed < 0.25) {
     tags.push("Very fresh");
   }
@@ -1379,16 +1373,8 @@ function getInsightTags(p: EnrichedProduct): string[] {
 ========================= */
 
 function DrawerContent({ product }: { product: EnrichedProduct }) {
-  const {
-    name,
-    category,
-    stock,
-    stockInDate,
-    expiryDate,
-    daysLeft,
-    percentUsed,
-    status,
-  } = product;
+  const { name, category, stock, stockInDate, expiryDate, daysLeft, percentUsed, status } =
+    product;
 
   const daysLeftLabel =
     daysLeft === null ? "N/A" : `${daysLeft} day${daysLeft === 1 ? "" : "s"}`;
@@ -1396,6 +1382,7 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
   const freshnessLabel = (() => {
     if (percentUsed === null) return "Not computed";
     const pct = clamp(percentUsed, 0, 1) * 100;
+
     if (pct < 25) return "Very fresh";
     if (pct < 50) return "Early shelf";
     if (pct < 75) return "Mid shelf";
@@ -1448,7 +1435,9 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
             <div className="flex items-center gap-1">
               <Package className="w-4 h-4 text-emerald-400" />
               <span>Stock:</span>
-              <span className="font-semibold text-slate-50">{stock}</span>
+              <span className="font-semibold text-slate-50">
+                {stock}
+              </span>
             </div>
             <div className="flex items-center gap-1">
               <Clock className="w-4 h-4 text-slate-300" />
@@ -1470,13 +1459,17 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
           <div>
             <p className="text-slate-400">Stock-In Date</p>
             <p className="font-semibold text-slate-50">
-              {stockInDate ? dayjs(stockInDate).format("MMM D, YYYY") : "N/A"}
+              {stockInDate
+                ? dayjs(stockInDate).format("MMM D, YYYY")
+                : "N/A"}
             </p>
           </div>
           <div>
             <p className="text-slate-400">Expiry Date</p>
             <p className="font-semibold text-slate-50">
-              {expiryDate ? dayjs(expiryDate).format("MMM D, YYYY") : "N/A"}
+              {expiryDate
+                ? dayjs(expiryDate).format("MMM D, YYYY")
+                : "N/A"}
             </p>
           </div>
           <div>
@@ -1485,7 +1478,9 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
           </div>
           <div>
             <p className="text-slate-400">Freshness</p>
-            <p className="font-semibold text-slate-50">{freshnessLabel}</p>
+            <p className="font-semibold text-slate-50">
+              {freshnessLabel}
+            </p>
           </div>
         </div>
       </div>
@@ -1534,7 +1529,6 @@ function SummaryCard({
         <div className="p-3 bg-white/15 rounded-xl flex items-center justify-center">
           {icon}
         </div>
-
         <div>
           <p className="text-[0.7rem] uppercase tracking-[0.16em] text-white/80">
             {label}
