@@ -23,7 +23,6 @@ import {
 
 import {
   getAllProducts,
-  // 👉 implement these in ApiGatewayDatasource
   updateProductStatus,
   markProductOutOfStock,
 } from "../../../libs/ApiGatewayDatasource";
@@ -210,27 +209,24 @@ export default function ProductReport() {
 
   const handleChangeStatus = async (
     productId: number,
-    action: "Available" | "For Promo" | "Out of Stock"
+    action: "For Promo" | "Out of Stock"
   ) => {
     try {
       setStatusUpdatingId(productId);
 
       if (action === "Out of Stock") {
-        // 👉 Out of stock: either delete or mark as out-of-stock in backend
+        // 👉 Out of stock: delete/mark as out-of-stock in backend
         await markProductOutOfStock(productId);
 
-        // FE side: tanggalin sa monitoring list
-        setProducts((prev) => prev.filter((p) => p.productId !== productId));
+        // FE: tanggalin sa monitoring list
+        setProducts((prev) => prev.filter((p: any) => p.productId !== productId));
       } else {
-        // Available / For Promo
-       await updateProductStatus(productId, action);
+        // For Promo
+        await updateProductStatus(productId, action);
 
-
-        setProducts((prev) =>
-          prev.map((p) =>
-            p.productId === productId
-              ? { ...p, productStatus: action }
-              : p
+        setProducts((prev: any[]) =>
+          prev.map((p: any) =>
+            p.productId === productId ? { ...p, productStatus: action } : p
           )
         );
       }
@@ -249,16 +245,26 @@ export default function ProductReport() {
   const enrichedData: EnrichedProduct[] = useMemo(() => {
     const today = dayjs().startOf("day");
 
-    return products.map((p, index) => {
+    return products.map((p: any, index) => {
       const name = p.productName;
       const category = p.categoryName ?? "Uncategorized";
-      const stock = (p as any).stocks ?? 0;
 
-      // 🧠 REAL field names from backend
-      const stockInDateStr = (p as any).productInDate ?? null;
-      const expiryDateStr = (p as any).expiryDate ?? null;
+      // ✅ Stock from backend (int stocks)
+      const stock = Number(p.stocks ?? p.stock ?? 0);
 
-      const backendStatus = (p as any).productStatus ?? null;
+      // 🧠 REAL field names from backend (ISO strings)
+      // DTO: LocalDateTime expiryDate
+      const expiryDateStr: string | null = p.expiryDate
+        ? String(p.expiryDate)
+        : null;
+
+      // DTO: LocalDateTime productInDate with JSON name "stockInDate"
+      const stockInDateStr: string | null =
+        (p.productInDate && String(p.productInDate)) ||
+        (p.stockInDate && String(p.stockInDate)) ||
+        null;
+
+      const backendStatus: string | null = p.productStatus ?? null;
 
       let daysLeft: number | null = null;
       let shelfLifeDays: number | null = null;
@@ -342,9 +348,13 @@ export default function ProductReport() {
     const total = enrichedData.length;
     const expiringSoon = counts["Expired"] + counts["Near Expiry"];
 
-    // ⚠️ STOCK-BASED WARNING: 30–50 pcs
+    // ⚠️ STOCK + STATUS-BASED WARNING:
+    // products with stock 30–50 AND status Warning / Near Expiry
     const warningStockCount = enrichedData.filter(
-      (p) => p.stock >= 30 && p.stock <= 50
+      (p) =>
+        p.stock >= 30 &&
+        p.stock <= 50 &&
+        (p.status === "Warning" || p.status === "Near Expiry")
     ).length;
 
     return { total, counts, expiringSoon, warningStockCount };
@@ -1041,9 +1051,11 @@ export default function ProductReport() {
             <p>
               Expiry status is based on{" "}
               <span className="font-semibold text-slate-700">Expiry Date</span>{" "}
-              relative to today. Warning stocks (30–50 pcs) are also tracked for
-              replenishment planning. In the future, days left can be computed
-              directly from backend for more control.
+              relative to today. Warning stocks (30–50 pcs) in{" "}
+              <span className="font-semibold text-slate-700">
+                Warning / Near Expiry
+              </span>{" "}
+              are also tracked for replenishment planning.
             </p>
           </div>
         </div>
@@ -1108,9 +1120,7 @@ function ProductCard({
 }: {
   product: EnrichedProduct;
   onClick: () => void;
-  onChangeStatus: (
-    action: "Available" | "For Promo" | "Out of Stock"
-  ) => void;
+  onChangeStatus: (action: "For Promo" | "Out of Stock") => void;
   isUpdating: boolean;
 }) {
   const {
@@ -1149,19 +1159,16 @@ function ProductCard({
 
   const actions: {
     label: string;
-    action: "Available" | "For Promo" | "Out of Stock";
-    kind: "primary" | "promo" | "danger";
+    action: "For Promo" | "Out of Stock";
+    kind: "promo" | "danger";
   }[] = [];
 
   if (!isOutOfStock) {
-    // Normal case
     actions.push(
-      { label: "Available", action: "Available", kind: "primary" },
       { label: "Promo", action: "For Promo", kind: "promo" },
       { label: "Out of Stock", action: "Out of Stock", kind: "danger" }
     );
   } else {
-    // Already 0 stock – show just out-of-stock action
     actions.push({
       label: "Confirm Out of Stock",
       action: "Out of Stock",
@@ -1169,9 +1176,7 @@ function ProductCard({
     });
   }
 
-  const getButtonClasses = (kind: "primary" | "promo" | "danger") => {
-    if (kind === "primary")
-      return "bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600";
+  const getButtonClasses = (kind: "promo" | "danger") => {
     if (kind === "promo")
       return "bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300";
     return "bg-red-50 hover:bg-red-100 text-red-700 border border-red-300";
@@ -1290,7 +1295,7 @@ function ProductCard({
           </span>
         </div>
 
-        {/* Action buttons (Available / Promo / Out of Stock) */}
+        {/* Action buttons (Promo / Out of Stock) */}
         <div
           className="mt-3 flex flex-wrap gap-1.5"
           onClick={(e) => e.stopPropagation()}
