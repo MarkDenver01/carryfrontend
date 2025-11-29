@@ -15,16 +15,14 @@ import {
   Layers,
   ShieldAlert,
   CheckCircle2,
-  Flame,
-  X,
   Tag,
   BarChart2,
   RefreshCw,
+  X,
 } from "lucide-react";
 
 import { getAllProducts } from "../../../libs/ApiGatewayDatasource";
 import type { ProductDTO } from "../../../libs/models/product/Product";
-import ProductLegendLayout from "../../../layout/product/ProductLegendLayout";
 
 /* =========================
    TYPES & CONSTANTS
@@ -56,7 +54,6 @@ interface EnrichedProduct {
   statusPriority: number;
   statusColorClass: string;
   statusSoftClass: string;
-  statusDescription: string;
 }
 
 const STATUS_ORDER: ExpiryStatus[] = [
@@ -78,17 +75,14 @@ const classifyByShelfLife = (
   priority: number;
   colorClass: string;
   softClass: string;
-  description: string;
 } => {
-  // Kulang / invalid data -> treat as "Good" pero may note sa description
+  // Kulang / invalid data -> treat as "Good" visually
   if (percentUsed === null || daysLeft === null) {
     return {
       status: "Good",
       priority: 3,
       colorClass: "border-sky-400",
       softClass: "bg-sky-100 text-sky-700",
-      description:
-        "Expiry data is incomplete. Please double-check product setup for accurate monitoring.",
     };
   }
 
@@ -99,8 +93,6 @@ const classifyByShelfLife = (
       priority: 0,
       colorClass: "border-red-500",
       softClass: "bg-red-100 text-red-700",
-      description:
-        "This product has already passed its expiry date and should be removed from active inventory.",
     };
   }
 
@@ -111,8 +103,6 @@ const classifyByShelfLife = (
       priority: 1,
       colorClass: "border-orange-500",
       softClass: "bg-orange-100 text-orange-700",
-      description:
-        "Above 75% of shelf-life used. High priority for promos, discounts, or clearance.",
     };
   }
 
@@ -123,8 +113,6 @@ const classifyByShelfLife = (
       priority: 2,
       colorClass: "border-amber-400",
       softClass: "bg-amber-100 text-amber-700",
-      description:
-        "More than half of shelf-life consumed. Monitor closely and prepare selling strategy.",
     };
   }
 
@@ -135,8 +123,6 @@ const classifyByShelfLife = (
       priority: 3,
       colorClass: "border-sky-400",
       softClass: "bg-sky-100 text-sky-700",
-      description:
-        "Product is within a healthy shelf window and can stay in normal rotation.",
     };
   }
 
@@ -146,8 +132,6 @@ const classifyByShelfLife = (
     priority: 4,
     colorClass: "border-emerald-500",
     softClass: "bg-emerald-100 text-emerald-700",
-    description:
-      "Newly stocked item with most of its shelf-life remaining. Ideal for future selling periods.",
   };
 };
 
@@ -253,13 +237,12 @@ export default function ProductReport() {
         statusPriority: statusInfo.priority,
         statusColorClass: statusInfo.colorClass,
         statusSoftClass: statusInfo.softClass,
-        statusDescription: statusInfo.description,
       };
     });
   }, [products]);
 
   /* =========================
-     SUMMARY & CATEGORY ANALYTICS
+     SUMMARY & CATEGORY
   ========================= */
 
   const summary = useMemo(() => {
@@ -289,46 +272,27 @@ export default function ProductReport() {
     [enrichedData]
   );
 
-  const categoryAnalytics = useMemo(
+  const categorySnapshots = useMemo(
     () =>
       uniqueCategories.map((cat) => {
         const items = enrichedData.filter((p) => p.category === cat);
-        if (!items.length)
-          return {
-            category: cat,
-            total: 0,
-            expired: 0,
-            nearExpiry: 0,
-            warning: 0,
-            avgDaysLeft: null as number | null,
-          };
 
-        let totalDays = 0;
-        let countWithDays = 0;
         let expired = 0;
-        let nearExpiry = 0;
-        let warning = 0;
+        let near = 0;
+        let warn = 0;
 
         items.forEach((p) => {
-          if (p.daysLeft !== null) {
-            totalDays += p.daysLeft;
-            countWithDays++;
-          }
           if (p.status === "Expired") expired++;
-          if (p.status === "Near Expiry") nearExpiry++;
-          if (p.status === "Warning") warning++;
+          if (p.status === "Near Expiry") near++;
+          if (p.status === "Warning") warn++;
         });
-
-        const avgDaysLeft =
-          countWithDays > 0 ? Math.round(totalDays / countWithDays) : null;
 
         return {
           category: cat,
           total: items.length,
           expired,
-          nearExpiry,
-          warning,
-          avgDaysLeft,
+          near,
+          warn,
         };
       }),
     [enrichedData, uniqueCategories]
@@ -461,7 +425,7 @@ export default function ProductReport() {
             for every product in one unified dashboard.
           </p>
 
-          {/* Auto-refresh capsule */}
+          {/* Refresh capsule */}
           <div className="flex items-center gap-2 text-[11px]">
             {lastUpdated && (
               <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
@@ -612,51 +576,71 @@ export default function ProductReport() {
             </div>
           </section>
 
-          {/* CATEGORY ANALYTICS ROW */}
-          {categoryAnalytics.length > 0 && (
-            <section className="rounded-2xl border border-slate-200 bg-white/80 p-4">
-              <div className="flex items-center justify-between mb-3">
+          {/* CATEGORY OVERVIEW – simplified chips */}
+          {categorySnapshots.length > 0 && (
+            <section className="rounded-2xl border border-slate-200 bg-white/80 p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Tag className="w-4 h-4 text-emerald-500" />
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                    Category Snapshots
+                    Category Overview
                   </p>
                 </div>
                 <p className="text-[11px] text-slate-400">
-                  Quick view of risk per category
+                  Tap a category to filter below
                 </p>
               </div>
-              <div className="flex gap-2 overflow-x-auto pb-1">
-                {categoryAnalytics.map((cat) => (
-                  <div
-                    key={cat.category}
-                    className="min-w-[180px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600 flex flex-col gap-1"
-                  >
-                    <p className="font-semibold text-slate-800 line-clamp-1">
-                      {cat.category}
-                    </p>
-                    <p>
-                      {cat.total} item{cat.total !== 1 ? "s" : ""} •{" "}
-                      <span className="text-red-500">
-                        {cat.expired} expired
+
+              <div className="flex flex-wrap gap-2">
+                {categorySnapshots.map((catSnap) => {
+                  const isActive = categoryFilter === catSnap.category;
+                  const risky =
+                    catSnap.expired + catSnap.near + catSnap.warn > 0;
+
+                  return (
+                    <button
+                      key={catSnap.category}
+                      onClick={() =>
+                        setCategoryFilter(
+                          isActive ? "All" : catSnap.category
+                        )
+                      }
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] transition ${
+                        isActive
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm"
+                          : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
+                      }`}
+                      type="button"
+                    >
+                      <span className="font-semibold text-xs">
+                        {catSnap.category}
                       </span>
-                      ,{" "}
-                      <span className="text-orange-500">
-                        {cat.nearExpiry} near
+                      <span className="text-slate-400">
+                        • {catSnap.total} item
+                        {catSnap.total !== 1 ? "s" : ""}
                       </span>
-                      ,{" "}
-                      <span className="text-amber-600">
-                        {cat.warning} warning
-                      </span>
-                    </p>
-                    <p className="text-[10px] text-slate-400">
-                      Avg days left:{" "}
-                      {cat.avgDaysLeft !== null
-                        ? `${cat.avgDaysLeft}d`
-                        : "N/A"}
-                    </p>
-                  </div>
-                ))}
+                      {risky && (
+                        <span className="inline-flex items-center gap-1">
+                          {catSnap.expired > 0 && (
+                            <span className="text-red-500">
+                              E:{catSnap.expired}
+                            </span>
+                          )}
+                          {catSnap.near > 0 && (
+                            <span className="text-orange-500">
+                              N:{catSnap.near}
+                            </span>
+                          )}
+                          {catSnap.warn > 0 && (
+                            <span className="text-amber-500">
+                              W:{catSnap.warn}
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </section>
           )}
@@ -871,7 +855,7 @@ export default function ProductReport() {
                           </span>
                         </h2>
                       </div>
-                      {minDays !== null && (
+                      {minDays !== null && status !== "Expired" && (
                         <p className="text-[11px] text-slate-400">
                           Soonest expiry in{" "}
                           <span className="font-semibold text-slate-700">
@@ -897,12 +881,11 @@ export default function ProductReport() {
             )}
           </div>
 
-          {/* NOTE + LEGEND */}
+          {/* NOTE */}
           <div className="mt-4 text-xs text-slate-500 flex items-start gap-2">
             <Info className="w-3.5 h-3.5 mt-0.5 text-emerald-500" />
             <p>
-              Shelf-life status is based on the percentage of time consumed
-              between{" "}
+              Expiry status is based on the time between{" "}
               <span className="font-semibold text-emerald-500">
                 Stock-In Date
               </span>{" "}
@@ -910,20 +893,18 @@ export default function ProductReport() {
               <span className="font-semibold text-emerald-500">
                 Expiry Date
               </span>
-              , with{" "}
-              <span className="font-semibold text-red-500">Expired</span> and{" "}
+              . Products marked{" "}
+              <span className="font-semibold text-red-500">Expired</span> or{" "}
               <span className="font-semibold text-orange-500">
                 Near Expiry
               </span>{" "}
-              products automatically prioritized.
+              should be prioritized for removal or promotions.
             </p>
           </div>
-
-          <ProductLegendLayout />
         </div>
       </motion.div>
 
-      {/* RIGHT-SIDE DRAWER (gaya ng Riders Profile) */}
+      {/* RIGHT-SIDE DRAWER (gaya ng Riders Profile, simplified) */}
       {selectedProduct && (
         <div className="fixed inset-0 z-40 flex">
           <div
@@ -947,7 +928,7 @@ export default function ProductReport() {
                   <h2 className="text-lg font-bold text-slate-50">
                     Product Details
                   </h2>
-                  <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                  <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-1">
                     <Layers className="w-3 h-3 text-emerald-400" />
                     {selectedProduct.category}
                   </p>
@@ -1166,7 +1147,7 @@ function getInsightTags(p: EnrichedProduct): string[] {
 }
 
 /* =========================
-   DRAWER CONTENT
+   DRAWER CONTENT (simplified)
 ========================= */
 
 function DrawerContent({ product }: { product: EnrichedProduct }) {
@@ -1178,20 +1159,27 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
     expiryDate,
     daysLeft,
     percentUsed,
-    shelfLifeDays,
-    elapsedDays,
     status,
-    statusSoftClass,
-    statusDescription,
   } = product;
 
-  const percent = percentUsed !== null ? clamp(percentUsed, 0, 1) * 100 : 0;
   const daysLeftLabel =
     daysLeft === null ? "N/A" : `${daysLeft} day${daysLeft === 1 ? "" : "s"}`;
 
+  const freshnessLabel = (() => {
+    if (percentUsed === null) return "Not computed";
+    const pct = clamp(percentUsed, 0, 1) * 100;
+    if (pct < 25) return "Very fresh";
+    if (pct < 50) return "Early shelf";
+    if (pct < 75) return "Mid shelf";
+    if (pct < 100) return "Late shelf";
+    return "Past expiry";
+  })();
+
+  const insights = getInsightTags(product);
+
   return (
     <div className="flex flex-col gap-4">
-      {/* HEADER BLOCK - styled like Rider drawer */}
+      {/* HEADER BLOCK */}
       <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/80 flex items-start gap-3">
         <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-300 to-teal-300 text-emerald-950 flex items-center justify-center font-bold text-xl shadow-lg shadow-emerald-500/40">
           {name.charAt(0).toUpperCase()}
@@ -1208,7 +1196,17 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
               </p>
             </div>
             <span
-              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold ${statusSoftClass}`}
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold ${
+                status === "Expired"
+                  ? "bg-red-100 text-red-700"
+                  : status === "Near Expiry"
+                  ? "bg-orange-100 text-orange-700"
+                  : status === "Warning"
+                  ? "bg-amber-100 text-amber-700"
+                  : status === "Good"
+                  ? "bg-sky-100 text-sky-700"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}
             >
               {status === "Expired" && "❌"}
               {status === "Near Expiry" && "⏳"}
@@ -1226,7 +1224,7 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
               <span className="font-semibold text-slate-50">{stock}</span>
             </div>
             <div className="flex items-center gap-1">
-              <Flame className="w-4 h-4 text-orange-400" />
+              <Clock className="w-4 h-4 text-slate-300" />
               <span>Days left:</span>
               <span className="font-semibold text-slate-50">
                 {daysLeftLabel}
@@ -1236,81 +1234,56 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
         </div>
       </div>
 
-      {/* QUICK STATS GRID */}
-      <div className="grid grid-cols-3 gap-3">
-        <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
-          <p className="text-[11px] text-slate-400">Shelf used</p>
-          <p className="font-semibold text-slate-50 mt-1">
-            {percentUsed === null ? "N/A" : `${percent.toFixed(1)}%`}
-          </p>
-        </div>
-        <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
-          <p className="text-[11px] text-slate-400">Elapsed</p>
-          <p className="font-semibold text-slate-50 mt-1">
-            {elapsedDays !== null ? `${elapsedDays} days` : "N/A"}
-          </p>
-        </div>
-        <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
-          <p className="text-[11px] text-slate-400">Shelf-life</p>
-          <p className="font-semibold text-slate-50 mt-1">
-            {shelfLifeDays !== null ? `${shelfLifeDays} days` : "N/A"}
-          </p>
+      {/* KEY INFO CARD */}
+      <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/70">
+        <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-2">
+          Key Info
+        </p>
+        <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-300">
+          <div>
+            <p className="text-slate-400">Stock-In Date</p>
+            <p className="font-semibold text-slate-50">
+              {stockInDate ? dayjs(stockInDate).format("MMM D, YYYY") : "N/A"}
+            </p>
+          </div>
+          <div>
+            <p className="text-slate-400">Expiry Date</p>
+            <p className="font-semibold text-slate-50">
+              {expiryDate ? dayjs(expiryDate).format("MMM D, YYYY") : "N/A"}
+            </p>
+          </div>
+          <div>
+            <p className="text-slate-400">Days Left</p>
+            <p className="font-semibold text-slate-50">{daysLeftLabel}</p>
+          </div>
+          <div>
+            <p className="text-slate-400">Freshness</p>
+            <p className="font-semibold text-slate-50">{freshnessLabel}</p>
+          </div>
         </div>
       </div>
 
-      {/* Shelf-life timeline */}
+      {/* SMART INSIGHTS */}
       <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/70">
-        <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-1">
-          Shelf-life Timeline
+        <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-2">
+          Smart Insights
         </p>
-        <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
-          <div
-            className={`h-2.5 rounded-full ${
-              status === "Expired"
-                ? "bg-red-500"
-                : status === "Near Expiry"
-                ? "bg-orange-500"
-                : status === "Warning"
-                ? "bg-amber-400"
-                : status === "Good"
-                ? "bg-sky-400"
-                : "bg-emerald-500"
-            }`}
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-        <div className="flex justify-between text-[11px] text-slate-400 mt-2">
-          <span>
-            {stockInDate
-              ? `Stock-in: ${dayjs(stockInDate).format("MMM D, YYYY")}`
-              : "Stock-in: N/A"}
-          </span>
-          <span>
-            {expiryDate
-              ? `Expiry: ${dayjs(expiryDate).format("MMM D, YYYY")}`
-              : "Expiry: N/A"}
-          </span>
-        </div>
-        <div className="flex justify-between text-[11px] text-slate-400 mt-1">
-          <span>
-            Elapsed:{" "}
-            {elapsedDays !== null ? `${elapsedDays} days` : "N/A"}
-          </span>
-          <span>
-            Shelf-life:{" "}
-            {shelfLifeDays !== null ? `${shelfLifeDays} days` : "N/A"}
-          </span>
-        </div>
-      </div>
-
-      {/* Status explanation */}
-      <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/70">
-        <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-1">
-          Status Explanation
-        </p>
-        <p className="text-[11px] text-slate-200 leading-relaxed">
-          {statusDescription}
-        </p>
+        {insights.length === 0 ? (
+          <p className="text-[11px] text-slate-300">
+            This item looks healthy in terms of expiry and stock.
+          </p>
+        ) : (
+          <div className="flex flex-wrap gap-1.5">
+            {insights.map((tag, idx) => (
+              <span
+                key={idx}
+                className="px-2 py-0.5 rounded-full bg-slate-800 text-[11px] text-slate-100 border border-slate-600/70"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Placeholder actions (UI only) */}
