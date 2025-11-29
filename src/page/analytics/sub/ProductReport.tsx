@@ -1,26 +1,29 @@
+// src/page/analytics/sub/ProductReport.tsx
 import React, { useEffect, useMemo, useState } from "react";
+import { motion } from "framer-motion";
 import { Dropdown, DropdownItem } from "flowbite-react";
-import {
-  ChevronDown,
-  Sun,
-  Moon,
-  AlertTriangle,
-  AlertCircle,
-  Leaf,
-  Clock,
-  BarChart2,
-  Grid3X3,
-  Filter,
-  RefreshCcw,
-  X,
-  Info,
-} from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import dayjs from "dayjs";
 
-import ProductLegendLayout from "../../../layout/product/ProductLegendLayout";
+import {
+  Search,
+  ChevronDown,
+  Filter,
+  Package,
+  AlertTriangle,
+  Clock,
+  Info,
+  Layers,
+  ShieldAlert,
+  CheckCircle2,
+  Flame,
+  X,
+  Tag,
+  BarChart2,
+} from "lucide-react";
+
 import { getAllProducts } from "../../../libs/ApiGatewayDatasource";
 import type { ProductDTO } from "../../../libs/models/product/Product";
+import ProductLegendLayout from "../../../layout/product/ProductLegendLayout";
 
 // =================== TYPES & CONSTANTS ===================
 
@@ -31,8 +34,7 @@ type ExpiryStatus =
   | "Good"
   | "Warning"
   | "Near Expiry"
-  | "Expired"
-  | "No Expiry";
+  | "Expired";
 
 interface EnrichedProduct {
   id: string; // derived key
@@ -42,33 +44,28 @@ interface EnrichedProduct {
   stockInDate: string | null;
   expiryDate: string | null;
 
-  // computed
   daysLeft: number | null;
   shelfLifeDays: number | null;
   elapsedDays: number | null;
   percentUsed: number | null; // 0–1
+
   status: ExpiryStatus;
   statusPriority: number;
-  statusColorClass: string;
-  statusSoftClass: string;
+  statusColorClass: string; // border color
+  statusSoftClass: string; // badge bg/text
   statusDescription: string;
 }
 
-// ordering for sections
 const STATUS_ORDER: ExpiryStatus[] = [
   "Expired",
   "Near Expiry",
   "Warning",
   "Good",
   "New Stocks",
-  "No Expiry",
 ];
 
-// helper
 const clamp = (val: number, min: number, max: number) =>
   Math.min(max, Math.max(min, val));
-
-// =================== STATUS CLASSIFICATION ===================
 
 const classifyByShelfLife = (
   percentUsed: number | null,
@@ -80,19 +77,19 @@ const classifyByShelfLife = (
   softClass: string;
   description: string;
 } => {
-  // invalid data
+  // Kulang / invalid data -> treat as "Good" pero may warning sa description
   if (percentUsed === null || daysLeft === null) {
     return {
-      status: "No Expiry",
-      priority: 5,
-      colorClass: "border-slate-300",
-      softClass: "bg-slate-100 text-slate-700",
+      status: "Good",
+      priority: 3,
+      colorClass: "border-sky-400",
+      softClass: "bg-sky-100 text-sky-700",
       description:
-        "No valid expiry information recorded for this item (dry goods / non-perishable or incomplete data).",
+        "Expiry data is incomplete. Please double-check product setup for accurate monitoring.",
     };
   }
 
-  // expired always wins
+  // Expired
   if (daysLeft <= 0 || percentUsed >= 1) {
     return {
       status: "Expired",
@@ -100,10 +97,11 @@ const classifyByShelfLife = (
       colorClass: "border-red-500",
       softClass: "bg-red-100 text-red-700",
       description:
-        "This item has already reached or passed its expiry date and should be removed from active inventory.",
+        "This product has already passed its expiry date and should be removed from active inventory.",
     };
   }
 
+  // Near Expiry
   if (percentUsed >= 0.75) {
     return {
       status: "Near Expiry",
@@ -111,10 +109,11 @@ const classifyByShelfLife = (
       colorClass: "border-orange-500",
       softClass: "bg-orange-100 text-orange-700",
       description:
-        "This item is very close to its expiry date (above 75% of its shelf-life consumed). Prioritize selling or discounting.",
+        "Above 75% of shelf-life used. High priority for promos, discounts, or clearance.",
     };
   }
 
+  // Warning
   if (percentUsed >= 0.5) {
     return {
       status: "Warning",
@@ -122,10 +121,11 @@ const classifyByShelfLife = (
       colorClass: "border-amber-400",
       softClass: "bg-amber-100 text-amber-700",
       description:
-        "This item has consumed over half of its shelf-life. Monitor closely and plan future promotions.",
+        "More than half of shelf-life consumed. Monitor closely and prepare selling strategy.",
     };
   }
 
+  // Good
   if (percentUsed >= 0.25) {
     return {
       status: "Good",
@@ -133,11 +133,11 @@ const classifyByShelfLife = (
       colorClass: "border-sky-400",
       softClass: "bg-sky-100 text-sky-700",
       description:
-        "This item is within a healthy shelf window and is safe to keep in standard rotation.",
+        "Product is within a healthy shelf window and can stay in normal rotation.",
     };
   }
 
-  // < 25%
+  // New Stocks
   return {
     status: "New Stocks",
     priority: 4,
@@ -151,15 +151,12 @@ const classifyByShelfLife = (
 // =================== MAIN COMPONENT ===================
 
 export default function ProductReport() {
-  const [darkMode, setDarkMode] = useState(false);
-  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   const [statusFilter, setStatusFilter] = useState<ExpiryStatus | "All">("All");
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [sortBy, setSortBy] = useState<SortOption>("Urgency");
   const [search, setSearch] = useState("");
-
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
@@ -168,7 +165,15 @@ export default function ProductReport() {
     null
   );
 
-  // fetch products (UI lang, API call unchanged)
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCursorPos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
+
+  // Fetch products (pure UI, backend call unchanged)
   const fetchProducts = async () => {
     try {
       setLoadingProducts(true);
@@ -185,24 +190,16 @@ export default function ProductReport() {
     fetchProducts();
   }, []);
 
-  // auto-refresh every 60s if enabled (UI option lang)
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const id = setInterval(() => {
-      fetchProducts();
-    }, 60000);
-    return () => clearInterval(id);
-  }, [autoRefresh]);
-
-  // map to enriched data (UI-side compute lang)
+  // Map to enriched data
   const enrichedData: EnrichedProduct[] = useMemo(() => {
     const today = dayjs();
+
     return products.map((p, index) => {
       const name = p.productName;
       const category = p.categoryName ?? "Uncategorized";
-      const stock = p.stocks ?? 0;
+      const stock = (p as any).stocks ?? 0;
 
-      // UI-safe access: hindi natin binabago ProductDTO definition
+      // Frontend-only fields, hindi natin gagalawin DTO definition
       const stockInDateStr = (p as any).stockInDate ?? null;
       const expiryDateStr = (p as any).expiryDate ?? null;
 
@@ -216,22 +213,14 @@ export default function ProductReport() {
         const expiry = dayjs(expiryDateStr);
 
         if (stockIn.isValid() && expiry.isValid() && expiry.isAfter(stockIn)) {
-          // shelf-life in days
           shelfLifeDays = expiry.diff(stockIn, "day");
-          // elapsed days since stock-in
           elapsedDays = today.diff(stockIn, "day");
-          // use hour-based diff for daysLeft (round up)
+
           const diffHours = expiry.diff(today, "hour");
           daysLeft = Math.ceil(diffHours / 24);
-          // clamp elapsed to [0, shelfLife]
+
           const safeElapsed = clamp(elapsedDays, 0, shelfLifeDays);
-          percentUsed = clamp(safeElapsed / shelfLifeDays, 0, 1.5); // allow slight overshoot
-        } else {
-          // invalid relation
-          daysLeft = null;
-          shelfLifeDays = null;
-          elapsedDays = null;
-          percentUsed = null;
+          percentUsed = clamp(safeElapsed / shelfLifeDays, 0, 1.5);
         }
       }
 
@@ -257,7 +246,7 @@ export default function ProductReport() {
     });
   }, [products]);
 
-  // unique categories
+  // Unique categories
   const uniqueCategories = useMemo(
     () =>
       Array.from(new Set(enrichedData.map((p) => p.category)))
@@ -266,7 +255,7 @@ export default function ProductReport() {
     [enrichedData]
   );
 
-  // summary metrics
+  // Summary metrics
   const summary = useMemo(() => {
     const counts: Record<ExpiryStatus, number> = {
       "New Stocks": 0,
@@ -274,7 +263,6 @@ export default function ProductReport() {
       Warning: 0,
       "Near Expiry": 0,
       Expired: 0,
-      "No Expiry": 0,
     };
 
     enrichedData.forEach((item) => {
@@ -282,77 +270,23 @@ export default function ProductReport() {
     });
 
     const total = enrichedData.length;
-    return { total, counts };
+    const expiringSoon = counts["Expired"] + counts["Near Expiry"];
+
+    return { total, counts, expiringSoon };
   }, [enrichedData]);
 
-  // bar buckets: expiries in next 30 days (for our custom mini bars)
-  const expiriesBuckets = useMemo(() => {
-    const daysRange = 30;
-    const buckets = new Array(daysRange).fill(0) as number[];
-
-    enrichedData.forEach((item) => {
-      if (item.daysLeft === null) return;
-      if (item.daysLeft < 0 || item.daysLeft >= daysRange) return;
-      buckets[item.daysLeft] += 1;
-    });
-
-    return buckets;
-  }, [enrichedData]);
-
-  // heatmap data (next 14 days)
-  const heatmapDays = useMemo(() => {
-    const range = 14;
-    const arr: { label: string; count: number; date: string }[] = [];
-    const today = dayjs();
-
-    for (let i = 0; i < range; i++) {
-      const date = today.add(i, "day");
-      let count = 0;
-      enrichedData.forEach((item) => {
-        if (!item.expiryDate) return;
-        const exp = dayjs(item.expiryDate);
-        if (exp.isSame(date, "day")) count++;
-      });
-
-      arr.push({
-        label: date.format("MMM D"),
-        count,
-        date: date.toISOString(),
-      });
-    }
-    return arr;
-  }, [enrichedData]);
-
-  const maxHeatCount = useMemo(
-    () => heatmapDays.reduce((m, d) => Math.max(m, d.count), 0),
-    [heatmapDays]
-  );
-
-  const getHeatColor = (count: number) => {
-    if (count === 0) return "bg-slate-100 text-slate-400";
-    if (maxHeatCount === 0) return "bg-slate-100 text-slate-400";
-    const intensity = count / maxHeatCount;
-    if (intensity > 0.75) return "bg-red-500 text-white";
-    if (intensity > 0.5) return "bg-orange-400 text-white";
-    if (intensity > 0.25) return "bg-amber-300 text-slate-800";
-    return "bg-emerald-200 text-emerald-900";
-  };
-
-  // global filtered & sorted products
+  // Filter + sort
   const filteredAndSorted = useMemo(() => {
     let data = enrichedData;
 
-    // status filter
     if (statusFilter !== "All") {
       data = data.filter((item) => item.status === statusFilter);
     }
 
-    // category filter
     if (categoryFilter !== "All") {
       data = data.filter((item) => item.category === categoryFilter);
     }
 
-    // search filter
     if (search.trim()) {
       const s = search.toLowerCase();
       data = data.filter(
@@ -362,10 +296,8 @@ export default function ProductReport() {
       );
     }
 
-    // sort
     data = [...data].sort((a, b) => {
       if (sortBy === "Urgency") {
-        // by status priority then daysLeft
         if (a.statusPriority !== b.statusPriority) {
           return a.statusPriority - b.statusPriority;
         }
@@ -390,7 +322,6 @@ export default function ProductReport() {
         return b.stock - a.stock;
       }
 
-      // DaysLeft
       const aVal =
         a.daysLeft === null ? Number.POSITIVE_INFINITY : a.daysLeft;
       const bVal =
@@ -401,619 +332,478 @@ export default function ProductReport() {
     return data;
   }, [enrichedData, statusFilter, categoryFilter, sortBy, search]);
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setCursorPos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
-  };
+  const visibleCount = filteredAndSorted.length;
 
-  const containerBg = darkMode ? "bg-slate-950" : "bg-slate-50";
-  const containerText = darkMode ? "text-slate-50" : "text-slate-900";
-  const cardBg = darkMode ? "bg-slate-900/80" : "bg-white";
-  const cardBorder = darkMode ? "border-slate-700" : "border-slate-200";
+  // =================== RENDER ===================
 
   return (
-    <div className={darkMode ? "dark" : ""}>
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        onMouseMove={handleMouseMove}
-        className={`relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden min-h-screen ${containerBg} ${containerText}`}
-      >
-        {/* SPOTLIGHT BACKGROUND */}
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
+      onMouseMove={handleMouseMove}
+    >
+      {/* HUD GRID BACKDROP (gaya ng Riders) */}
+      <div className="pointer-events-none absolute inset-0 -z-30">
+        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.85)_0px,rgba(15,23,42,0.85)_1px,transparent_1px,transparent_3px)]" />
+
         <motion.div
-          className="pointer-events-none absolute inset-0 -z-20"
-          style={{
-            background: `radial-gradient(520px at ${cursorPos.x}px ${cursorPos.y}px, rgba(16,185,129,0.22), transparent 70%)`,
+          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/28 blur-3xl"
+          animate={{
+            x: [0, 20, 10, -5, 0],
+            y: [0, 10, 20, 5, 0],
+            borderRadius: ["45%", "60%", "55%", "65%", "45%"],
           }}
-          animate={{ opacity: [0.85, 1, 0.9] }}
-          transition={{ duration: 10, repeat: Infinity }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* HEADER BAR */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <motion.h1
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4 }}
-              className="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 via-sky-400 to-green-600 bg-clip-text text-transparent"
-            >
-              Expiry Radar Dashboard
-            </motion.h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-xl">
-              Card-based overview of product shelf-life, expiry risks, and stock
-              health — all in a single page, with status-driven grouping.
-            </p>
-          </div>
+        <motion.div
+          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/24 blur-3xl"
+          animate={{
+            x: [0, -15, -25, -10, 0],
+            y: [0, -10, -20, -5, 0],
+            borderRadius: ["50%", "65%", "55%", "70%", "50%"],
+          }}
+          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
 
-          <div className="flex items-center gap-3">
-            {/* Auto refresh */}
-            <button
-              onClick={() => setAutoRefresh((prev) => !prev)}
-              className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border ${
-                autoRefresh
-                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                  : "border-slate-300 bg-slate-100 text-slate-600"
-              }`}
-            >
-              <RefreshCcw className="w-3.5 h-3.5" />
-              Auto-refresh 60s
-            </button>
+      {/* SPOTLIGHT FOLLOWING CURSOR */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 -z-20"
+        style={{
+          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)`,
+        }}
+      />
 
-            {/* Dark mode */}
-            <button
-              onClick={() => setDarkMode((prev) => !prev)}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-slate-300 bg-slate-100 text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
-            >
-              {darkMode ? (
-                <>
-                  <Sun className="w-4 h-4 text-amber-300" />
-                  Light
-                </>
-              ) : (
-                <>
-                  <Moon className="w-4 h-4 text-sky-500" />
-                  Dark
-                </>
-              )}
-            </button>
-          </div>
+      {/* HEADER */}
+      <div className="relative flex flex-col gap-3">
+        <motion.h1
+          initial={{ opacity: 0, x: -18 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent"
+        >
+          Product Expiry Monitor
+        </motion.h1>
+
+        <p className="text-gray-500 text-sm max-w-xl">
+          Track{" "}
+          <span className="font-medium text-emerald-700">
+            shelf-life, expiry risks, and stock freshness
+          </span>{" "}
+          for all products in one dashboard.
+        </p>
+
+        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
+      </div>
+
+      {/* MAIN CARD (same style as Riders) */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative rounded-[26px] border border-emerald-500/30 bg-white/90 shadow-[0_22px_70px_rgba(15,23,42,0.40)] overflow-hidden"
+      >
+        {/* Outer brackets */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
+          <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
+          <div className="absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-emerald-400/80" />
+          <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-400/80" />
         </div>
 
-        {/* TOP SUMMARY / MINI-CHARTS ROW (PURE UI) */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Status Summary Card */}
-          <div
-            className={`col-span-1 rounded-2xl border ${cardBorder} ${cardBg} shadow-sm p-4 flex flex-col gap-3`}
-          >
+        <div className="relative flex flex-col gap-8 p-5 md:p-6 lg:p-7">
+          {/* scanning line */}
+          <motion.div
+            className="pointer-events-none absolute top-10 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-70"
+            animate={{ x: ["-20%", "20%", "-20%"] }}
+            transition={{ duration: 5, repeat: Infinity }}
+          />
+
+          {/* SUMMARY ROW (NO CHART.JS) */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <SummaryCard
+              icon={<Package className="w-7 h-7" />}
+              label="Total Products"
+              value={summary.total.toString()}
+              accent="All active SKUs monitored"
+              color="emerald"
+            />
+            <SummaryCard
+              icon={<ShieldAlert className="w-7 h-7" />}
+              label="Expiring / Expired"
+              value={summary.expiringSoon.toString()}
+              accent="Expired + Near Expiry"
+              color="rose"
+            />
+            <SummaryCard
+              icon={<AlertTriangle className="w-7 h-7" />}
+              label="Warning Stocks"
+              value={summary.counts["Warning"].toString()}
+              accent="Need close monitoring"
+              color="amber"
+            />
+            <SummaryCard
+              icon={<CheckCircle2 className="w-7 h-7" />}
+              label="Healthy / New"
+              value={(
+                summary.counts["Good"] + summary.counts["New Stocks"]
+              ).toString()}
+              accent="Good shelf-life window"
+              color="indigo"
+            />
+          </section>
+
+          {/* STATUS OVERVIEW (compact, top-level picture) */}
+          <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <BarChart2 className="w-4 h-4 text-emerald-400" />
-                <p className="text-xs font-semibold uppercase tracking-wide">
+                <Layers className="w-4 h-4 text-emerald-500" />
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
                   Status Overview
                 </p>
               </div>
-              <span className="text-[11px] text-slate-400">
-                Total tracked: {summary.total}
+              <span className="text-[11px] text-slate-500">
+                Showing{" "}
+                <span className="font-semibold text-emerald-600">
+                  {visibleCount}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-slate-700">
+                  {summary.total}
+                </span>{" "}
+                products
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 mt-1 text-[11px]">
-              <StatusSummaryRow
-                label="Expired"
-                value={summary.counts["Expired"]}
-                colorClass="text-red-500"
-                pillClass="bg-red-100 text-red-700"
-              />
-              <StatusSummaryRow
-                label="Near Expiry"
-                value={summary.counts["Near Expiry"]}
-                colorClass="text-orange-500"
-                pillClass="bg-orange-100 text-orange-700"
-              />
-              <StatusSummaryRow
-                label="Warning"
-                value={summary.counts["Warning"]}
-                colorClass="text-amber-500"
-                pillClass="bg-amber-100 text-amber-700"
-              />
-              <StatusSummaryRow
-                label="Good"
-                value={summary.counts["Good"]}
-                colorClass="text-sky-500"
-                pillClass="bg-sky-100 text-sky-700"
-              />
-              <StatusSummaryRow
-                label="New Stocks"
-                value={summary.counts["New Stocks"]}
-                colorClass="text-emerald-500"
-                pillClass="bg-emerald-100 text-emerald-700"
-              />
-              <StatusSummaryRow
-                label="No Expiry"
-                value={summary.counts["No Expiry"]}
-                colorClass="text-slate-500"
-                pillClass="bg-slate-100 text-slate-700"
-              />
-            </div>
+            <div className="flex flex-wrap gap-2">
+              {STATUS_ORDER.map((status) => {
+                const count = summary.counts[status];
+                const icon =
+                  status === "Expired"
+                    ? "❌"
+                    : status === "Near Expiry"
+                    ? "⏳"
+                    : status === "Warning"
+                    ? "⚠️"
+                    : status === "Good"
+                    ? "✅"
+                    : "🆕";
 
-            {/* Simple “ring style” summary using CSS only */}
-            <div className="mt-3 flex items-center justify-between text-[11px] text-slate-400">
-              <p>High risk share</p>
-              <div className="flex items-center gap-2">
-                <MiniRing
-                  value={
-                    summary.total === 0
-                      ? 0
-                      : Math.round(
-                          ((summary.counts["Expired"] +
-                            summary.counts["Near Expiry"] +
-                            summary.counts["Warning"]) /
-                            summary.total) *
-                            100
-                        )
-                  }
-                />
-                <span className="font-semibold text-slate-700 dark:text-slate-100">
-                  {summary.total === 0
-                    ? "0%"
-                    : Math.round(
-                        ((summary.counts["Expired"] +
-                          summary.counts["Near Expiry"] +
-                          summary.counts["Warning"]) /
-                          summary.total) *
-                          100
-                      ) + "%"}
-                </span>
-              </div>
-            </div>
-          </div>
+                const base =
+                  "px-3 py-1.5 rounded-full text-xs font-medium border inline-flex items-center gap-2";
 
-          {/* Expiry Trend Card (Next 30 Days) */}
-          <div
-            className={`col-span-2 rounded-2xl border ${cardBorder} ${cardBg} shadow-sm p-4 flex flex-col gap-3`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-sky-400" />
-                <p className="text-xs font-semibold uppercase tracking-wide">
-                  Expiries in Next 30 Days
-                </p>
-              </div>
-              <span className="text-[11px] text-slate-400">
-                Focus on spikes to plan promos
-              </span>
-            </div>
+                const colorClass =
+                  status === "Expired"
+                    ? "border-red-300 bg-red-50 text-red-700"
+                    : status === "Near Expiry"
+                    ? "border-orange-300 bg-orange-50 text-orange-700"
+                    : status === "Warning"
+                    ? "border-amber-300 bg-amber-50 text-amber-700"
+                    : status === "Good"
+                    ? "border-sky-300 bg-sky-50 text-sky-700"
+                    : "border-emerald-300 bg-emerald-50 text-emerald-700";
 
-            <ExpiryMiniBars buckets={expiriesBuckets} darkMode={darkMode} />
-          </div>
-        </div>
-
-        {/* HEATMAP + FILTERS */}
-        <div className="flex flex-col xl:flex-row gap-4">
-          {/* Heatmap */}
-          <div
-            className={`w-full xl:w-2/5 rounded-2xl border ${cardBorder} ${cardBg} shadow-sm p-4 flex flex-col gap-3`}
-          >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-orange-400" />
-                <p className="text-xs font-semibold uppercase tracking-wide">
-                  14-Day Expiry Heatmap
-                </p>
-              </div>
-              <span className="text-[11px] text-slate-400">
-                Darker = more items expiring
-              </span>
-            </div>
-            <div className="grid grid-cols-7 gap-1 mt-1">
-              {heatmapDays.map((d, idx) => (
-                <div key={d.date} className="flex flex-col items-center gap-1">
-                  <div
-                    className={`w-7 h-7 rounded-md flex items-center justify-center text-[11px] font-semibold ${getHeatColor(
-                      d.count
-                    )}`}
-                  >
-                    {d.count || ""}
+                return (
+                  <div key={status} className={`${base} ${colorClass}`}>
+                    <span>{icon}</span>
+                    <span>{status}</span>
+                    <span className="text-[11px] opacity-80">
+                      {count} item{count !== 1 ? "s" : ""}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-slate-400">
-                    {idx % 2 === 0 ? dayjs(d.date).format("D") : ""}
-                  </span>
-                </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* FILTERS */}
+          <div className="flex flex-col gap-4">
+            {/* top filters row */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="flex items-center gap-3 w-full md:w-auto">
+                {/* Status filter dropdown */}
+                <Dropdown
+                  dismissOnClick
+                  renderTrigger={() => (
+                    <button className="flex items-center gap-2 border border-emerald-500 bg-emerald-50 text-emerald-900 font-semibold text-xs sm:text-sm px-4 py-2 rounded-full shadow hover:bg-emerald-100 transition">
+                      <Filter className="w-4 h-4" />
+                      Status: {statusFilter}
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  )}
+                >
+                  {["All", ...STATUS_ORDER].map((s) => (
+                    <DropdownItem
+                      key={s}
+                      onClick={() => setStatusFilter(s as any)}
+                    >
+                      {s}
+                    </DropdownItem>
+                  ))}
+                </Dropdown>
+
+                {/* Sort dropdown */}
+                <Dropdown
+                  dismissOnClick
+                  renderTrigger={() => (
+                    <button className="flex items-center gap-2 border border-gray-300 bg-white text-gray-800 font-medium text-xs sm:text-sm px-4 py-2 rounded-full shadow-sm hover:bg-gray-50 transition">
+                      <BarChart2 className="w-4 h-4" />
+                      Sort: {sortBy}
+                      <ChevronDown className="w-4 h-4" />
+                    </button>
+                  )}
+                >
+                  <DropdownItem onClick={() => setSortBy("Urgency")}>
+                    Urgency (Status & Days Left)
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setSortBy("Name")}>
+                    Product Name (A–Z)
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setSortBy("Category")}>
+                    Category
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setSortBy("Stock")}>
+                    Stock (High → Low)
+                  </DropdownItem>
+                  <DropdownItem onClick={() => setSortBy("DaysLeft")}>
+                    Days Left (Low → High)
+                  </DropdownItem>
+                </Dropdown>
+              </div>
+
+              {/* Search */}
+              <div className="relative w-full max-w-xs">
+                <input
+                  type="text"
+                  placeholder="Search product or category..."
+                  className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+                <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
+              </div>
+            </div>
+
+            {/* Status chips (quick filter) */}
+            <div className="flex flex-wrap gap-2">
+              {(["All", ...STATUS_ORDER] as (ExpiryStatus | "All")[]).map(
+                (st) => {
+                  const isActive = statusFilter === st;
+
+                  const icon =
+                    st === "Expired"
+                      ? "❌"
+                      : st === "Near Expiry"
+                      ? "⏳"
+                      : st === "Warning"
+                      ? "⚠️"
+                      : st === "Good"
+                      ? "✅"
+                      : st === "New Stocks"
+                      ? "🆕"
+                      : "🌈";
+
+                  return (
+                    <button
+                      key={st}
+                      onClick={() => setStatusFilter(st)}
+                      className={`px-3 py-1.5 rounded-full text-xs font-medium border inline-flex items-center gap-1 cursor-pointer transition
+                      ${
+                        isActive
+                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm"
+                          : "border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-50"
+                      }`}
+                    >
+                      <span>{icon}</span>
+                      <span>{st}</span>
+                    </button>
+                  );
+                }
+              )}
+            </div>
+
+            {/* Category chips */}
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-[11px] text-slate-400 flex items-center gap-1">
+                <Tag className="w-3 h-3 text-emerald-500" />
+                Categories:
+              </span>
+              <button
+                onClick={() => setCategoryFilter("All")}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border inline-flex items-center gap-1 transition
+                ${
+                  categoryFilter === "All"
+                    ? "border-sky-500 bg-sky-50 text-sky-700"
+                    : "border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-50"
+                }`}
+              >
+                All
+              </button>
+              {uniqueCategories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setCategoryFilter(cat)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-medium border inline-flex items-center gap-1 transition
+                  ${
+                    categoryFilter === cat
+                      ? "border-sky-500 bg-sky-50 text-sky-700"
+                      : "border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  {cat}
+                </button>
               ))}
             </div>
           </div>
 
-          {/* FILTERS */}
-          <div
-            className={`w-full xl:flex-1 rounded-2xl border ${cardBorder} ${cardBg} shadow-sm p-4 flex flex-col gap-3`}
-          >
-            <div className="flex items-center justify-between mb-1">
-              <div className="flex items-center gap-2">
-                <Filter className="w-4 h-4 text-emerald-400" />
-                <p className="text-xs font-semibold uppercase tracking-wide">
-                  Filters & Sorting
+          {/* PRODUCT LIST (grouped by status) */}
+          <div className="flex flex-col gap-6 mt-2">
+            {loadingProducts ? (
+              <div className="text-center text-sm text-slate-500 py-6">
+                Loading products…
+              </div>
+            ) : filteredAndSorted.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 flex flex-col items-center justify-center gap-2">
+                <AlertTriangle className="w-8 h-8 text-slate-400" />
+                <p className="text-sm font-semibold">
+                  No products found for the current filters.
+                </p>
+                <p className="text-xs text-slate-400">
+                  Try clearing some filters or adjusting your search query.
                 </p>
               </div>
-            </div>
+            ) : (
+              STATUS_ORDER.map((status) => {
+                const groupItems = filteredAndSorted.filter(
+                  (item) => item.status === status
+                );
+                if (!groupItems.length) return null;
 
-            {/* Search */}
-            <div className="flex flex-col md:flex-row gap-2 items-stretch md:items-center">
-              <div className="flex-1">
-                <div className="relative">
-                  <input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full rounded-full border border-slate-300 bg-slate-50/70 dark:bg-slate-900/40 dark:border-slate-700 px-4 py-1.5 text-sm pr-9"
-                    placeholder="Search by product or category..."
-                  />
-                  <Grid3X3 className="w-4 h-4 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2" />
-                </div>
-              </div>
+                const statusIcon =
+                  status === "Expired"
+                    ? "❌"
+                    : status === "Near Expiry"
+                    ? "⏳"
+                    : status === "Warning"
+                    ? "⚠️"
+                    : status === "Good"
+                    ? "✅"
+                    : "🆕";
 
-              {/* Sort dropdown */}
-              <Dropdown
-                dismissOnClick
-                renderTrigger={() => (
-                  <button className="flex items-center justify-between gap-2 border border-purple-500 bg-purple-50 text-purple-900 dark:bg-purple-950/40 dark:text-purple-200 px-3 py-1.5 rounded-full shadow-sm text-xs min-w-[170px]">
-                    <span className="inline-flex items-center gap-1">
-                      <BarChart2 className="w-3.5 h-3.5" />
-                      Sort: {sortBy}
-                    </span>
-                    <ChevronDown className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              >
-                <DropdownItem onClick={() => setSortBy("Urgency")}>
-                  Urgency (Status &amp; Days Left)
-                </DropdownItem>
-                <DropdownItem onClick={() => setSortBy("Name")}>
-                  Product Name (A–Z)
-                </DropdownItem>
-                <DropdownItem onClick={() => setSortBy("Category")}>
-                  Category
-                </DropdownItem>
-                <DropdownItem onClick={() => setSortBy("Stock")}>
-                  Stock (High → Low)
-                </DropdownItem>
-                <DropdownItem onClick={() => setSortBy("DaysLeft")}>
-                  Days Left (Low → High)
-                </DropdownItem>
-              </Dropdown>
-            </div>
+                const headerColor =
+                  status === "Expired"
+                    ? "text-red-500"
+                    : status === "Near Expiry"
+                    ? "text-orange-500"
+                    : status === "Warning"
+                    ? "text-amber-500"
+                    : status === "Good"
+                    ? "text-sky-500"
+                    : "text-emerald-500";
 
-            {/* Status chips */}
-            <div className="mt-2">
-              <p className="text-[11px] text-slate-400 mb-1">Status</p>
-              <div className="flex gap-2 flex-wrap">
-                {(["All", ...STATUS_ORDER] as (ExpiryStatus | "All")[]).map(
-                  (st) => {
-                    const isActive = statusFilter === st;
-                    const label = st;
-                    const baseClass =
-                      "px-3 py-1.5 rounded-full text-xs font-medium border inline-flex items-center gap-1 cursor-pointer";
-                    const activeClass =
-                      "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200";
-                    const inactiveClass =
-                      "border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300";
-                    return (
-                      <button
-                        key={st}
-                        onClick={() => setStatusFilter(st)}
-                        className={`${baseClass} ${
-                          isActive ? activeClass : inactiveClass
-                        }`}
-                      >
-                        {st === "Expired" && "❌"}
-                        {st === "Near Expiry" && "⏳"}
-                        {st === "Warning" && "⚠️"}
-                        {st === "Good" && "✅"}
-                        {st === "New Stocks" && "🆕"}
-                        {st === "No Expiry" && "📦"}
-                        {st === "All" && "🌈"}
-                        <span>{label}</span>
-                      </button>
-                    );
-                  }
-                )}
-              </div>
-            </div>
-
-            {/* Category chips */}
-            <div className="mt-2">
-              <p className="text-[11px] text-slate-400 mb-1">Category</p>
-              <div className="flex gap-2 flex-wrap">
-                <button
-                  onClick={() => setCategoryFilter("All")}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border inline-flex items-center gap-1 ${
-                    categoryFilter === "All"
-                      ? "border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200"
-                      : "border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                  }`}
-                >
-                  <Leaf className="w-3.5 h-3.5" />
-                  All
-                </button>
-                {uniqueCategories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setCategoryFilter(cat)}
-                    className={`px-3 py-1.5 rounded-full text-xs font-medium border inline-flex items-center gap-1 ${
-                      categoryFilter === cat
-                        ? "border-sky-500 bg-sky-50 text-sky-700 dark:bg-sky-900/40 dark:text-sky-200"
-                        : "border-slate-300 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
-                    }`}
-                  >
-                    <Grid3X3 className="w-3.5 h-3.5" />
-                    {cat}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* STATUS GROUPS + CARDS */}
-        <div className="flex flex-col gap-6 mt-2">
-          {loadingProducts ? (
-            <div className="text-center text-sm text-slate-500 py-6">
-              Loading products…
-            </div>
-          ) : filteredAndSorted.length === 0 ? (
-            <div
-              className={`rounded-2xl border ${cardBorder} ${cardBg} shadow-sm p-6 flex flex-col items-center justify-center gap-2`}
-            >
-              <AlertCircle className="w-8 h-8 text-slate-400" />
-              <p className="text-sm font-semibold">
-                No products found for the current filters.
-              </p>
-              <p className="text-xs text-slate-400">
-                Try clearing some filters or adjusting your search query.
-              </p>
-            </div>
-          ) : (
-            STATUS_ORDER.map((status) => {
-              const groupItems = filteredAndSorted.filter(
-                (item) => item.status === status
-              );
-              if (!groupItems.length) return null;
-
-              const statusIcon =
-                status === "Expired"
-                  ? "❌"
-                  : status === "Near Expiry"
-                  ? "⏳"
-                  : status === "Warning"
-                  ? "⚠️"
-                  : status === "Good"
-                  ? "✅"
-                  : status === "New Stocks"
-                  ? "🆕"
-                  : "📦";
-
-              const headerColor =
-                status === "Expired"
-                  ? "text-red-500"
-                  : status === "Near Expiry"
-                  ? "text-orange-500"
-                  : status === "Warning"
-                  ? "text-amber-500"
-                  : status === "Good"
-                  ? "text-sky-500"
-                  : status === "New Stocks"
-                  ? "text-emerald-500"
-                  : "text-slate-500";
-
-              return (
-                <section key={status} className="flex flex-col gap-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{statusIcon}</span>
-                      <h2
-                        className={`text-sm font-semibold uppercase tracking-wide ${headerColor}`}
-                      >
-                        {status}{" "}
-                        <span className="text-xs text-slate-400 ml-1">
-                          ({groupItems.length} item
-                          {groupItems.length > 1 ? "s" : ""})
-                        </span>
-                      </h2>
+                return (
+                  <section key={status} className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">{statusIcon}</span>
+                        <h2
+                          className={`text-sm font-semibold uppercase tracking-wide ${headerColor}`}
+                        >
+                          {status}{" "}
+                          <span className="text-xs text-slate-400 ml-1">
+                            ({groupItems.length} item
+                            {groupItems.length > 1 ? "s" : ""})
+                          </span>
+                        </h2>
+                      </div>
                     </div>
-                  </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                    {groupItems.map((item) => (
-                      <ProductCard
-                        key={item.id}
-                        product={item}
-                        darkMode={darkMode}
-                        onClick={() => setSelectedProduct(item)}
-                      />
-                    ))}
-                  </div>
-                </section>
-              );
-            })
-          )}
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                      {groupItems.map((item) => (
+                        <ProductCard
+                          key={item.id}
+                          product={item}
+                          onClick={() => setSelectedProduct(item)}
+                        />
+                      ))}
+                    </div>
+                  </section>
+                );
+              })
+            )}
+          </div>
+
+          {/* NOTE + LEGEND */}
+          <div className="mt-4 text-xs text-slate-500 flex items-start gap-2">
+            <Info className="w-3.5 h-3.5 mt-0.5 text-emerald-500" />
+            <p>
+              Shelf-life status is based on the percentage of time consumed
+              between{" "}
+              <span className="font-semibold text-emerald-500">
+                Stock-In Date
+              </span>{" "}
+              and{" "}
+              <span className="font-semibold text-emerald-500">
+                Expiry Date
+              </span>
+              , with{" "}
+              <span className="font-semibold text-red-500">Expired</span> and{" "}
+              <span className="font-semibold text-orange-500">
+                Near Expiry
+              </span>{" "}
+              products automatically prioritized.
+            </p>
+          </div>
+
+          <ProductLegendLayout />
         </div>
-
-        {/* NOTE + LEGEND */}
-        <div className="mt-4 text-xs text-slate-500 dark:text-slate-400 flex items-start gap-2">
-          <Info className="w-3.5 h-3.5 mt-0.5" />
-          <p>
-            Shelf-life status is based on the percentage of time consumed
-            between{" "}
-            <span className="font-semibold text-emerald-500">
-              Stock-In Date
-            </span>{" "}
-            and{" "}
-            <span className="font-semibold text-emerald-500">
-              Expiry Date
-            </span>
-            , with{" "}
-            <span className="font-semibold text-red-500">Expired</span> and{" "}
-            <span className="font-semibold text-orange-500">
-              Near Expiry
-            </span>{" "}
-            items automatically prioritized in the view.
-          </p>
-        </div>
-
-        <ProductLegendLayout />
-
-        {/* RIGHT-SIDE DRAWER */}
-        <AnimatePresence>
-          {selectedProduct && (
-            <>
-              <motion.div
-                className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setSelectedProduct(null)}
-              />
-              <motion.div
-                className={`fixed right-0 top-0 bottom-0 z-50 w-full max-w-md shadow-2xl border-l ${
-                  darkMode
-                    ? "bg-slate-950 border-slate-800 text-slate-50"
-                    : "bg-white border-slate-200 text-slate-900"
-                }`}
-                initial={{ x: "100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "100%" }}
-                transition={{ type: "spring", stiffness: 260, damping: 30 }}
-              >
-                <DrawerContent
-                  product={selectedProduct}
-                  onClose={() => setSelectedProduct(null)}
-                  darkMode={darkMode}
-                />
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
       </motion.div>
-    </div>
-  );
-}
 
-// =================== SMALL PURE-UI "CHART" HELPERS ===================
+      {/* RIGHT-SIDE DRAWER (Gaya ng Riders Profile) */}
+      {selectedProduct && (
+        <div className="fixed inset-0 z-40 flex">
+          <div
+            className="flex-1 bg-slate-950/70 backdrop-blur-sm"
+            onClick={() => setSelectedProduct(null)}
+          />
 
-function StatusSummaryRow({
-  label,
-  value,
-  colorClass,
-  pillClass,
-}: {
-  label: string;
-  value: number;
-  colorClass: string;
-  pillClass: string;
-}) {
-  return (
-    <div className="flex items-center justify-between gap-2">
-      <span className={`text-[11px] font-medium ${colorClass}`}>{label}</span>
-      <span
-        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${pillClass}`}
-      >
-        {value}
-      </span>
-    </div>
-  );
-}
+          <motion.div
+            initial={{ x: 320, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 320, opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            className="w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50 shadow-[0_25px_80px_rgba(15,23,42,0.9)] p-6 border-l border-emerald-500/40 overflow-y-auto relative"
+          >
+            <div className="pointer-events-none absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.45),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.45),transparent_55%)]" />
 
-function MiniRing({ value }: { value: number }) {
-  const clamped = clamp(value, 0, 100);
-  const circumference = 2 * Math.PI * 18;
-  const offset = circumference - (circumference * clamped) / 100;
-
-  return (
-    <div className="relative w-8 h-8">
-      <svg className="w-full h-full rotate-[-90deg]">
-        <circle
-          cx="50%"
-          cy="50%"
-          r="18"
-          stroke="#e5e7eb"
-          strokeWidth="5"
-          fill="transparent"
-        />
-        <circle
-          cx="50%"
-          cy="50%"
-          r="18"
-          stroke="#22c55e"
-          strokeWidth="5"
-          fill="transparent"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-        />
-      </svg>
-    </div>
-  );
-}
-
-function ExpiryMiniBars({
-  buckets,
-}: {
-  buckets: number[];
-  darkMode: boolean;
-}) {
-  const max = buckets.reduce((m, v) => Math.max(m, v), 0);
-
-  if (max === 0) {
-    return (
-      <div className="h-32 flex items-center justify-center text-xs text-slate-400">
-        No items expiring in the next 30 days.
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-2 flex flex-col gap-2">
-      <div className="flex items-end gap-[2px] h-32">
-        {buckets.map((v, i) => {
-          const height = (v / max) * 100;
-          const isToday = i === 0;
-          const isMajorTick = i % 5 === 0;
-
-          return (
-            <div
-              key={i}
-              className="flex-1 flex flex-col items-center gap-1"
-              title={`${v} item${v !== 1 ? "s" : ""} expiring in ${i} day${
-                i === 1 ? "" : "s"
-              }`}
-            >
-              <div className="w-full flex-1 flex items-end">
-                <div
-                  className={`w-full rounded-sm ${
-                    isToday
-                      ? "bg-red-500"
-                      : "bg-emerald-500 hover:bg-emerald-600"
-                  } transition-all`}
-                  style={{ height: `${height}%` }}
-                />
+            <div className="relative z-10">
+              {/* Header and close */}
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-50">
+                    Product Details
+                  </h2>
+                  <p className="text-[11px] text-slate-400 flex items-center gap-1">
+                    <Layers className="w-3 h-3 text-emerald-400" />
+                    {selectedProduct.category}
+                  </p>
+                </div>
+                <button
+                  className="text-slate-400 hover:text-slate-200 text-sm px-2 py-1 rounded-full bg-slate-800/80 border border-slate-600/70"
+                  onClick={() => setSelectedProduct(null)}
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              {isMajorTick && (
-                <span className="text-[9px] text-slate-400">
-                  {isToday ? "0" : i}
-                </span>
-              )}
+
+              <DrawerContent product={selectedProduct} />
             </div>
-          );
-        })}
-      </div>
-      <div className="flex justify-between text-[10px] text-slate-400 mt-1">
-        <span>Today</span>
-        <span>30 days</span>
-      </div>
-    </div>
+          </motion.div>
+        </div>
+      )}
+    </motion.div>
   );
 }
 
@@ -1021,11 +811,9 @@ function ExpiryMiniBars({
 
 function ProductCard({
   product,
-  darkMode,
   onClick,
 }: {
   product: EnrichedProduct;
-  darkMode: boolean;
   onClick: () => void;
 }) {
   const {
@@ -1052,17 +840,21 @@ function ProductCard({
       whileHover={{ y: -3, scale: 1.01 }}
       transition={{ duration: 0.15 }}
       onClick={onClick}
-      className={`relative flex flex-col items-stretch text-left rounded-2xl border ${statusColorClass} ${
-        darkMode ? "bg-slate-900/80" : "bg-white"
-      } shadow-sm p-4 cursor-pointer hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-400`}
+      className={`relative flex flex-col items-stretch text-left rounded-2xl border ${statusColorClass} bg-white shadow-sm p-4 cursor-pointer hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-400`}
     >
-      {/* Status Badge */}
+      {/* Status Badge + Name */}
       <div className="flex justify-between items-start gap-2">
-        <div className="flex-1">
-          <h3 className="font-semibold text-sm mb-0.5 line-clamp-2">
-            {name}
-          </h3>
-          <p className="text-[11px] text-slate-400">{category}</p>
+        <div className="flex items-start gap-3">
+          {/* Avatar style (like Riders) */}
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-semibold text-sm">
+            {name.charAt(0).toUpperCase()}
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-sm mb-0.5 line-clamp-2">
+              {name}
+            </h3>
+            <p className="text-[11px] text-slate-400">{category}</p>
+          </div>
         </div>
         <span
           className={`px-2.5 py-1 rounded-full text-[10px] font-semibold inline-flex items-center gap-1 ${statusSoftClass}`}
@@ -1072,7 +864,6 @@ function ProductCard({
           {status === "Warning" && "⚠️"}
           {status === "Good" && "✅"}
           {status === "New Stocks" && "🆕"}
-          {status === "No Expiry" && "📦"}
           <span>{status}</span>
         </span>
       </div>
@@ -1094,9 +885,7 @@ function ProductCard({
                 ? "bg-amber-400"
                 : status === "Good"
                 ? "bg-sky-400"
-                : status === "New Stocks"
-                ? "bg-emerald-500"
-                : "bg-slate-300"
+                : "bg-emerald-500"
             }`}
             style={{ width: `${percent}%` }}
           />
@@ -1109,15 +898,13 @@ function ProductCard({
           <p className="uppercase tracking-wide text-[10px] text-slate-400">
             Stock
           </p>
-          <p className="font-semibold text-slate-700 dark:text-slate-100">
-            {stock}
-          </p>
+          <p className="font-semibold text-slate-700">{stock}</p>
         </div>
         <div>
           <p className="uppercase tracking-wide text-[10px] text-slate-400">
             Stock-In
           </p>
-          <p className="font-semibold text-slate-700 dark:text-slate-100">
+          <p className="font-semibold text-slate-700">
             {stockInDate ? dayjs(stockInDate).format("MMM D, YYYY") : "N/A"}
           </p>
         </div>
@@ -1125,17 +912,18 @@ function ProductCard({
           <p className="uppercase tracking-wide text-[10px] text-slate-400">
             Expiry
           </p>
-          <p className="font-semibold text-slate-700 dark:text-slate-100">
+          <p className="font-semibold text-slate-700">
             {expiryDate ? dayjs(expiryDate).format("MMM D, YYYY") : "N/A"}
           </p>
         </div>
       </div>
 
+      {/* Days left */}
       <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
         <span className="inline-flex items-center gap-1">
           <Clock className="w-3.5 h-3.5 text-slate-400" />
-          <span>Days left: </span>
-          <span className="font-semibold text-slate-700 dark:text-slate-100">
+          <span>Days left:</span>
+          <span className="font-semibold text-slate-700">
             {daysLeftLabel}
           </span>
         </span>
@@ -1147,7 +935,7 @@ function ProductCard({
           {insightTags.map((tag, idx) => (
             <span
               key={idx}
-              className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] text-slate-600 dark:text-slate-300"
+              className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] text-slate-600"
             >
               {tag}
             </span>
@@ -1164,11 +952,11 @@ function getInsightTags(p: EnrichedProduct): string[] {
   const tags: string[] = [];
 
   if (p.status === "Expired") {
-    tags.push("Requires immediate disposal");
+    tags.push("Requires disposal");
   }
 
   if (p.status === "Near Expiry") {
-    tags.push("High priority for promo");
+    tags.push("High priority promo");
   }
 
   if (p.status === "Warning") {
@@ -1184,7 +972,7 @@ function getInsightTags(p: EnrichedProduct): string[] {
   }
 
   if (p.percentUsed !== null && p.percentUsed < 0.25) {
-    tags.push("Very fresh stock");
+    tags.push("Very fresh");
   }
 
   if (tags.length === 0) {
@@ -1196,15 +984,7 @@ function getInsightTags(p: EnrichedProduct): string[] {
 
 // =================== DRAWER CONTENT ===================
 
-function DrawerContent({
-  product,
-  onClose,
-
-}: {
-  product: EnrichedProduct;
-  onClose: () => void;
-  darkMode: boolean;
-}) {
+function DrawerContent({ product }: { product: EnrichedProduct }) {
   const {
     name,
     category,
@@ -1225,160 +1005,198 @@ function DrawerContent({
     daysLeft === null ? "N/A" : `${daysLeft} day${daysLeft === 1 ? "" : "s"}`;
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
-        <div>
-          <h2 className="text-sm font-semibold flex items-center gap-2">
-            <span>{name}</span>
-          </h2>
-          <p className="text-[11px] text-slate-400">{category}</p>
+    <div className="flex flex-col gap-4">
+      {/* HEADER BLOCK - styled like Rider drawer */}
+      <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/80 flex items-start gap-3">
+        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-300 to-teal-300 text-emerald-950 flex items-center justify-center font-bold text-xl shadow-lg shadow-emerald-500/40">
+          {name.charAt(0).toUpperCase()}
         </div>
-        <button
-          onClick={onClose}
-          className="p-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
-        >
-          <X className="w-4 h-4 text-slate-500" />
-        </button>
-      </div>
-
-      {/* Body */}
-      <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-        {/* Status */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex flex-col gap-1">
-            <p className="text-[11px] uppercase tracking-wide text-slate-400">
-              Status
-            </p>
+        <div className="flex-1 flex flex-col gap-2">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-50 line-clamp-2">
+                {name}
+              </p>
+              <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-1">
+                <Layers className="w-3 h-3 text-emerald-400" />
+                {category}
+              </p>
+            </div>
             <span
-              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${statusSoftClass}`}
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold ${statusSoftClass}`}
             >
               {status === "Expired" && "❌"}
               {status === "Near Expiry" && "⏳"}
               {status === "Warning" && "⚠️"}
               {status === "Good" && "✅"}
               {status === "New Stocks" && "🆕"}
-              {status === "No Expiry" && "📦"}
               <span>{status}</span>
             </span>
           </div>
-          <div className="text-right text-[11px] text-slate-400">
-            <p>Shelf-life used</p>
-            <p className="font-semibold text-slate-700 dark:text-slate-100">
-              {percentUsed === null ? "N/A" : `${percent.toFixed(1)}%`}
-            </p>
-          </div>
-        </div>
 
-        {/* Shelf-life timeline */}
-        <div>
-          <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-1">
-            Shelf-life Timeline
-          </p>
-          <div className="w-full h-2.5 rounded-full bg-slate-100 overflow-hidden">
-            <div
-              className={`h-2.5 rounded-full ${
-                status === "Expired"
-                  ? "bg-red-500"
-                  : status === "Near Expiry"
-                  ? "bg-orange-500"
-                  : status === "Warning"
-                  ? "bg-amber-400"
-                  : status === "Good"
-                  ? "bg-sky-400"
-                  : status === "New Stocks"
-                  ? "bg-emerald-500"
-                  : "bg-slate-300"
-              }`}
-              style={{ width: `${percent}%` }}
-            />
+          <div className="flex flex-wrap gap-3 text-[11px] text-slate-300">
+            <div className="flex items-center gap-1">
+              <Package className="w-4 h-4 text-emerald-400" />
+              <span>Stock:</span>
+              <span className="font-semibold text-slate-50">{stock}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Flame className="w-4 h-4 text-orange-400" />
+              <span>Days left:</span>
+              <span className="font-semibold text-slate-50">
+                {daysLeftLabel}
+              </span>
+            </div>
           </div>
-          <div className="flex justify-between text-[11px] text-slate-400 mt-1">
-            <span>
-              {stockInDate
-                ? dayjs(stockInDate).format("MMM D, YYYY")
-                : "Stock-In N/A"}
-            </span>
-            <span>
-              {expiryDate
-                ? dayjs(expiryDate).format("MMM D, YYYY")
-                : "Expiry N/A"}
-            </span>
-          </div>
-          <div className="flex justify-between text-[11px] text-slate-400 mt-0.5">
-            <span>
-              Elapsed:{" "}
-              {elapsedDays !== null ? `${elapsedDays} days` : "N/A"}
-            </span>
-            <span>
-              Total shelf-life:{" "}
-              {shelfLifeDays !== null ? `${shelfLifeDays} days` : "N/A"}
-            </span>
-          </div>
-        </div>
-
-        {/* Basic details */}
-        <div className="grid grid-cols-2 gap-3 text-[11px]">
-          <div className="flex flex-col gap-0.5">
-            <p className="uppercase tracking-wide text-[10px] text-slate-400">
-              Stock Count
-            </p>
-            <p className="font-semibold text-slate-700 dark:text-slate-100">
-              {stock}
-            </p>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <p className="uppercase tracking-wide text-[10px] text-slate-400">
-              Days Left
-            </p>
-            <p className="font-semibold text-slate-700 dark:text-slate-100">
-              {daysLeftLabel}
-            </p>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <p className="uppercase tracking-wide text-[10px] text-slate-400">
-              Stock-In Date
-            </p>
-            <p className="font-semibold text-slate-700 dark:text-slate-100">
-              {stockInDate ? dayjs(stockInDate).format("MMM D, YYYY") : "N/A"}
-            </p>
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <p className="uppercase tracking-wide text-[10px] text-slate-400">
-              Expiry Date
-            </p>
-            <p className="font-semibold text-slate-700 dark:text-slate-100">
-              {expiryDate ? dayjs(expiryDate).format("MMM D, YYYY") : "N/A"}
-            </p>
-          </div>
-        </div>
-
-        {/* Status description */}
-        <div className="mt-2">
-          <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-1">
-            Status Explanation
-          </p>
-          <p className="text-[11px] text-slate-500 dark:text-slate-300 leading-relaxed">
-            {statusDescription}
-          </p>
-        </div>
-
-        {/* Actions (UI only for now) */}
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button
-            className="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500 text-white hover:bg-emerald-600"
-            type="button"
-          >
-            Mark as Checked Today
-          </button>
-          <button
-            className="px-3 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"
-            type="button"
-          >
-            Add Note (Future)
-          </button>
         </div>
       </div>
+
+      {/* QUICK STATS GRID (Riders-style mini cards) */}
+      <div className="grid grid-cols-3 gap-3">
+        <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
+          <p className="text-[11px] text-slate-400">Shelf used</p>
+          <p className="font-semibold text-slate-50 mt-1">
+            {percentUsed === null ? "N/A" : `${percent.toFixed(1)}%`}
+          </p>
+        </div>
+        <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
+          <p className="text-[11px] text-slate-400">Elapsed</p>
+          <p className="font-semibold text-slate-50 mt-1">
+            {elapsedDays !== null ? `${elapsedDays} days` : "N/A"}
+          </p>
+        </div>
+        <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
+          <p className="text-[11px] text-slate-400">Shelf-life</p>
+          <p className="font-semibold text-slate-50 mt-1">
+            {shelfLifeDays !== null ? `${shelfLifeDays} days` : "N/A"}
+          </p>
+        </div>
+      </div>
+
+      {/* Shelf-life timeline */}
+      <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/70">
+        <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-1">
+          Shelf-life Timeline
+        </p>
+        <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden">
+          <div
+            className={`h-2.5 rounded-full ${
+              status === "Expired"
+                ? "bg-red-500"
+                : status === "Near Expiry"
+                ? "bg-orange-500"
+                : status === "Warning"
+                ? "bg-amber-400"
+                : status === "Good"
+                ? "bg-sky-400"
+                : "bg-emerald-500"
+            }`}
+            style={{ width: `${percent}%` }}
+          />
+        </div>
+        <div className="flex justify-between text-[11px] text-slate-400 mt-2">
+          <span>
+            {stockInDate
+              ? `Stock-in: ${dayjs(stockInDate).format("MMM D, YYYY")}`
+              : "Stock-in: N/A"}
+          </span>
+          <span>
+            {expiryDate
+              ? `Expiry: ${dayjs(expiryDate).format("MMM D, YYYY")}`
+              : "Expiry: N/A"}
+          </span>
+        </div>
+        <div className="flex justify-between text-[11px] text-slate-400 mt-1">
+          <span>
+            Elapsed:{" "}
+            {elapsedDays !== null ? `${elapsedDays} days` : "N/A"}
+          </span>
+          <span>
+            Shelf-life:{" "}
+            {shelfLifeDays !== null ? `${shelfLifeDays} days` : "N/A"}
+          </span>
+        </div>
+      </div>
+
+      {/* Status explanation */}
+      <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/70">
+        <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-1">
+          Status Explanation
+        </p>
+        <p className="text-[11px] text-slate-200 leading-relaxed">
+          {statusDescription}
+        </p>
+      </div>
+
+      {/* Placeholder actions (UI only) */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500 text-white hover:bg-emerald-600"
+        >
+          Mark as Checked Today
+        </button>
+        <button
+          type="button"
+          className="px-3 py-1.5 rounded-full text-xs font-medium bg-slate-800 text-slate-100 hover:bg-slate-700"
+        >
+          Add Note (future feature)
+        </button>
+      </div>
     </div>
+  );
+}
+
+// =================== SUMMARY CARD ===================
+
+function SummaryCard({
+  icon,
+  label,
+  value,
+  accent,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  accent: string;
+  color: "emerald" | "rose" | "amber" | "indigo";
+}) {
+  const colors: Record<typeof color, string> = {
+    emerald: "from-emerald-500 to-emerald-700",
+    rose: "from-rose-500 to-rose-700",
+    amber: "from-amber-500 to-amber-700",
+    indigo: "from-indigo-500 to-indigo-700",
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{
+        y: -6,
+        scale: 1.03,
+        boxShadow: "0 22px 60px rgba(15,23,42,0.35)",
+      }}
+      transition={{ duration: 0.35 }}
+      className={`relative p-5 rounded-2xl border border-white/40 text-white bg-gradient-to-br ${colors[color]} shadow-xl overflow-hidden`}
+    >
+      <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.5),transparent_55%)]" />
+      <div className="relative flex items-center gap-3">
+        <div className="p-3 bg-white/15 rounded-xl flex items-center justify-center">
+          {icon}
+        </div>
+
+        <div>
+          <p className="text-[0.7rem] uppercase tracking-[0.16em] text-white/80">
+            {label}
+          </p>
+          <p className="text-2xl md:text-3xl font-bold leading-tight">
+            {value}
+          </p>
+          <p className="text-[0.7rem] text-white/80 mt-1">{accent}</p>
+        </div>
+      </div>
+    </motion.div>
   );
 }
