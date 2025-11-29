@@ -69,7 +69,7 @@ export const useProducts = () => {
   /** Update product status only */
   const updateStatus = async (productId: number, status: string) => {
     try {
-      const updated = await updateProductStatus(productId, status);
+      const updated = await updateProductStatus(productId, { productStatus: status });
       const mapped = mapProductDTO(updated);
       setProducts((prev) => prev.map((p) => (p.id === mapped.id ? mapped : p)));
       return mapped;
