@@ -25,7 +25,6 @@ import {
 import {
   getAllProducts,
   updateProductStatus,
-  markProductOutOfStock,
 } from "../../../libs/ApiGatewayDatasource";
 import type { ProductDTO } from "../../../libs/models/product/Product";
 
@@ -229,30 +228,29 @@ export default function ProductReport() {
     try {
       setStatusUpdatingId(productId);
 
-      if (action === "Out of Stock") {
-        // 👉 Out of stock: mark in backend + tanggalin sa monitoring list (FE)
-        await markProductOutOfStock(productId);
-        setProducts((prev) =>
-          prev.filter((p: any) => p.productId !== productId)
-        );
-      } else {
-        // For Promo → backend field productStatus = "For Promo"
-        await updateProductStatus(productId, { productStatus: action });
+      // ✅ Single source of truth: use updateProductStatus for all status changes
+      const updated = await updateProductStatus(productId, {
+        productStatus: action,
+      });
 
-        setProducts((prev: any[]) =>
-          prev.map((p: any) =>
-            p.productId === productId
-              ? {
-                  ...p,
-                  productStatus: action,
-                }
-              : p
-          )
-        );
-      }
+      // ✅ Update local list based on backend response
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.productId === updated.productId
+            ? {
+                ...p,
+                productStatus: updated.productStatus,
+              }
+            : p
+        )
+      );
+
+      // NOTE:
+      // Since monitoredData filters Out of Stock / Not Available,
+      // once status becomes "Out of Stock", mawawala na sa UI (parang delete).
     } catch (err) {
       console.error("Failed to update product status", err);
-      // OPTIONAL: show toast / SweetAlert dito
+      // OPTIONAL: show toast / SweetAlert
     } finally {
       setStatusUpdatingId(null);
     }
