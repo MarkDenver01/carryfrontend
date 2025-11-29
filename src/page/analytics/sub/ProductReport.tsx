@@ -81,8 +81,8 @@ const classifyByShelfLife = (
     return {
       status: "Good",
       priority: 3,
-      colorClass: "border-sky-400",
-      softClass: "bg-sky-100 text-sky-700",
+      colorClass: "border-sky-200",
+      softClass: "bg-sky-50 text-sky-700",
     };
   }
 
@@ -91,8 +91,8 @@ const classifyByShelfLife = (
     return {
       status: "Expired",
       priority: 0,
-      colorClass: "border-red-500",
-      softClass: "bg-red-100 text-red-700",
+      colorClass: "border-red-300",
+      softClass: "bg-red-50 text-red-700",
     };
   }
 
@@ -101,8 +101,8 @@ const classifyByShelfLife = (
     return {
       status: "Near Expiry",
       priority: 1,
-      colorClass: "border-orange-500",
-      softClass: "bg-orange-100 text-orange-700",
+      colorClass: "border-orange-300",
+      softClass: "bg-orange-50 text-orange-700",
     };
   }
 
@@ -111,8 +111,8 @@ const classifyByShelfLife = (
     return {
       status: "Warning",
       priority: 2,
-      colorClass: "border-amber-400",
-      softClass: "bg-amber-100 text-amber-700",
+      colorClass: "border-amber-300",
+      softClass: "bg-amber-50 text-amber-700",
     };
   }
 
@@ -121,8 +121,8 @@ const classifyByShelfLife = (
     return {
       status: "Good",
       priority: 3,
-      colorClass: "border-sky-400",
-      softClass: "bg-sky-100 text-sky-700",
+      colorClass: "border-sky-200",
+      softClass: "bg-sky-50 text-sky-700",
     };
   }
 
@@ -130,8 +130,8 @@ const classifyByShelfLife = (
   return {
     status: "New Stocks",
     priority: 4,
-    colorClass: "border-emerald-500",
-    softClass: "bg-emerald-100 text-emerald-700",
+    colorClass: "border-emerald-300",
+    softClass: "bg-emerald-50 text-emerald-700",
   };
 };
 
@@ -140,8 +140,6 @@ const classifyByShelfLife = (
 ========================= */
 
 export default function ProductReport() {
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
-
   const [statusFilter, setStatusFilter] = useState<ExpiryStatus | "All">("All");
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [sortBy, setSortBy] = useState<SortOption>("Urgency");
@@ -155,14 +153,6 @@ export default function ProductReport() {
   const [selectedProduct, setSelectedProduct] = useState<EnrichedProduct | null>(
     null
   );
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setCursorPos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    });
-  };
 
   const fetchProducts = async (isRefresh = false) => {
     try {
@@ -368,69 +358,40 @@ export default function ProductReport() {
     <motion.div
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
-      onMouseMove={handleMouseMove}
+      transition={{ duration: 0.45, ease: "easeOut" }}
+      className="relative p-6 md:p-8 flex flex-col gap-8 bg-slate-50 min-h-[calc(100vh-5rem)]"
     >
-      {/* HUD GRID BACKDROP (gaya ng Riders) */}
-      <div className="pointer-events-none absolute inset-0 -z-30">
-        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.16)_1px,transparent_1px)] bg-[size:40px_40px]" />
-        <div className="absolute inset-0 opacity-[0.05] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.7)_0px,rgba(15,23,42,0.7)_1px,transparent_1px,transparent_4px)]" />
-
-        <motion.div
-          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/26 blur-3xl"
-          animate={{
-            x: [0, 18, 8, -6, 0],
-            y: [0, 10, 20, 5, 0],
-            borderRadius: ["45%", "60%", "55%", "65%", "45%"],
-          }}
-          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-        />
-
-        <motion.div
-          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/22 blur-3xl"
-          animate={{
-            x: [0, -15, -25, -10, 0],
-            y: [0, -10, -20, -5, 0],
-            borderRadius: ["50%", "65%", "55%", "70%", "50%"],
-          }}
-          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
-        />
+      {/* Subtle background glow */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="absolute -top-20 -left-24 h-72 w-72 bg-emerald-200/40 blur-3xl rounded-full" />
+        <div className="absolute bottom-[-6rem] right-[-3rem] h-80 w-80 bg-sky-200/35 blur-3xl rounded-full" />
       </div>
-
-      {/* SPOTLIGHT FOLLOWING CURSOR */}
-      <motion.div
-        className="pointer-events-none absolute inset-0 -z-20"
-        style={{
-          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.32), transparent 70%)`,
-        }}
-      />
 
       {/* HEADER */}
       <div className="relative flex flex-col gap-3">
         <motion.h1
           initial={{ opacity: 0, x: -18 }}
           animate={{ opacity: 1, x: 0 }}
-          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent"
+          className="text-3xl font-extrabold tracking-tight text-slate-900"
         >
           Product Expiry Monitor
         </motion.h1>
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <p className="text-gray-500 text-sm max-w-xl">
-            Track{" "}
+          <p className="text-gray-600 text-sm max-w-xl">
+            Monitor{" "}
             <span className="font-medium text-emerald-700">
-              shelf-life, expiry risk, and stock freshness
+              shelf-life, expiry risk, and freshness
             </span>{" "}
-            for every product in one unified dashboard.
+            across all SKUs in a single, clean dashboard.
           </p>
 
           {/* Refresh capsule */}
           <div className="flex items-center gap-2 text-[11px]">
             {lastUpdated && (
-              <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+              <span className="px-3 py-1 rounded-full bg-white text-slate-500 border border-slate-200 shadow-sm">
                 Last updated:{" "}
-                <span className="font-medium text-slate-700">
+                <span className="font-medium text-slate-800">
                   {lastUpdated}
                 </span>
               </span>
@@ -440,9 +401,9 @@ export default function ProductReport() {
               onClick={() => fetchProducts(true)}
               className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium border ${
                 loadingRefresh
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-500"
-                  : "border-emerald-500 bg-emerald-600 text-white hover:bg-emerald-700"
-              } transition`}
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-600"
+                  : "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600"
+              } transition shadow-sm`}
             >
               <RefreshCw
                 className={`w-3.5 h-3.5 ${
@@ -453,268 +414,175 @@ export default function ProductReport() {
             </button>
           </div>
         </div>
-
-        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
       {/* MAIN CARD */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-[26px] border border-emerald-500/30 bg-white/95 shadow-[0_22px_70px_rgba(15,23,42,0.40)] overflow-hidden"
+        className="relative rounded-3xl border border-slate-200 bg-white/90 backdrop-blur-sm shadow-[0_18px_60px_rgba(15,23,42,0.12)] overflow-hidden"
       >
-        {/* Frame corners */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
-          <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
-          <div className="absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-emerald-400/80" />
-          <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-400/80" />
-        </div>
-
-        <div className="relative flex flex-col gap-8 p-5 md:p-6 lg:p-7">
-          {/* scanning line */}
-          <motion.div
-            className="pointer-events-none absolute top-10 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-70"
-            animate={{ x: ["-20%", "20%", "-20%"] }}
-            transition={{ duration: 5, repeat: Infinity }}
-          />
-
+        <div className="relative flex flex-col gap-7 p-5 md:p-6 lg:p-7">
           {/* SUMMARY CARDS */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <SummaryCard
-              icon={<Package className="w-7 h-7" />}
+              icon={<Package className="w-6 h-6" />}
               label="Total Products"
               value={summary.total.toString()}
-              accent="All active SKUs monitored"
+              accent="All tracked SKUs"
               color="emerald"
             />
             <SummaryCard
-              icon={<ShieldAlert className="w-7 h-7" />}
+              icon={<ShieldAlert className="w-6 h-6" />}
               label="Expiring / Expired"
               value={summary.expiringSoon.toString()}
-              accent="Expired + Near Expiry items"
+              accent="Expired + Near expiry"
               color="rose"
             />
             <SummaryCard
-              icon={<AlertTriangle className="w-7 h-7" />}
+              icon={<AlertTriangle className="w-6 h-6" />}
               label="Warning Stocks"
               value={summary.counts["Warning"].toString()}
-              accent="Need close monitoring"
+              accent="Monitor closely"
               color="amber"
             />
             <SummaryCard
-              icon={<CheckCircle2 className="w-7 h-7" />}
+              icon={<CheckCircle2 className="w-6 h-6" />}
               label="Healthy / New"
               value={(
                 summary.counts["Good"] + summary.counts["New Stocks"]
               ).toString()}
-              accent="Good shelf-life window"
+              accent="Good shelf window"
               color="indigo"
             />
           </section>
 
-          {/* STATUS OVERVIEW */}
-          <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-emerald-500" />
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                  Status Overview
-                </p>
-              </div>
-              <span className="text-[11px] text-slate-500">
-                Showing{" "}
-                <span className="font-semibold text-emerald-600">
-                  {visibleCount}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-slate-700">
-                  {summary.total}
-                </span>{" "}
-                products
-              </span>
-            </div>
+          {/* Divider */}
+          <div className="h-px bg-slate-100" />
 
-            <div className="flex flex-wrap gap-2">
-              {STATUS_ORDER.map((status) => {
-                const count = summary.counts[status];
-                const icon =
-                  status === "Expired"
-                    ? "❌"
-                    : status === "Near Expiry"
-                    ? "⏳"
-                    : status === "Warning"
-                    ? "⚠️"
-                    : status === "Good"
-                    ? "✅"
-                    : "🆕";
-
-                const base =
-                  "px-3 py-1.5 rounded-full text-xs font-medium border inline-flex items-center gap-2";
-
-                const colorClass =
-                  status === "Expired"
-                    ? "border-red-200 bg-red-50 text-red-700"
-                    : status === "Near Expiry"
-                    ? "border-orange-200 bg-orange-50 text-orange-700"
-                    : status === "Warning"
-                    ? "border-amber-200 bg-amber-50 text-amber-700"
-                    : status === "Good"
-                    ? "border-sky-200 bg-sky-50 text-sky-700"
-                    : "border-emerald-200 bg-emerald-50 text-emerald-700";
-
-                return (
-                  <div key={status} className={`${base} ${colorClass}`}>
-                    <span>{icon}</span>
-                    <span>{status}</span>
-                    <span className="text-[11px] opacity-80">
-                      {count} item{count !== 1 ? "s" : ""}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-
-          {/* CATEGORY OVERVIEW – simplified chips */}
-          {categorySnapshots.length > 0 && (
-            <section className="rounded-2xl border border-slate-200 bg-white/80 p-4 flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-emerald-500" />
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                    Category Overview
-                  </p>
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Tap a category to filter below
-                </p>
-              </div>
-
-              <div className="flex flex-wrap gap-2">
-                {categorySnapshots.map((catSnap) => {
-                  const isActive = categoryFilter === catSnap.category;
-                  const risky =
-                    catSnap.expired + catSnap.near + catSnap.warn > 0;
-
-                  return (
-                    <button
-                      key={catSnap.category}
-                      onClick={() =>
-                        setCategoryFilter(
-                          isActive ? "All" : catSnap.category
-                        )
-                      }
-                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-[11px] transition ${
-                        isActive
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm"
-                          : "border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100"
-                      }`}
-                      type="button"
-                    >
-                      <span className="font-semibold text-xs">
-                        {catSnap.category}
-                      </span>
-                      <span className="text-slate-400">
-                        • {catSnap.total} item
-                        {catSnap.total !== 1 ? "s" : ""}
-                      </span>
-                      {risky && (
-                        <span className="inline-flex items-center gap-1">
-                          {catSnap.expired > 0 && (
-                            <span className="text-red-500">
-                              E:{catSnap.expired}
-                            </span>
-                          )}
-                          {catSnap.near > 0 && (
-                            <span className="text-orange-500">
-                              N:{catSnap.near}
-                            </span>
-                          )}
-                          {catSnap.warn > 0 && (
-                            <span className="text-amber-500">
-                              W:{catSnap.warn}
-                            </span>
-                          )}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-          )}
-
-          {/* FILTERS */}
-          <div className="flex flex-col gap-4">
-            {/* top filters row */}
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                {/* Status filter */}
-                <Dropdown
-                  dismissOnClick
-                  renderTrigger={() => (
-                    <button className="flex items-center gap-2 border border-emerald-500 bg-emerald-50 text-emerald-900 font-semibold text-xs sm:text-sm px-4 py-2 rounded-full shadow hover:bg-emerald-100 transition">
-                      <Filter className="w-4 h-4" />
-                      Status: {statusFilter}
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                  )}
-                >
-                  {["All", ...STATUS_ORDER].map((s) => (
-                    <DropdownItem
-                      key={s}
-                      onClick={() => setStatusFilter(s as any)}
-                    >
-                      {s}
-                    </DropdownItem>
-                  ))}
-                </Dropdown>
-
-                {/* Sort dropdown */}
-                <Dropdown
-                  dismissOnClick
-                  renderTrigger={() => (
-                    <button className="flex items-center gap-2 border border-gray-300 bg-white text-gray-800 font-medium text-xs sm:text-sm px-4 py-2 rounded-full shadow-sm hover:bg-gray-50 transition">
-                      <BarChart2 className="w-4 h-4" />
-                      Sort: {sortBy}
-                      <ChevronDown className="w-4 h-4" />
-                    </button>
-                  )}
-                >
-                  <DropdownItem onClick={() => setSortBy("Urgency")}>
-                    Urgency (Status & Days Left)
-                  </DropdownItem>
-                  <DropdownItem onClick={() => setSortBy("Name")}>
-                    Product Name (A–Z)
-                  </DropdownItem>
-                  <DropdownItem onClick={() => setSortBy("Category")}>
-                    Category
-                  </DropdownItem>
-                  <DropdownItem onClick={() => setSortBy("Stock")}>
-                    Stock (High → Low)
-                  </DropdownItem>
-                  <DropdownItem onClick={() => setSortBy("DaysLeft")}>
-                    Days Left (Low → High)
-                  </DropdownItem>
-                </Dropdown>
+          {/* FILTER BAR – GLASS PANEL */}
+          <section className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-md shadow-sm px-4 py-4 flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <Filter className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="font-medium uppercase tracking-wide">
+                  Filters & Sorting
+                </span>
+                <span className="hidden md:inline text-slate-400">
+                  Showing{" "}
+                  <span className="font-semibold text-slate-700">
+                    {visibleCount}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-slate-800">
+                    {summary.total}
+                  </span>{" "}
+                  products
+                </span>
               </div>
 
               {/* Search */}
-              <div className="relative w-full max-w-xs">
+              <div className="relative w-full md:max-w-xs">
                 <input
                   type="text"
-                  placeholder="Search product or category..."
-                  className="w-full border border-emerald-300/80 rounded-xl px-4 py-2 pl-11 shadow-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm"
+                  placeholder="Search by product or category..."
+                  className="w-full h-10 border border-slate-300 rounded-xl px-4 pl-10 text-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 shadow-sm"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
-                <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
+                <Search className="absolute left-3 top-2.5 text-slate-400 w-4 h-4" />
               </div>
             </div>
 
-            {/* Status chips (quick filter) */}
-            <div className="flex flex-wrap gap-2">
+            {/* Dropdown row */}
+            <div className="flex flex-wrap gap-3">
+              {/* Status filter */}
+              <Dropdown
+                dismissOnClick
+                renderTrigger={() => (
+                  <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs sm:text-sm px-3.5 py-2 rounded-full shadow-sm hover:bg-slate-50 transition">
+                    <Filter className="w-4 h-4 text-emerald-500" />
+                    <span className="font-medium">
+                      Status:{" "}
+                      <span className="text-slate-900">{statusFilter}</span>
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </button>
+                )}
+              >
+                {["All", ...STATUS_ORDER].map((s) => (
+                  <DropdownItem
+                    key={s}
+                    onClick={() => setStatusFilter(s as any)}
+                  >
+                    {s}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
+
+              {/* Category filter dropdown */}
+              <Dropdown
+                dismissOnClick
+                renderTrigger={() => (
+                  <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs sm:text-sm px-3.5 py-2 rounded-full shadow-sm hover:bg-slate-50 transition">
+                    <Tag className="w-4 h-4 text-sky-500" />
+                    <span className="font-medium">
+                      Category:{" "}
+                      <span className="text-slate-900">
+                        {categoryFilter === "All" ? "All" : categoryFilter}
+                      </span>
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </button>
+                )}
+              >
+                <DropdownItem onClick={() => setCategoryFilter("All")}>
+                  All
+                </DropdownItem>
+                {uniqueCategories.map((cat) => (
+                  <DropdownItem
+                    key={cat}
+                    onClick={() => setCategoryFilter(cat)}
+                  >
+                    {cat}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
+
+              {/* Sort dropdown */}
+              <Dropdown
+                dismissOnClick
+                renderTrigger={() => (
+                  <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs sm:text-sm px-3.5 py-2 rounded-full shadow-sm hover:bg-slate-50 transition">
+                    <BarChart2 className="w-4 h-4 text-slate-500" />
+                    <span className="font-medium">
+                      Sort:{" "}
+                      <span className="text-slate-900">{sortBy}</span>
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </button>
+                )}
+              >
+                <DropdownItem onClick={() => setSortBy("Urgency")}>
+                  Urgency (Status & Days Left)
+                </DropdownItem>
+                <DropdownItem onClick={() => setSortBy("Name")}>
+                  Product Name (A–Z)
+                </DropdownItem>
+                <DropdownItem onClick={() => setSortBy("Category")}>
+                  Category
+                </DropdownItem>
+                <DropdownItem onClick={() => setSortBy("Stock")}>
+                  Stock (High → Low)
+                </DropdownItem>
+                <DropdownItem onClick={() => setSortBy("DaysLeft")}>
+                  Days Left (Low → High)
+                </DropdownItem>
+              </Dropdown>
+            </div>
+
+            {/* Quick status chips */}
+            <div className="flex flex-wrap gap-1.5 pt-1">
               {(["All", ...STATUS_ORDER] as (ExpiryStatus | "All")[]).map(
                 (st) => {
                   const isActive = statusFilter === st;
@@ -736,12 +604,12 @@ export default function ProductReport() {
                     <button
                       key={st}
                       onClick={() => setStatusFilter(st)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border inline-flex items-center gap-1 cursor-pointer transition
-                      ${
-                        isActive
-                          ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm"
-                          : "border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-50"
-                      }`}
+                      className={`px-2.5 py-1 rounded-full text-[11px] font-medium border inline-flex items-center gap-1 cursor-pointer transition
+                        ${
+                          isActive
+                            ? "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-sm"
+                            : "border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100"
+                        }`}
                     >
                       <span>{icon}</span>
                       <span>{st}</span>
@@ -750,51 +618,179 @@ export default function ProductReport() {
                 }
               )}
             </div>
+          </section>
 
-            {/* Category chips */}
-            <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-[11px] text-slate-400 flex items-center gap-1">
-                <Tag className="w-3 h-3 text-emerald-500" />
-                Categories:
-              </span>
-              <button
-                onClick={() => setCategoryFilter("All")}
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border inline-flex items-center gap-1 transition
-                ${
-                  categoryFilter === "All"
-                    ? "border-sky-500 bg-sky-50 text-sky-700"
-                    : "border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-50"
-                }`}
-              >
-                All
-              </button>
-              {uniqueCategories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setCategoryFilter(cat)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-medium border inline-flex items-center gap-1 transition
-                  ${
-                    categoryFilter === cat
-                      ? "border-sky-500 bg-sky-50 text-sky-700"
-                      : "border-slate-300 bg-slate-100 text-slate-600 hover:bg-slate-50"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+          {/* Divider */}
+          <div className="h-px bg-slate-100" />
+
+          {/* STATUS OVERVIEW – ANALYTIC BARS */}
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+            {/* Status Overview */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-emerald-500" />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Status Overview
+                  </p>
+                </div>
+                <span className="text-[11px] text-slate-500">
+                  {visibleCount} of {summary.total} products
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-2 mt-1">
+                {STATUS_ORDER.map((status) => {
+                  const count = summary.counts[status];
+                  const pct =
+                    summary.total > 0
+                      ? Math.round((count / summary.total) * 100)
+                      : 0;
+
+                  const barColor =
+                    status === "Expired"
+                      ? "bg-red-400"
+                      : status === "Near Expiry"
+                      ? "bg-orange-400"
+                      : status === "Warning"
+                      ? "bg-amber-400"
+                      : status === "Good"
+                      ? "bg-sky-400"
+                      : "bg-emerald-400";
+
+                  return (
+                    <div key={status} className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between text-[11px] text-slate-600">
+                        <span className="flex items-center gap-1">
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${
+                              status === "Expired"
+                                ? "bg-red-500"
+                                : status === "Near Expiry"
+                                ? "bg-orange-500"
+                                : status === "Warning"
+                                ? "bg-amber-500"
+                                : status === "Good"
+                                ? "bg-sky-500"
+                                : "bg-emerald-500"
+                            }`}
+                          />
+                          <span className="font-medium">{status}</span>
+                        </span>
+                        <span className="text-slate-500">
+                          {count} item{count !== 1 ? "s" : ""} • {pct}%
+                        </span>
+                      </div>
+                      <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                        <div
+                          className={`h-1.5 rounded-full ${barColor}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+
+            {/* Category Overview */}
+            <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white/90 p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-emerald-500" />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Category Overview
+                  </p>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Tap a category row to filter products
+                </p>
+              </div>
+
+              {categorySnapshots.length === 0 ? (
+                <p className="text-xs text-slate-400">
+                  No categories found yet. Add products with categories to see
+                  insights here.
+                </p>
+              ) : (
+                <div className="flex flex-col divide-y divide-slate-100">
+                  {categorySnapshots.map((catSnap) => {
+                    const isActive = categoryFilter === catSnap.category;
+                    const risky =
+                      catSnap.expired + catSnap.near + catSnap.warn > 0;
+
+                    return (
+                      <button
+                        key={catSnap.category}
+                        type="button"
+                        onClick={() =>
+                          setCategoryFilter(
+                            isActive ? "All" : catSnap.category
+                          )
+                        }
+                        className={`flex w-full items-center justify-between gap-3 py-2.5 px-2 text-left transition rounded-xl ${
+                          isActive
+                            ? "bg-emerald-50/80 border border-emerald-200 shadow-sm"
+                            : "hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-slate-800">
+                              {catSnap.category}
+                            </span>
+                            <span className="text-[11px] text-slate-400">
+                              {catSnap.total} item
+                              {catSnap.total !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+                          {risky && (
+                            <div className="flex flex-wrap gap-2 text-[11px]">
+                              {catSnap.expired > 0 && (
+                                <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                                  Expired: {catSnap.expired}
+                                </span>
+                              )}
+                              {catSnap.near > 0 && (
+                                <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                                  Near: {catSnap.near}
+                                </span>
+                              )}
+                              {catSnap.warn > 0 && (
+                                <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                  Warning: {catSnap.warn}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <span className="text-[11px] text-slate-400">
+                          {isActive ? "Clear" : "Filter"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </section>
+
+          {/* Divider */}
+          <div className="h-px bg-slate-100" />
 
           {/* PRODUCT LIST (grouped by status) */}
-          <div className="flex flex-col gap-6 mt-2">
+          <div className="flex flex-col gap-6 mt-1">
             {loadingProducts ? (
-              <div className="text-center text-sm text-slate-500 py-6">
+              <div className="text-center text-sm text-slate-500 py-8">
                 Loading products…
               </div>
             ) : filteredAndSorted.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 flex flex-col items-center justify-center gap-2">
                 <AlertTriangle className="w-8 h-8 text-slate-400" />
-                <p className="text-sm font-semibold">
+                <p className="text-sm font-semibold text-slate-700">
                   No products found for the current filters.
                 </p>
                 <p className="text-xs text-slate-400">
@@ -821,14 +817,14 @@ export default function ProductReport() {
 
                 const headerColor =
                   status === "Expired"
-                    ? "text-red-500"
+                    ? "text-red-600"
                     : status === "Near Expiry"
-                    ? "text-orange-500"
+                    ? "text-orange-600"
                     : status === "Warning"
-                    ? "text-amber-500"
+                    ? "text-amber-600"
                     : status === "Good"
-                    ? "text-sky-500"
-                    : "text-emerald-500";
+                    ? "text-sky-600"
+                    : "text-emerald-600";
 
                 const withDays = groupItems.filter(
                   (g) => g.daysLeft !== null
@@ -844,12 +840,12 @@ export default function ProductReport() {
                   <section key={status} className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="text-xl">{statusIcon}</span>
+                        <span className="text-lg">{statusIcon}</span>
                         <h2
                           className={`text-sm font-semibold uppercase tracking-wide ${headerColor}`}
                         >
                           {status}{" "}
-                          <span className="text-xs text-slate-400 ml-1">
+                          <span className="text-xs text-slate-400 ml-1 normal-case font-normal">
                             ({groupItems.length} item
                             {groupItems.length > 1 ? "s" : ""})
                           </span>
@@ -882,15 +878,15 @@ export default function ProductReport() {
           </div>
 
           {/* NOTE */}
-          <div className="mt-4 text-xs text-slate-500 flex items-start gap-2">
+          <div className="mt-2 text-xs text-slate-500 flex items-start gap-2 bg-slate-50/80 border border-slate-200 rounded-2xl px-3 py-2.5">
             <Info className="w-3.5 h-3.5 mt-0.5 text-emerald-500" />
             <p>
               Expiry status is based on the time between{" "}
-              <span className="font-semibold text-emerald-500">
+              <span className="font-semibold text-slate-700">
                 Stock-In Date
               </span>{" "}
               and{" "}
-              <span className="font-semibold text-emerald-500">
+              <span className="font-semibold text-slate-700">
                 Expiry Date
               </span>
               . Products marked{" "}
@@ -904,11 +900,11 @@ export default function ProductReport() {
         </div>
       </motion.div>
 
-      {/* RIGHT-SIDE DRAWER (gaya ng Riders Profile, simplified) */}
+      {/* RIGHT-SIDE DRAWER – CLEAN WHITE PANEL */}
       {selectedProduct && (
         <div className="fixed inset-0 z-40 flex">
           <div
-            className="flex-1 bg-slate-950/70 backdrop-blur-sm"
+            className="flex-1 bg-slate-950/40 backdrop-blur-sm"
             onClick={() => setSelectedProduct(null)}
           />
 
@@ -917,32 +913,27 @@ export default function ProductReport() {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: 320, opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50 shadow-[0_25px_80px_rgba(15,23,42,0.9)] p-6 border-l border-emerald-500/40 overflow-y-auto relative"
+            className="w-full max-w-md bg-white border-l border-slate-200 shadow-[-12px_0_40px_rgba(15,23,42,0.35)] p-6 md:p-7 overflow-y-auto"
           >
-            <div className="pointer-events-none absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.45),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.45),transparent_55%)]" />
-
-            <div className="relative z-10">
-              {/* Header and close */}
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h2 className="text-lg font-bold text-slate-50">
-                    Product Details
-                  </h2>
-                  <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-1">
-                    <Layers className="w-3 h-3 text-emerald-400" />
-                    {selectedProduct.category}
-                  </p>
-                </div>
-                <button
-                  className="text-slate-400 hover:text-slate-200 text-sm px-2 py-1 rounded-full bg-slate-800/80 border border-slate-600/70"
-                  onClick={() => setSelectedProduct(null)}
-                >
-                  <X className="w-4 h-4" />
-                </button>
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">
+                  Product Details
+                </h2>
+                <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-1">
+                  <Layers className="w-3 h-3 text-emerald-500" />
+                  {selectedProduct.category}
+                </p>
               </div>
-
-              <DrawerContent product={selectedProduct} />
+              <button
+                className="text-slate-500 hover:text-slate-800 text-sm px-2 py-1 rounded-full bg-slate-100 border border-slate-200"
+                onClick={() => setSelectedProduct(null)}
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
+
+            <DrawerContent product={selectedProduct} />
           </motion.div>
         </div>
       )}
@@ -980,130 +971,121 @@ function ProductCard({
 
   const insightTags = getInsightTags(product);
 
+  const accentColor =
+    status === "Expired"
+      ? "bg-red-500"
+      : status === "Near Expiry"
+      ? "bg-orange-500"
+      : status === "Warning"
+      ? "bg-amber-400"
+      : status === "Good"
+      ? "bg-sky-400"
+      : "bg-emerald-500";
+
   return (
     <motion.button
-      whileHover={{ y: -3, scale: 1.01 }}
+      whileHover={{ y: -2, scale: 1.01 }}
       transition={{ duration: 0.15 }}
       onClick={onClick}
-      className={`relative flex flex-col items-stretch text-left rounded-2xl border ${statusColorClass} bg-white shadow-sm p-4 cursor-pointer hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-400`}
+      className={`relative flex flex-col items-stretch text-left rounded-xl border ${statusColorClass} bg-white shadow-sm hover:shadow-lg hover:bg-slate-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400/60 transition`}
     >
       {/* Left accent strip */}
-      <div
-        className="absolute left-0 top-0 h-full w-1 rounded-l-2xl"
-        style={{
-          background:
-            status === "Expired"
-              ? "#ef4444"
-              : status === "Near Expiry"
-              ? "#fb923c"
-              : status === "Warning"
-              ? "#f59e0b"
-              : status === "Good"
-              ? "#38bdf8"
-              : "#22c55e",
-        }}
-      />
+      <div className={`absolute left-0 top-0 h-full w-[2.5px] ${accentColor} rounded-l-xl`} />
 
-      {/* Status Badge + Name */}
-      <div className="flex justify-between items-start gap-2 pl-1">
-        <div className="flex items-start gap-3">
-          {/* Avatar style (like Riders) */}
-          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-semibold text-sm">
-            {name.charAt(0).toUpperCase()}
+      <div className="p-4">
+        {/* Status Badge + Name */}
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex items-start gap-3">
+            {/* Avatar-style initial */}
+            <div className="w-9 h-9 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center font-semibold text-sm">
+              {name.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1">
+              <h3 className="font-semibold text-sm mb-0.5 line-clamp-2 text-slate-900">
+                {name}
+              </h3>
+              <p className="text-[11px] text-slate-500">{category}</p>
+            </div>
           </div>
-          <div className="flex-1">
-            <h3 className="font-semibold text-sm mb-0.5 line-clamp-2">
-              {name}
-            </h3>
-            <p className="text-[11px] text-slate-400">{category}</p>
-          </div>
-        </div>
-        <span
-          className={`px-2.5 py-1 rounded-full text-[10px] font-semibold inline-flex items-center gap-1 ${statusSoftClass}`}
-        >
-          {status === "Expired" && "❌"}
-          {status === "Near Expiry" && "⏳"}
-          {status === "Warning" && "⚠️"}
-          {status === "Good" && "✅"}
-          {status === "New Stocks" && "🆕"}
-          <span>{status}</span>
-        </span>
-      </div>
-
-      {/* Shelf-life bar */}
-      <div className="mt-3">
-        <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-          <span>Shelf-life usage</span>
-          <span>{percentUsed === null ? "N/A" : `${percent.toFixed(0)}%`}</span>
-        </div>
-        <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
-          <div
-            className={`h-1.5 rounded-full ${
-              status === "Expired"
-                ? "bg-red-500"
-                : status === "Near Expiry"
-                ? "bg-orange-500"
-                : status === "Warning"
-                ? "bg-amber-400"
-                : status === "Good"
-                ? "bg-sky-400"
-                : "bg-emerald-500"
-            }`}
-            style={{ width: `${percent}%` }}
-          />
-        </div>
-      </div>
-
-      {/* Meta info */}
-      <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-slate-500">
-        <div>
-          <p className="uppercase tracking-wide text-[10px] text-slate-400">
-            Stock
-          </p>
-          <p className="font-semibold text-slate-700">{stock}</p>
-        </div>
-        <div>
-          <p className="uppercase tracking-wide text-[10px] text-slate-400">
-            Stock-In
-          </p>
-          <p className="font-semibold text-slate-700">
-            {stockInDate ? dayjs(stockInDate).format("MMM D, YYYY") : "N/A"}
-          </p>
-        </div>
-        <div>
-          <p className="uppercase tracking-wide text-[10px] text-slate-400">
-            Expiry
-          </p>
-          <p className="font-semibold text-slate-700">
-            {expiryDate ? dayjs(expiryDate).format("MMM D, YYYY") : "N/A"}
-          </p>
-        </div>
-      </div>
-
-      {/* Days left */}
-      <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
-        <span className="inline-flex items-center gap-1">
-          <Clock className="w-3.5 h-3.5 text-slate-400" />
-          <span>Days left:</span>
-          <span className="font-semibold text-slate-700">
-            {daysLeftLabel}
+          <span
+            className={`px-2.5 py-1 rounded-full text-[10px] font-semibold inline-flex items-center gap-1 ${statusSoftClass}`}
+          >
+            {status === "Expired" && "❌"}
+            {status === "Near Expiry" && "⏳"}
+            {status === "Warning" && "⚠️"}
+            {status === "Good" && "✅"}
+            {status === "New Stocks" && "🆕"}
+            <span>{status}</span>
           </span>
-        </span>
-      </div>
-
-      {/* Insight tags */}
-      {insightTags.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {insightTags.slice(0, 3).map((tag, idx) => (
-            <span
-              key={idx}
-              className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] text-slate-600"
-            >
-              {tag}
-            </span>
-          ))}
         </div>
-      )}
+
+        {/* Shelf-life bar */}
+        <div className="mt-3">
+          <div className="flex justify-between text-[11px] text-slate-500 mb-1">
+            <span>Shelf-life usage</span>
+            <span>
+              {percentUsed === null ? "N/A" : `${percent.toFixed(0)}%`}
+            </span>
+          </div>
+          <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+            <div
+              className={`h-1.5 rounded-full ${accentColor}`}
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Meta info */}
+        <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-slate-500">
+          <div>
+            <p className="uppercase tracking-wide text-[10px] text-slate-400">
+              Stock
+            </p>
+            <p className="font-semibold text-slate-800">{stock}</p>
+          </div>
+          <div>
+            <p className="uppercase tracking-wide text-[10px] text-slate-400">
+              Stock-In
+            </p>
+            <p className="font-semibold text-slate-800">
+              {stockInDate ? dayjs(stockInDate).format("MMM D, YYYY") : "N/A"}
+            </p>
+          </div>
+          <div>
+            <p className="uppercase tracking-wide text-[10px] text-slate-400">
+              Expiry
+            </p>
+            <p className="font-semibold text-slate-800">
+              {expiryDate ? dayjs(expiryDate).format("MMM D, YYYY") : "N/A"}
+            </p>
+          </div>
+        </div>
+
+        {/* Days left */}
+        <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
+          <span className="inline-flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5 text-slate-400" />
+            <span>Days left:</span>
+            <span className="font-semibold text-slate-800">
+              {daysLeftLabel}
+            </span>
+          </span>
+        </div>
+
+        {/* Insight tags */}
+        {insightTags.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1.5">
+            {insightTags.slice(0, 3).map((tag, idx) => (
+              <span
+                key={idx}
+                className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] text-slate-600 border border-slate-200/70"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </motion.button>
   );
 }
@@ -1147,7 +1129,7 @@ function getInsightTags(p: EnrichedProduct): string[] {
 }
 
 /* =========================
-   DRAWER CONTENT (simplified)
+   DRAWER CONTENT
 ========================= */
 
 function DrawerContent({ product }: { product: EnrichedProduct }) {
@@ -1177,36 +1159,37 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
 
   const insights = getInsightTags(product);
 
+  const statusBadgeClass =
+    status === "Expired"
+      ? "bg-red-50 text-red-700 border-red-200"
+      : status === "Near Expiry"
+      ? "bg-orange-50 text-orange-700 border-orange-200"
+      : status === "Warning"
+      ? "bg-amber-50 text-amber-700 border-amber-200"
+      : status === "Good"
+      ? "bg-sky-50 text-sky-700 border-sky-200"
+      : "bg-emerald-50 text-emerald-700 border-emerald-200";
+
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-5">
       {/* HEADER BLOCK */}
-      <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/80 flex items-start gap-3">
-        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-300 to-teal-300 text-emerald-950 flex items-center justify-center font-bold text-xl shadow-lg shadow-emerald-500/40">
+      <div className="border border-slate-200 rounded-2xl p-4 bg-white flex items-start gap-3 shadow-sm">
+        <div className="w-11 h-11 rounded-full bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-xl">
           {name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 flex flex-col gap-2">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold text-slate-50 line-clamp-2">
+              <p className="text-sm font-semibold text-slate-900 line-clamp-2">
                 {name}
               </p>
-              <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-1">
-                <Layers className="w-3 h-3 text-emerald-400" />
+              <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-1">
+                <Layers className="w-3 h-3 text-emerald-500" />
                 {category}
               </p>
             </div>
             <span
-              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold ${
-                status === "Expired"
-                  ? "bg-red-100 text-red-700"
-                  : status === "Near Expiry"
-                  ? "bg-orange-100 text-orange-700"
-                  : status === "Warning"
-                  ? "bg-amber-100 text-amber-700"
-                  : status === "Good"
-                  ? "bg-sky-100 text-sky-700"
-                  : "bg-emerald-100 text-emerald-700"
-              }`}
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-semibold border ${statusBadgeClass}`}
             >
               {status === "Expired" && "❌"}
               {status === "Near Expiry" && "⏳"}
@@ -1217,16 +1200,16 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-3 text-[11px] text-slate-300">
+          <div className="flex flex-wrap gap-3 text-[11px] text-slate-600">
             <div className="flex items-center gap-1">
-              <Package className="w-4 h-4 text-emerald-400" />
+              <Package className="w-4 h-4 text-emerald-500" />
               <span>Stock:</span>
-              <span className="font-semibold text-slate-50">{stock}</span>
+              <span className="font-semibold text-slate-900">{stock}</span>
             </div>
             <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4 text-slate-300" />
+              <Clock className="w-4 h-4 text-slate-500" />
               <span>Days left:</span>
-              <span className="font-semibold text-slate-50">
+              <span className="font-semibold text-slate-900">
                 {daysLeftLabel}
               </span>
             </div>
@@ -1235,41 +1218,41 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
       </div>
 
       {/* KEY INFO CARD */}
-      <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/70">
-        <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-2">
+      <div className="border border-slate-200 rounded-2xl p-4 bg-slate-50/70">
+        <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-2 font-semibold">
           Key Info
         </p>
-        <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-300">
+        <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-600">
           <div>
-            <p className="text-slate-400">Stock-In Date</p>
-            <p className="font-semibold text-slate-50">
+            <p className="text-slate-500">Stock-In Date</p>
+            <p className="font-semibold text-slate-900">
               {stockInDate ? dayjs(stockInDate).format("MMM D, YYYY") : "N/A"}
             </p>
           </div>
           <div>
-            <p className="text-slate-400">Expiry Date</p>
-            <p className="font-semibold text-slate-50">
+            <p className="text-slate-500">Expiry Date</p>
+            <p className="font-semibold text-slate-900">
               {expiryDate ? dayjs(expiryDate).format("MMM D, YYYY") : "N/A"}
             </p>
           </div>
           <div>
-            <p className="text-slate-400">Days Left</p>
-            <p className="font-semibold text-slate-50">{daysLeftLabel}</p>
+            <p className="text-slate-500">Days Left</p>
+            <p className="font-semibold text-slate-900">{daysLeftLabel}</p>
           </div>
           <div>
-            <p className="text-slate-400">Freshness</p>
-            <p className="font-semibold text-slate-50">{freshnessLabel}</p>
+            <p className="text-slate-500">Freshness</p>
+            <p className="font-semibold text-slate-900">{freshnessLabel}</p>
           </div>
         </div>
       </div>
 
       {/* SMART INSIGHTS */}
-      <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/70">
-        <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-2">
+      <div className="border border-slate-200 rounded-2xl p-4 bg-white">
+        <p className="text-[11px] uppercase tracking-wide text-slate-500 mb-2 font-semibold">
           Smart Insights
         </p>
         {insights.length === 0 ? (
-          <p className="text-[11px] text-slate-300">
+          <p className="text-[11px] text-slate-600">
             This item looks healthy in terms of expiry and stock.
           </p>
         ) : (
@@ -1277,7 +1260,7 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
             {insights.map((tag, idx) => (
               <span
                 key={idx}
-                className="px-2 py-0.5 rounded-full bg-slate-800 text-[11px] text-slate-100 border border-slate-600/70"
+                className="px-2 py-0.5 rounded-full bg-slate-100 text-[11px] text-slate-700 border border-slate-200/80"
               >
                 {tag}
               </span>
@@ -1290,13 +1273,13 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
       <div className="flex flex-wrap gap-2">
         <button
           type="button"
-          className="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500 text-white hover:bg-emerald-600"
+          className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition shadow-sm"
         >
           Mark as Checked Today
         </button>
         <button
           type="button"
-          className="px-3 py-1.5 rounded-full text-xs font-medium bg-slate-800 text-slate-100 hover:bg-slate-700"
+          className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 transition border border-slate-200"
         >
           Add Note (future feature)
         </button>
@@ -1323,10 +1306,10 @@ function SummaryCard({
   color: "emerald" | "rose" | "amber" | "indigo";
 }) {
   const colors: Record<typeof color, string> = {
-    emerald: "from-emerald-500 to-emerald-700",
-    rose: "from-rose-500 to-rose-700",
-    amber: "from-amber-500 to-amber-700",
-    indigo: "from-indigo-500 to-indigo-700",
+    emerald: "from-emerald-500 to-emerald-600",
+    rose: "from-rose-500 to-rose-600",
+    amber: "from-amber-500 to-amber-600",
+    indigo: "from-indigo-500 to-indigo-600",
   };
 
   return (
@@ -1334,16 +1317,16 @@ function SummaryCard({
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{
-        y: -6,
-        scale: 1.03,
-        boxShadow: "0 22px 60px rgba(15,23,42,0.35)",
+        y: -4,
+        scale: 1.02,
+        boxShadow: "0 18px 50px rgba(15,23,42,0.18)",
       }}
-      transition={{ duration: 0.35 }}
-      className={`relative p-5 rounded-2xl border border-white/40 text-white bg-gradient-to-br ${colors[color]} shadow-xl overflow-hidden`}
+      transition={{ duration: 0.25 }}
+      className={`relative p-4 rounded-2xl border border-white/60 text-white bg-gradient-to-br ${colors[color]} shadow-xl overflow-hidden`}
     >
-      <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.5),transparent_55%)]" />
+      <div className="absolute inset-0 opacity-20 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.7),transparent_55%)]" />
       <div className="relative flex items-center gap-3">
-        <div className="p-3 bg-white/15 rounded-xl flex items-center justify-center">
+        <div className="p-2.5 bg-white/15 rounded-xl flex items-center justify-center">
           {icon}
         </div>
 
@@ -1354,7 +1337,7 @@ function SummaryCard({
           <p className="text-2xl md:text-3xl font-bold leading-tight">
             {value}
           </p>
-          <p className="text-[0.7rem] text-white/80 mt-1">{accent}</p>
+          <p className="text-[0.7rem] text-white/85 mt-1">{accent}</p>
         </div>
       </div>
     </motion.div>
