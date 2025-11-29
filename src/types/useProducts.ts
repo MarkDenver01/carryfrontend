@@ -66,18 +66,28 @@ export const useProducts = () => {
     }
   };
 
-  /** Update product status only */
-  const updateStatus = async (productId: number, status: string) => {
-    try {
-      const updated = await updateProductStatus(productId, { productStatus: status });
-      const mapped = mapProductDTO(updated);
-      setProducts((prev) => prev.map((p) => (p.id === mapped.id ? mapped : p)));
-      return mapped;
-    } catch (err: any) {
-      console.error("Failed to update product status", err);
-      throw err;
+const updateStatus = async (productId: number, status: string) => {
+  try {
+    // 🔥 CORRECT PAYLOAD
+    const updated = await updateProductStatus(productId, { productStatus: status });
+    const mapped = mapProductDTO(updated);
+
+    // 🔥 IF OUT OF STOCK → REMOVE FROM UI INSTANTLY
+    if (status === "Out of Stock") {
+      setProducts((prev) => prev.filter((p) => p.id !== mapped.id));
+    } else {
+      // NORMAL UPDATE (Promo)
+      setProducts((prev) => 
+        prev.map((p) => (p.id === mapped.id ? mapped : p))
+      );
     }
-  };
+
+    return mapped;
+  } catch (err: any) {
+    console.error("Failed to update product status", err);
+    throw err;
+  }
+};
 
   return {
     products,
