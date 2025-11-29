@@ -64,6 +64,8 @@ const STATUS_ORDER: ExpiryStatus[] = [
   "New Stocks",
 ];
 
+const PAGE_SIZE = 120; // For 1000+ products, incremental load
+
 const clamp = (val: number, min: number, max: number) =>
   Math.min(max, Math.max(min, val));
 
@@ -156,6 +158,8 @@ export default function ProductReport() {
     null
   );
 
+  const [page, setPage] = useState(1); // pagination for large data
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setCursorPos({
@@ -172,6 +176,7 @@ export default function ProductReport() {
       const data = await getAllProducts();
       setProducts(data ?? []);
       setLastUpdated(dayjs().format("MMM D, YYYY • HH:mm"));
+      setPage(1); // reset pagination after fresh fetch
     } catch (err) {
       console.error("Failed to load products", err);
     } finally {
@@ -263,6 +268,42 @@ export default function ProductReport() {
 
     return { total, counts, expiringSoon };
   }, [enrichedData]);
+
+  const riskMeta = useMemo(() => {
+    const { total, counts } = summary;
+    const expired = counts["Expired"] ?? 0;
+    const near = counts["Near Expiry"] ?? 0;
+    const warn = counts["Warning"] ?? 0;
+
+    if (!total) {
+      return {
+        score: 0,
+        label: "No data yet",
+        tone: "neutral" as const,
+      };
+    }
+
+    // weighted risk score 0–100
+    const raw =
+      ((expired * 1 + near * 0.7 + warn * 0.45) / Math.max(total, 1)) * 100;
+    const score = Math.round(clamp(raw, 0, 100));
+
+    let label: string;
+    let tone: "low" | "medium" | "high";
+
+    if (score >= 70) {
+      label = "High expiry risk";
+      tone = "high";
+    } else if (score >= 35) {
+      label = "Moderate expiry risk";
+      tone = "medium";
+    } else {
+      label = "Low expiry risk";
+      tone = "low";
+    }
+
+    return { score, label, tone };
+  }, [summary]);
 
   const uniqueCategories = useMemo(
     () =>
@@ -358,7 +399,58 @@ export default function ProductReport() {
     return data;
   }, [enrichedData, statusFilter, categoryFilter, sortBy, search]);
 
-  const visibleCount = filteredAndSorted.length;
+  const paginated = useMemo(
+    () => filteredAndSorted.slice(0, page * PAGE_SIZE),
+    [filteredAndSorted, page]
+  );
+
+  const visibleCount = paginated.length;
+  const canLoadMore = visibleCount < filteredAndSorted.length;
+
+  const pinnedInsights = useMemo(() => {
+    const { total, counts, expiringSoon } = summary;
+    const expired = counts["Expired"] ?? 0;
+    const near = counts["Near Expiry"] ?? 0;
+    const warn = counts["Warning"] ?? 0;
+
+    const items: { icon: string; text: string; tone: "red" | "amber" | "sky" | "emerald" }[] = [];
+
+    if (!total) return items;
+
+    if (expired > 0) {
+      items.push({
+        icon: "❌",
+        text: `${expired} product${expired > 1 ? "s" : ""} are already expired.`,
+        tone: "red",
+      });
+    }
+
+    if (near > 0) {
+      items.push({
+        icon: "⏳",
+        text: `${near} product${near > 1 ? "s" : ""} will expire soon. Consider promos.`,
+        tone: "amber",
+      });
+    }
+
+    if (warn > 0) {
+      items.push({
+        icon: "⚠️",
+        text: `${warn} item${warn > 1 ? "s" : ""} are in Warning status. Monitor closely.`,
+        tone: "amber",
+      });
+    }
+
+    if (expiringSoon === 0 && total > 0) {
+      items.push({
+        icon: "✅",
+        text: "All items are currently within a safe expiry window.",
+        tone: "emerald",
+      });
+    }
+
+    return items.slice(0, 3);
+  }, [summary]);
 
   /* =========================
      RENDER
@@ -455,7 +547,10 @@ export default function ProductReport() {
                 (tab) => (
                   <button
                     key={tab}
-                    onClick={() => setStatusFilter(tab)}
+                    onClick={() => {
+                      setStatusFilter(tab);
+                      setPage(1);
+                    }}
                     className={`px-4 py-2 rounded-full text-xs sm:text-sm font-semibold border transition whitespace-nowrap
                       ${
                         statusFilter === tab
@@ -475,21 +570,21 @@ export default function ProductReport() {
                 icon={<Package className="w-7 h-7" />}
                 label="Total Products"
                 value={summary.total.toString()}
-                accent=""
+                accent="All tracked SKUs"
                 color="emerald"
               />
               <SummaryCard
                 icon={<ShieldAlert className="w-7 h-7" />}
                 label="Expiring / Expired"
                 value={summary.expiringSoon.toString()}
-                accent=""
+                accent="Expired + near expiry"
                 color="rose"
               />
               <SummaryCard
                 icon={<AlertTriangle className="w-7 h-7" />}
                 label="Warning Stocks"
                 value={summary.counts["Warning"].toString()}
-                accent=""
+                accent="Monitor shelf window"
                 color="amber"
               />
               <SummaryCard
@@ -498,16 +593,53 @@ export default function ProductReport() {
                 value={(
                   summary.counts["Good"] + summary.counts["New Stocks"]
                 ).toString()}
-                accent=""
+                accent="Good freshness range"
                 color="indigo"
               />
             </section>
+
+            {/* GLOBAL RISK SCORE STRIP */}
+            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-300 flex items-center justify-center">
+                  <ShieldAlert className="w-5 h-5 text-emerald-600" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
+                    Expiry Risk Score
+                  </p>
+                  <p className="text-xs text-emerald-700">
+                    {riskMeta.label} · based on expired, near expiry, and
+                    warning items.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1 min-w-[180px]">
+                <div className="flex items-center justify-between text-[11px] text-emerald-800">
+                  <span>Risk level</span>
+                  <span className="font-semibold">{riskMeta.score}/100</span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-emerald-100 overflow-hidden">
+                  <div
+                    className={`h-2 rounded-full ${
+                      riskMeta.tone === "high"
+                        ? "bg-red-500"
+                        : riskMeta.tone === "medium"
+                        ? "bg-amber-400"
+                        : "bg-emerald-500"
+                    }`}
+                    style={{ width: `${riskMeta.score}%` }}
+                  />
+                </div>
+              </div>
+            </div>
           </div>
 
           {/* FILTER BAR */}
           <section className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-md shadow-sm px-4 py-4 flex flex-col gap-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs text-slate-500">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
                 <Filter className="w-3.5 h-3.5 text-emerald-500" />
                 <span className="font-medium uppercase tracking-wide">
                   Filters & Sorting
@@ -519,9 +651,9 @@ export default function ProductReport() {
                   </span>{" "}
                   of{" "}
                   <span className="font-semibold text-slate-800">
-                    {summary.total}
+                    {filteredAndSorted.length}
                   </span>{" "}
-                  products
+                  filtered products
                 </span>
                 {lastUpdated && (
                   <span className="hidden lg:inline text-[11px] text-slate-400 border-l pl-2 border-slate-200">
@@ -540,7 +672,10 @@ export default function ProductReport() {
                   placeholder="Search by product or category..."
                   className="w-full h-10 border border-slate-300 rounded-xl px-4 pl-10 text-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 shadow-sm"
                   value={search}
-                  onChange={(e) => setSearch(e.target.value)}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
                 />
                 <Search className="absolute left-3 top-2.5 text-slate-400 w-4 h-4" />
               </div>
@@ -565,7 +700,10 @@ export default function ProductReport() {
                 {["All", ...STATUS_ORDER].map((s) => (
                   <DropdownItem
                     key={s}
-                    onClick={() => setStatusFilter(s as any)}
+                    onClick={() => {
+                      setStatusFilter(s as any);
+                      setPage(1);
+                    }}
                   >
                     {s}
                   </DropdownItem>
@@ -588,13 +726,21 @@ export default function ProductReport() {
                   </button>
                 )}
               >
-                <DropdownItem onClick={() => setCategoryFilter("All")}>
+                <DropdownItem
+                  onClick={() => {
+                    setCategoryFilter("All");
+                    setPage(1);
+                  }}
+                >
                   All
                 </DropdownItem>
                 {uniqueCategories.map((cat) => (
                   <DropdownItem
                     key={cat}
-                    onClick={() => setCategoryFilter(cat)}
+                    onClick={() => {
+                      setCategoryFilter(cat);
+                      setPage(1);
+                    }}
                   >
                     {cat}
                   </DropdownItem>
@@ -664,7 +810,7 @@ export default function ProductReport() {
                   </p>
                 </div>
                 <span className="text-[11px] text-slate-500">
-                  {visibleCount} of {summary.total} products
+                  {visibleCount} of {filteredAndSorted.length} filtered
                 </span>
               </div>
 
@@ -753,11 +899,12 @@ export default function ProductReport() {
                       <button
                         key={catSnap.category}
                         type="button"
-                        onClick={() =>
+                        onClick={() => {
                           setCategoryFilter(
                             isActive ? "All" : catSnap.category
-                          )
-                        }
+                          );
+                          setPage(1);
+                        }}
                         className={`flex w-full items-center justify-between gap-3 py-2.5 px-2 text-left transition rounded-xl ${
                           isActive
                             ? "bg-emerald-50/80 border border-emerald-200 shadow-sm"
@@ -808,13 +955,36 @@ export default function ProductReport() {
             </div>
           </section>
 
+          {/* PINNED INSIGHTS BAR */}
+          {pinnedInsights.length > 0 && (
+            <div className="rounded-2xl border border-slate-200 bg-slate-900/95 text-slate-50 px-4 py-3 flex flex-wrap gap-2">
+              {pinnedInsights.map((ins, idx) => (
+                <div
+                  key={idx}
+                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] border ${
+                    ins.tone === "red"
+                      ? "bg-red-500/10 border-red-400/70"
+                      : ins.tone === "amber"
+                      ? "bg-amber-500/10 border-amber-400/70"
+                      : ins.tone === "emerald"
+                      ? "bg-emerald-500/10 border-emerald-400/70"
+                      : "bg-sky-500/10 border-sky-400/70"
+                  }`}
+                >
+                  <span>{ins.icon}</span>
+                  <span>{ins.text}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* PRODUCT LIST (grouped by status) */}
           <div className="flex flex-col gap-6 mt-1">
             {loadingProducts ? (
               <div className="text-center text-sm text-slate-500 py-8">
                 Loading products…
               </div>
-            ) : filteredAndSorted.length === 0 ? (
+            ) : paginated.length === 0 ? (
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 flex flex-col items-center justify-center gap-2">
                 <AlertTriangle className="w-8 h-8 text-slate-400" />
                 <p className="text-sm font-semibold text-slate-700">
@@ -825,82 +995,98 @@ export default function ProductReport() {
                 </p>
               </div>
             ) : (
-              STATUS_ORDER.map((status) => {
-                const groupItems = filteredAndSorted.filter(
-                  (item) => item.status === status
-                );
-                if (!groupItems.length) return null;
+              <>
+                {STATUS_ORDER.map((status) => {
+                  const groupItems = paginated.filter(
+                    (item) => item.status === status
+                  );
+                  if (!groupItems.length) return null;
 
-                const statusIcon =
-                  status === "Expired"
-                    ? "❌"
-                    : status === "Near Expiry"
-                    ? "⏳"
-                    : status === "Warning"
-                    ? "⚠️"
-                    : status === "Good"
-                    ? "✅"
-                    : "🆕";
+                  const statusIcon =
+                    status === "Expired"
+                      ? "❌"
+                      : status === "Near Expiry"
+                      ? "⏳"
+                      : status === "Warning"
+                      ? "⚠️"
+                      : status === "Good"
+                      ? "✅"
+                      : "🆕";
 
-                const headerColor =
-                  status === "Expired"
-                    ? "text-red-600"
-                    : status === "Near Expiry"
-                    ? "text-orange-600"
-                    : status === "Warning"
-                    ? "text-amber-600"
-                    : status === "Good"
-                    ? "text-sky-600"
-                    : "text-emerald-600";
+                  const headerColor =
+                    status === "Expired"
+                      ? "text-red-600"
+                      : status === "Near Expiry"
+                      ? "text-orange-600"
+                      : status === "Warning"
+                      ? "text-amber-600"
+                      : status === "Good"
+                      ? "text-sky-600"
+                      : "text-emerald-600";
 
-                const withDays = groupItems.filter(
-                  (g) => g.daysLeft !== null
-                );
-                const minDays =
-                  withDays.length > 0
-                    ? Math.min(
-                        ...withDays.map((g) => g.daysLeft ?? Infinity)
-                      )
-                    : null;
+                  const withDays = groupItems.filter(
+                    (g) => g.daysLeft !== null
+                  );
+                  const minDays =
+                    withDays.length > 0
+                      ? Math.min(
+                          ...withDays.map((g) => g.daysLeft ?? Infinity)
+                        )
+                      : null;
 
-                return (
-                  <section key={status} className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">{statusIcon}</span>
-                        <h2
-                          className={`text-sm font-semibold uppercase tracking-wide ${headerColor}`}
-                        >
-                          {status}{" "}
-                          <span className="text-xs text-slate-400 ml-1 normal-case font-normal">
-                            ({groupItems.length} item
-                            {groupItems.length > 1 ? "s" : ""})
-                          </span>
-                        </h2>
+                  return (
+                    <section key={status} className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{statusIcon}</span>
+                          <h2
+                            className={`text-sm font-semibold uppercase tracking-wide ${headerColor}`}
+                          >
+                            {status}{" "}
+                            <span className="text-xs text-slate-400 ml-1 normal-case font-normal">
+                              ({groupItems.length} item
+                              {groupItems.length > 1 ? "s" : ""})
+                            </span>
+                          </h2>
+                        </div>
+                        {minDays !== null && status !== "Expired" && (
+                          <p className="text-[11px] text-slate-400">
+                            Soonest expiry in{" "}
+                            <span className="font-semibold text-slate-700">
+                              {minDays} day
+                              {minDays === 1 ? "" : "s"}
+                            </span>
+                          </p>
+                        )}
                       </div>
-                      {minDays !== null && status !== "Expired" && (
-                        <p className="text-[11px] text-slate-400">
-                          Soonest expiry in{" "}
-                          <span className="font-semibold text-slate-700">
-                            {minDays} day
-                            {minDays === 1 ? "" : "s"}
-                          </span>
-                        </p>
-                      )}
-                    </div>
 
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                      {groupItems.map((item) => (
-                        <ProductCard
-                          key={item.id}
-                          product={item}
-                          onClick={() => setSelectedProduct(item)}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                );
-              })
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                        {groupItems.map((item) => (
+                          <ProductCard
+                            key={item.id}
+                            product={item}
+                            onClick={() => setSelectedProduct(item)}
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+
+                {/* LOAD MORE for 1000+ products */}
+                {canLoadMore && (
+                  <div className="flex justify-center mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => p + 1)}
+                      className="px-4 py-2 rounded-full text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 shadow-md flex items-center gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Load more products ({filteredAndSorted.length - visibleCount} remaining)
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
 
@@ -1107,7 +1293,7 @@ function ProductCard({
           </span>
         </div>
 
-        {/* Insight tags */}
+        {/* Insight tags — only if meron talagang insight */}
         {insightTags.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {insightTags.slice(0, 3).map((tag, idx) => (
@@ -1156,10 +1342,7 @@ function getInsightTags(p: EnrichedProduct): string[] {
     tags.push("Very fresh");
   }
 
-  if (tags.length === 0) {
-    tags.push("Healthy inventory");
-  }
-
+  // ❌ Removed "Healthy inventory" default tag
   return tags;
 }
 
@@ -1303,22 +1486,7 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
           </div>
         )}
       </div>
-
-      {/* Placeholder actions (UI only) */}
-      <div className="flex flex-wrap gap-2">
-        <button
-          type="button"
-          className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-emerald-500 text-white hover:bg-emerald-600 transition shadow-sm"
-        >
-          Mark as Checked Today
-        </button>
-        <button
-          type="button"
-          className="px-3.5 py-1.5 rounded-full text-xs font-medium bg-slate-800 text-slate-100 hover:bg-slate-700 transition border border-slate-600/70"
-        >
-          Add Note (future feature)
-        </button>
-      </div>
+      {/* ❌ Removed action buttons (Mark as Checked Today / Add Note) */}
     </div>
   );
 }
