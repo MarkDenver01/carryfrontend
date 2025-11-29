@@ -269,42 +269,6 @@ export default function ProductReport() {
     return { total, counts, expiringSoon };
   }, [enrichedData]);
 
-  const riskMeta = useMemo(() => {
-    const { total, counts } = summary;
-    const expired = counts["Expired"] ?? 0;
-    const near = counts["Near Expiry"] ?? 0;
-    const warn = counts["Warning"] ?? 0;
-
-    if (!total) {
-      return {
-        score: 0,
-        label: "No data yet",
-        tone: "neutral" as const,
-      };
-    }
-
-    // weighted risk score 0–100
-    const raw =
-      ((expired * 1 + near * 0.7 + warn * 0.45) / Math.max(total, 1)) * 100;
-    const score = Math.round(clamp(raw, 0, 100));
-
-    let label: string;
-    let tone: "low" | "medium" | "high";
-
-    if (score >= 70) {
-      label = "High expiry risk";
-      tone = "high";
-    } else if (score >= 35) {
-      label = "Moderate expiry risk";
-      tone = "medium";
-    } else {
-      label = "Low expiry risk";
-      tone = "low";
-    }
-
-    return { score, label, tone };
-  }, [summary]);
-
   const uniqueCategories = useMemo(
     () =>
       Array.from(new Set(enrichedData.map((p) => p.category)))
@@ -406,51 +370,6 @@ export default function ProductReport() {
 
   const visibleCount = paginated.length;
   const canLoadMore = visibleCount < filteredAndSorted.length;
-
-  const pinnedInsights = useMemo(() => {
-    const { total, counts, expiringSoon } = summary;
-    const expired = counts["Expired"] ?? 0;
-    const near = counts["Near Expiry"] ?? 0;
-    const warn = counts["Warning"] ?? 0;
-
-    const items: { icon: string; text: string; tone: "red" | "amber" | "sky" | "emerald" }[] = [];
-
-    if (!total) return items;
-
-    if (expired > 0) {
-      items.push({
-        icon: "❌",
-        text: `${expired} product${expired > 1 ? "s" : ""} are already expired.`,
-        tone: "red",
-      });
-    }
-
-    if (near > 0) {
-      items.push({
-        icon: "⏳",
-        text: `${near} product${near > 1 ? "s" : ""} will expire soon. Consider promos.`,
-        tone: "amber",
-      });
-    }
-
-    if (warn > 0) {
-      items.push({
-        icon: "⚠️",
-        text: `${warn} item${warn > 1 ? "s" : ""} are in Warning status. Monitor closely.`,
-        tone: "amber",
-      });
-    }
-
-    if (expiringSoon === 0 && total > 0) {
-      items.push({
-        icon: "✅",
-        text: "All items are currently within a safe expiry window.",
-        tone: "emerald",
-      });
-    }
-
-    return items.slice(0, 3);
-  }, [summary]);
 
   /* =========================
      RENDER
@@ -570,21 +489,21 @@ export default function ProductReport() {
                 icon={<Package className="w-7 h-7" />}
                 label="Total Products"
                 value={summary.total.toString()}
-                accent="All tracked SKUs"
+                accent=""
                 color="emerald"
               />
               <SummaryCard
                 icon={<ShieldAlert className="w-7 h-7" />}
                 label="Expiring / Expired"
                 value={summary.expiringSoon.toString()}
-                accent="Expired + near expiry"
+                accent=""
                 color="rose"
               />
               <SummaryCard
                 icon={<AlertTriangle className="w-7 h-7" />}
                 label="Warning Stocks"
                 value={summary.counts["Warning"].toString()}
-                accent="Monitor shelf window"
+                accent=""
                 color="amber"
               />
               <SummaryCard
@@ -593,47 +512,10 @@ export default function ProductReport() {
                 value={(
                   summary.counts["Good"] + summary.counts["New Stocks"]
                 ).toString()}
-                accent="Good freshness range"
+                accent=""
                 color="indigo"
               />
             </section>
-
-            {/* GLOBAL RISK SCORE STRIP */}
-            <div className="rounded-2xl border border-emerald-100 bg-emerald-50/70 px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-emerald-500/10 border border-emerald-300 flex items-center justify-center">
-                  <ShieldAlert className="w-5 h-5 text-emerald-600" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-emerald-800 uppercase tracking-wide">
-                    Expiry Risk Score
-                  </p>
-                  <p className="text-xs text-emerald-700">
-                    {riskMeta.label} · based on expired, near expiry, and
-                    warning items.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-1 min-w-[180px]">
-                <div className="flex items-center justify-between text-[11px] text-emerald-800">
-                  <span>Risk level</span>
-                  <span className="font-semibold">{riskMeta.score}/100</span>
-                </div>
-                <div className="w-full h-2 rounded-full bg-emerald-100 overflow-hidden">
-                  <div
-                    className={`h-2 rounded-full ${
-                      riskMeta.tone === "high"
-                        ? "bg-red-500"
-                        : riskMeta.tone === "medium"
-                        ? "bg-amber-400"
-                        : "bg-emerald-500"
-                    }`}
-                    style={{ width: `${riskMeta.score}%` }}
-                  />
-                </div>
-              </div>
-            </div>
           </div>
 
           {/* FILTER BAR */}
@@ -955,29 +837,6 @@ export default function ProductReport() {
             </div>
           </section>
 
-          {/* PINNED INSIGHTS BAR */}
-          {pinnedInsights.length > 0 && (
-            <div className="rounded-2xl border border-slate-200 bg-slate-900/95 text-slate-50 px-4 py-3 flex flex-wrap gap-2">
-              {pinnedInsights.map((ins, idx) => (
-                <div
-                  key={idx}
-                  className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] border ${
-                    ins.tone === "red"
-                      ? "bg-red-500/10 border-red-400/70"
-                      : ins.tone === "amber"
-                      ? "bg-amber-500/10 border-amber-400/70"
-                      : ins.tone === "emerald"
-                      ? "bg-emerald-500/10 border-emerald-400/70"
-                      : "bg-sky-500/10 border-sky-400/70"
-                  }`}
-                >
-                  <span>{ins.icon}</span>
-                  <span>{ins.text}</span>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* PRODUCT LIST (grouped by status) */}
           <div className="flex flex-col gap-6 mt-1">
             {loadingProducts ? (
@@ -1082,7 +941,8 @@ export default function ProductReport() {
                       className="px-4 py-2 rounded-full text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 shadow-md flex items-center gap-2"
                     >
                       <RefreshCw className="w-4 h-4" />
-                      Load more products ({filteredAndSorted.length - visibleCount} remaining)
+                      Load more products (
+                      {filteredAndSorted.length - visibleCount} remaining)
                     </button>
                   </div>
                 )}
@@ -1375,8 +1235,6 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
     return "Past expiry";
   })();
 
-  const insights = getInsightTags(product);
-
   const statusBadgeClass =
     status === "Expired"
       ? "bg-red-100 text-red-700 border-red-300"
@@ -1463,30 +1321,7 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
           </div>
         </div>
       </div>
-
-      {/* SMART INSIGHTS */}
-      <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/70">
-        <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-2 font-semibold">
-          Smart Insights
-        </p>
-        {insights.length === 0 ? (
-          <p className="text-[11px] text-slate-300">
-            This item looks healthy in terms of expiry and stock.
-          </p>
-        ) : (
-          <div className="flex flex-wrap gap-1.5">
-            {insights.map((tag, idx) => (
-              <span
-                key={idx}
-                className="px-2 py-0.5 rounded-full bg-slate-800 text-[11px] text-slate-100 border border-slate-600/70"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-      {/* ❌ Removed action buttons (Mark as Checked Today / Add Note) */}
+      {/* ❌ Removed Smart Insights panel & action buttons */}
     </div>
   );
 }
@@ -1540,7 +1375,9 @@ function SummaryCard({
           <p className="text-2xl md:text-3xl font-bold leading-tight">
             {value}
           </p>
-          <p className="text-[0.7rem] text-white/80 mt-1">{accent}</p>
+          {accent && (
+            <p className="text-[0.7rem] text-white/80 mt-1">{accent}</p>
+          )}
         </div>
       </div>
     </motion.div>
