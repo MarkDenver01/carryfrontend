@@ -21,12 +21,13 @@ import dayjs from "dayjs";
 import {
   Chart as ChartJS,
   ArcElement,
-  Tooltip as ChartTooltip,
-  Legend as ChartLegend,
+  Tooltip,
+  Legend,
   CategoryScale,
   LinearScale,
   BarElement,
 } from "chart.js";
+
 import { Doughnut, Bar } from "react-chartjs-2";
 
 import ProductLegendLayout from "../../../layout/product/ProductLegendLayout";
@@ -36,12 +37,13 @@ import type { ProductDTO } from "../../../libs/models/product/Product";
 // =================== CHARTJS REGISTER ===================
 ChartJS.register(
   ArcElement,
-  ChartTooltip,
-  ChartLegend,
+  Tooltip,
+  Legend,
   CategoryScale,
   LinearScale,
   BarElement
 );
+
 
 // =================== TYPES & CONSTANTS ===================
 
