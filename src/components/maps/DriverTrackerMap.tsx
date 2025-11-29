@@ -1,7 +1,7 @@
 import { GoogleMap, Marker, DirectionsRenderer, useJsApiLoader } from "@react-google-maps/api";
 import { useState, useEffect } from "react";
 
-const STORE_PLUS_CODE = "34QP+XH3"; // Pure Plus Code
+
 const STORE_FULL_QUERY = "34QP+XH3 Tanauan, Batangas"; // Better for fallback
 
 const containerStyle = { width: "100%", height: "100%", borderRadius: "12px" };
