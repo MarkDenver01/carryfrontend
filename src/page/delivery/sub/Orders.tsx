@@ -1295,10 +1295,13 @@ function RouteDrawer({
   order: Order;
   onClose: () => void;
 }) {
+  // 🔥 Get live driver location via SSE
   const liveLocation = useDriverLocation(order.riderId ?? null);
-  const riderLatLng = liveLocation
-  ? { lat: liveLocation.latitude, lng: liveLocation.longitude }
-  : null;
+
+  const riderLatLng =
+    liveLocation != null
+      ? { lat: liveLocation.latitude, lng: liveLocation.longitude }
+      : null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-black/30 backdrop-blur-sm">
@@ -1322,7 +1325,7 @@ function RouteDrawer({
         <div className="flex-1 rounded-xl overflow-hidden border border-slate-200">
           <DriverTrackerMap
             customerAddress={order.address}
-            riderLocation={riderLatLng ?? null}
+            riderLocation={riderLatLng}
           />
         </div>
 
