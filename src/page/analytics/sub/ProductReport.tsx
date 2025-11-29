@@ -19,13 +19,16 @@ import {
   X,
   Tag,
   BarChart2,
+  RefreshCw,
 } from "lucide-react";
 
 import { getAllProducts } from "../../../libs/ApiGatewayDatasource";
 import type { ProductDTO } from "../../../libs/models/product/Product";
 import ProductLegendLayout from "../../../layout/product/ProductLegendLayout";
 
-// =================== TYPES & CONSTANTS ===================
+/* =========================
+   TYPES & CONSTANTS
+========================= */
 
 type SortOption = "Urgency" | "Name" | "Category" | "Stock" | "DaysLeft";
 
@@ -37,7 +40,7 @@ type ExpiryStatus =
   | "Expired";
 
 interface EnrichedProduct {
-  id: string; // derived key
+  id: string;
   name: string;
   category: string;
   stock: number;
@@ -51,8 +54,8 @@ interface EnrichedProduct {
 
   status: ExpiryStatus;
   statusPriority: number;
-  statusColorClass: string; // border color
-  statusSoftClass: string; // badge bg/text
+  statusColorClass: string;
+  statusSoftClass: string;
   statusDescription: string;
 }
 
@@ -72,12 +75,12 @@ const classifyByShelfLife = (
   daysLeft: number | null
 ): {
   status: ExpiryStatus;
-  priority: number; // lower = more urgent
+  priority: number;
   colorClass: string;
   softClass: string;
   description: string;
 } => {
-  // Kulang / invalid data -> treat as "Good" pero may warning sa description
+  // Kulang / invalid data -> treat as "Good" pero may note sa description
   if (percentUsed === null || daysLeft === null) {
     return {
       status: "Good",
@@ -148,7 +151,9 @@ const classifyByShelfLife = (
   };
 };
 
-// =================== MAIN COMPONENT ===================
+/* =========================
+   MAIN COMPONENT
+========================= */
 
 export default function ProductReport() {
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
@@ -160,6 +165,8 @@ export default function ProductReport() {
 
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [loadingRefresh, setLoadingRefresh] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   const [selectedProduct, setSelectedProduct] = useState<EnrichedProduct | null>(
     null
@@ -173,24 +180,30 @@ export default function ProductReport() {
     });
   };
 
-  // Fetch products (pure UI, backend call unchanged)
-  const fetchProducts = async () => {
+  const fetchProducts = async (isRefresh = false) => {
     try {
-      setLoadingProducts(true);
+      if (isRefresh) setLoadingRefresh(true);
+      else setLoadingProducts(true);
+
       const data = await getAllProducts();
       setProducts(data ?? []);
+      setLastUpdated(dayjs().format("MMM D, YYYY • HH:mm"));
     } catch (err) {
       console.error("Failed to load products", err);
     } finally {
+      if (isRefresh) setLoadingRefresh(false);
       setLoadingProducts(false);
     }
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts(false);
   }, []);
 
-  // Map to enriched data
+  /* =========================
+     DATA ENRICH
+  ========================= */
+
   const enrichedData: EnrichedProduct[] = useMemo(() => {
     const today = dayjs();
 
@@ -199,7 +212,6 @@ export default function ProductReport() {
       const category = p.categoryName ?? "Uncategorized";
       const stock = (p as any).stocks ?? 0;
 
-      // Frontend-only fields, hindi natin gagalawin DTO definition
       const stockInDateStr = (p as any).stockInDate ?? null;
       const expiryDateStr = (p as any).expiryDate ?? null;
 
@@ -246,16 +258,10 @@ export default function ProductReport() {
     });
   }, [products]);
 
-  // Unique categories
-  const uniqueCategories = useMemo(
-    () =>
-      Array.from(new Set(enrichedData.map((p) => p.category)))
-        .filter((c) => !!c)
-        .sort(),
-    [enrichedData]
-  );
+  /* =========================
+     SUMMARY & CATEGORY ANALYTICS
+  ========================= */
 
-  // Summary metrics
   const summary = useMemo(() => {
     const counts: Record<ExpiryStatus, number> = {
       "New Stocks": 0,
@@ -275,7 +281,63 @@ export default function ProductReport() {
     return { total, counts, expiringSoon };
   }, [enrichedData]);
 
-  // Filter + sort
+  const uniqueCategories = useMemo(
+    () =>
+      Array.from(new Set(enrichedData.map((p) => p.category)))
+        .filter((c) => !!c)
+        .sort(),
+    [enrichedData]
+  );
+
+  const categoryAnalytics = useMemo(
+    () =>
+      uniqueCategories.map((cat) => {
+        const items = enrichedData.filter((p) => p.category === cat);
+        if (!items.length)
+          return {
+            category: cat,
+            total: 0,
+            expired: 0,
+            nearExpiry: 0,
+            warning: 0,
+            avgDaysLeft: null as number | null,
+          };
+
+        let totalDays = 0;
+        let countWithDays = 0;
+        let expired = 0;
+        let nearExpiry = 0;
+        let warning = 0;
+
+        items.forEach((p) => {
+          if (p.daysLeft !== null) {
+            totalDays += p.daysLeft;
+            countWithDays++;
+          }
+          if (p.status === "Expired") expired++;
+          if (p.status === "Near Expiry") nearExpiry++;
+          if (p.status === "Warning") warning++;
+        });
+
+        const avgDaysLeft =
+          countWithDays > 0 ? Math.round(totalDays / countWithDays) : null;
+
+        return {
+          category: cat,
+          total: items.length,
+          expired,
+          nearExpiry,
+          warning,
+          avgDaysLeft,
+        };
+      }),
+    [enrichedData, uniqueCategories]
+  );
+
+  /* =========================
+     FILTER + SORT
+  ========================= */
+
   const filteredAndSorted = useMemo(() => {
     let data = enrichedData;
 
@@ -334,7 +396,9 @@ export default function ProductReport() {
 
   const visibleCount = filteredAndSorted.length;
 
-  // =================== RENDER ===================
+  /* =========================
+     RENDER
+  ========================= */
 
   return (
     <motion.div
@@ -346,13 +410,13 @@ export default function ProductReport() {
     >
       {/* HUD GRID BACKDROP (gaya ng Riders) */}
       <div className="pointer-events-none absolute inset-0 -z-30">
-        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:40px_40px]" />
-        <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.85)_0px,rgba(15,23,42,0.85)_1px,transparent_1px,transparent_3px)]" />
+        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.16)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.16)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute inset-0 opacity-[0.05] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.7)_0px,rgba(15,23,42,0.7)_1px,transparent_1px,transparent_4px)]" />
 
         <motion.div
-          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/28 blur-3xl"
+          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/26 blur-3xl"
           animate={{
-            x: [0, 20, 10, -5, 0],
+            x: [0, 18, 8, -6, 0],
             y: [0, 10, 20, 5, 0],
             borderRadius: ["45%", "60%", "55%", "65%", "45%"],
           }}
@@ -360,7 +424,7 @@ export default function ProductReport() {
         />
 
         <motion.div
-          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/24 blur-3xl"
+          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/22 blur-3xl"
           animate={{
             x: [0, -15, -25, -10, 0],
             y: [0, -10, -20, -5, 0],
@@ -374,7 +438,7 @@ export default function ProductReport() {
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
-          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)`,
+          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.32), transparent 70%)`,
         }}
       />
 
@@ -388,24 +452,54 @@ export default function ProductReport() {
           Product Expiry Monitor
         </motion.h1>
 
-        <p className="text-gray-500 text-sm max-w-xl">
-          Track{" "}
-          <span className="font-medium text-emerald-700">
-            shelf-life, expiry risks, and stock freshness
-          </span>{" "}
-          for all products in one dashboard.
-        </p>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <p className="text-gray-500 text-sm max-w-xl">
+            Track{" "}
+            <span className="font-medium text-emerald-700">
+              shelf-life, expiry risk, and stock freshness
+            </span>{" "}
+            for every product in one unified dashboard.
+          </p>
+
+          {/* Auto-refresh capsule */}
+          <div className="flex items-center gap-2 text-[11px]">
+            {lastUpdated && (
+              <span className="px-3 py-1 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                Last updated:{" "}
+                <span className="font-medium text-slate-700">
+                  {lastUpdated}
+                </span>
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => fetchProducts(true)}
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium border ${
+                loadingRefresh
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-500"
+                  : "border-emerald-500 bg-emerald-600 text-white hover:bg-emerald-700"
+              } transition`}
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${
+                  loadingRefresh ? "animate-spin" : ""
+                }`}
+              />
+              {loadingRefresh ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
+        </div>
 
         <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* MAIN CARD (same style as Riders) */}
+      {/* MAIN CARD */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-[26px] border border-emerald-500/30 bg-white/90 shadow-[0_22px_70px_rgba(15,23,42,0.40)] overflow-hidden"
+        className="relative rounded-[26px] border border-emerald-500/30 bg-white/95 shadow-[0_22px_70px_rgba(15,23,42,0.40)] overflow-hidden"
       >
-        {/* Outer brackets */}
+        {/* Frame corners */}
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
           <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
@@ -421,7 +515,7 @@ export default function ProductReport() {
             transition={{ duration: 5, repeat: Infinity }}
           />
 
-          {/* SUMMARY ROW (NO CHART.JS) */}
+          {/* SUMMARY CARDS */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <SummaryCard
               icon={<Package className="w-7 h-7" />}
@@ -434,7 +528,7 @@ export default function ProductReport() {
               icon={<ShieldAlert className="w-7 h-7" />}
               label="Expiring / Expired"
               value={summary.expiringSoon.toString()}
-              accent="Expired + Near Expiry"
+              accent="Expired + Near Expiry items"
               color="rose"
             />
             <SummaryCard
@@ -455,9 +549,9 @@ export default function ProductReport() {
             />
           </section>
 
-          {/* STATUS OVERVIEW (compact, top-level picture) */}
+          {/* STATUS OVERVIEW */}
           <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-emerald-500" />
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
@@ -496,14 +590,14 @@ export default function ProductReport() {
 
                 const colorClass =
                   status === "Expired"
-                    ? "border-red-300 bg-red-50 text-red-700"
+                    ? "border-red-200 bg-red-50 text-red-700"
                     : status === "Near Expiry"
-                    ? "border-orange-300 bg-orange-50 text-orange-700"
+                    ? "border-orange-200 bg-orange-50 text-orange-700"
                     : status === "Warning"
-                    ? "border-amber-300 bg-amber-50 text-amber-700"
+                    ? "border-amber-200 bg-amber-50 text-amber-700"
                     : status === "Good"
-                    ? "border-sky-300 bg-sky-50 text-sky-700"
-                    : "border-emerald-300 bg-emerald-50 text-emerald-700";
+                    ? "border-sky-200 bg-sky-50 text-sky-700"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-700";
 
                 return (
                   <div key={status} className={`${base} ${colorClass}`}>
@@ -518,12 +612,61 @@ export default function ProductReport() {
             </div>
           </section>
 
+          {/* CATEGORY ANALYTICS ROW */}
+          {categoryAnalytics.length > 0 && (
+            <section className="rounded-2xl border border-slate-200 bg-white/80 p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-emerald-500" />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Category Snapshots
+                  </p>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Quick view of risk per category
+                </p>
+              </div>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {categoryAnalytics.map((cat) => (
+                  <div
+                    key={cat.category}
+                    className="min-w-[180px] rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-600 flex flex-col gap-1"
+                  >
+                    <p className="font-semibold text-slate-800 line-clamp-1">
+                      {cat.category}
+                    </p>
+                    <p>
+                      {cat.total} item{cat.total !== 1 ? "s" : ""} •{" "}
+                      <span className="text-red-500">
+                        {cat.expired} expired
+                      </span>
+                      ,{" "}
+                      <span className="text-orange-500">
+                        {cat.nearExpiry} near
+                      </span>
+                      ,{" "}
+                      <span className="text-amber-600">
+                        {cat.warning} warning
+                      </span>
+                    </p>
+                    <p className="text-[10px] text-slate-400">
+                      Avg days left:{" "}
+                      {cat.avgDaysLeft !== null
+                        ? `${cat.avgDaysLeft}d`
+                        : "N/A"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
           {/* FILTERS */}
           <div className="flex flex-col gap-4">
             {/* top filters row */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-4">
               <div className="flex items-center gap-3 w-full md:w-auto">
-                {/* Status filter dropdown */}
+                {/* Status filter */}
                 <Dropdown
                   dismissOnClick
                   renderTrigger={() => (
@@ -703,6 +846,16 @@ export default function ProductReport() {
                     ? "text-sky-500"
                     : "text-emerald-500";
 
+                const withDays = groupItems.filter(
+                  (g) => g.daysLeft !== null
+                );
+                const minDays =
+                  withDays.length > 0
+                    ? Math.min(
+                        ...withDays.map((g) => g.daysLeft ?? Infinity)
+                      )
+                    : null;
+
                 return (
                   <section key={status} className="flex flex-col gap-3">
                     <div className="flex items-center justify-between">
@@ -718,6 +871,15 @@ export default function ProductReport() {
                           </span>
                         </h2>
                       </div>
+                      {minDays !== null && (
+                        <p className="text-[11px] text-slate-400">
+                          Soonest expiry in{" "}
+                          <span className="font-semibold text-slate-700">
+                            {minDays} day
+                            {minDays === 1 ? "" : "s"}
+                          </span>
+                        </p>
+                      )}
                     </div>
 
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -761,7 +923,7 @@ export default function ProductReport() {
         </div>
       </motion.div>
 
-      {/* RIGHT-SIDE DRAWER (Gaya ng Riders Profile) */}
+      {/* RIGHT-SIDE DRAWER (gaya ng Riders Profile) */}
       {selectedProduct && (
         <div className="fixed inset-0 z-40 flex">
           <div
@@ -807,7 +969,9 @@ export default function ProductReport() {
   );
 }
 
-// =================== PRODUCT CARD ===================
+/* =========================
+   PRODUCT CARD
+========================= */
 
 function ProductCard({
   product,
@@ -842,8 +1006,25 @@ function ProductCard({
       onClick={onClick}
       className={`relative flex flex-col items-stretch text-left rounded-2xl border ${statusColorClass} bg-white shadow-sm p-4 cursor-pointer hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-emerald-400`}
     >
+      {/* Left accent strip */}
+      <div
+        className="absolute left-0 top-0 h-full w-1 rounded-l-2xl"
+        style={{
+          background:
+            status === "Expired"
+              ? "#ef4444"
+              : status === "Near Expiry"
+              ? "#fb923c"
+              : status === "Warning"
+              ? "#f59e0b"
+              : status === "Good"
+              ? "#38bdf8"
+              : "#22c55e",
+        }}
+      />
+
       {/* Status Badge + Name */}
-      <div className="flex justify-between items-start gap-2">
+      <div className="flex justify-between items-start gap-2 pl-1">
         <div className="flex items-start gap-3">
           {/* Avatar style (like Riders) */}
           <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-semibold text-sm">
@@ -932,7 +1113,7 @@ function ProductCard({
       {/* Insight tags */}
       {insightTags.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
-          {insightTags.map((tag, idx) => (
+          {insightTags.slice(0, 3).map((tag, idx) => (
             <span
               key={idx}
               className="px-2 py-0.5 rounded-full bg-slate-100 text-[10px] text-slate-600"
@@ -946,7 +1127,9 @@ function ProductCard({
   );
 }
 
-// =================== INSIGHT TAGS ===================
+/* =========================
+   INSIGHT TAGS
+========================= */
 
 function getInsightTags(p: EnrichedProduct): string[] {
   const tags: string[] = [];
@@ -982,7 +1165,9 @@ function getInsightTags(p: EnrichedProduct): string[] {
   return tags;
 }
 
-// =================== DRAWER CONTENT ===================
+/* =========================
+   DRAWER CONTENT
+========================= */
 
 function DrawerContent({ product }: { product: EnrichedProduct }) {
   const {
@@ -1051,7 +1236,7 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
         </div>
       </div>
 
-      {/* QUICK STATS GRID (Riders-style mini cards) */}
+      {/* QUICK STATS GRID */}
       <div className="grid grid-cols-3 gap-3">
         <div className="border border-slate-700/80 rounded-lg p-3 bg-slate-900/70">
           <p className="text-[11px] text-slate-400">Shelf used</p>
@@ -1147,7 +1332,9 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
   );
 }
 
-// =================== SUMMARY CARD ===================
+/* =========================
+   SUMMARY CARD
+========================= */
 
 function SummaryCard({
   icon,
