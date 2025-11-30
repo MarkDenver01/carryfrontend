@@ -1,6 +1,7 @@
 import React from "react";
-import { Pencil, Eye, XCircle, CheckCircle } from "lucide-react";
+import { Pencil, Eye, XCircle, CheckCircle, } from "lucide-react";
 import type { Product } from "../../types/types";
+import dayjs from "dayjs";
 
 interface ProductTableProps {
   sortedProducts: Product[];
@@ -15,7 +16,7 @@ interface ProductTableProps {
   onViewRecommendations: (product: Product) => void;
 }
 
-const LOW_STOCK_LIMIT = 1; // 🔥 change mo if needed (ex: 5)
+const LOW_STOCK_LIMIT = 1;
 
 const ProductTable: React.FC<ProductTableProps> = ({
   paginatedProducts,
@@ -29,11 +30,20 @@ const ProductTable: React.FC<ProductTableProps> = ({
   onViewRecommendations,
 }) => {
   return (
-    <div className="space-y-5 p-3">
+    <div className="space-y-6 p-3">
 
-      {/* HEADER */}
-      <div className="grid grid-cols-12 text-xs font-semibold text-gray-500 px-3 pb-2 border-b border-gray-200">
-        <div className="col-span-3">Product</div>
+      {/* TABLE HEADER */}
+      <div
+        className="
+          grid grid-cols-12 text-xs font-semibold text-gray-600 
+          px-3 py-3 border-b border-gray-300
+          bg-gradient-to-r from-gray-50 to-gray-100
+          sticky top-0 z-20
+        "
+      >
+        <div className="col-span-3 flex items-center gap-1">
+          Product
+        </div>
 
         <div
           className="col-span-1 cursor-pointer hover:text-emerald-600 transition"
@@ -62,77 +72,123 @@ const ProductTable: React.FC<ProductTableProps> = ({
         <div className="col-span-2 text-center">Actions</div>
       </div>
 
-      {/* BODY */}
+      {/* TABLE BODY */}
       {paginatedProducts.length > 0 ? (
         paginatedProducts.map((product, idx) => {
           const isOutOfStock = product.stock <= 0;
           const isLowStock = product.stock <= LOW_STOCK_LIMIT;
-
-          // Auto force "Not Available" when stock is 0 or low
           const computedStatus =
             isOutOfStock || isLowStock ? "Not Available" : product.status;
+
+          const expiryFormatted = product.expiryDate
+            ? dayjs(product.expiryDate).format("MMM DD, YYYY")
+            : "—";
 
           return (
             <div
               key={product.id ?? idx}
-              className="
-                grid grid-cols-12 gap-4 p-4 rounded-lg
-                bg-white border border-gray-200
-                shadow-sm hover:shadow transition-all
-              "
+              className={`
+                grid grid-cols-12 gap-4 p-4 border rounded-xl
+                transition-all duration-200
+                ${
+                  idx % 2 === 0
+                    ? "bg-white border-gray-200"
+                    : "bg-gray-50 border-gray-300"
+                }
+                hover:shadow-lg hover:-translate-y-1
+              `}
             >
+
               {/* IMAGE + DETAILS */}
-              <div className="col-span-3 flex items-center gap-3">
+              <div className="col-span-3 flex items-center gap-4">
                 <img
-                  src={product.imageUrl || '/placeholder.png'}
-                  className="w-16 h-16 rounded-md object-cover border border-gray-200"
+                  src={product.imageUrl || "/placeholder.png"}
+                  className="
+                    w-16 h-16 rounded-lg object-cover border border-gray-300 
+                    transition-transform hover:scale-110
+                  "
                 />
-                <div>
-                  <p className="font-semibold text-gray-900 text-sm">
+                <div className="flex flex-col">
+                  <p
+                    className="font-semibold text-gray-900 text-sm"
+                    title={product.name}
+                  >
                     {product.name}
                   </p>
-                  <p className="text-xs text-gray-500 line-clamp-2">
+                  <p
+                    className="text-xs text-gray-500 line-clamp-2"
+                    title={product.productDescription}
+                  >
                     {product.productDescription}
                   </p>
                 </div>
               </div>
 
               {/* CODE */}
-              <div className="col-span-1 flex items-center text-sm text-gray-600">
+              <div
+                className="col-span-1 flex items-center text-sm text-gray-700"
+                title={product.code}
+              >
                 {product.code}
               </div>
 
               {/* NAME */}
-              <div className="col-span-2 flex items-center text-sm text-gray-800">
+              <div
+                className="col-span-2 flex items-center text-sm font-medium text-gray-800"
+                title={product.name}
+              >
                 {product.name}
               </div>
 
               {/* CATEGORY */}
               <div className="col-span-2 flex items-center">
-                <span className="px-2 py-0.5 text-[11px] rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span
+                  className="
+                    px-3 py-1 text-[11px] rounded-full 
+                    bg-emerald-50 text-emerald-700 border border-emerald-200
+                    shadow-sm
+                  "
+                  title={product.categoryName ?? "—"}
+                >
                   {product.categoryName ?? "—"}
                 </span>
               </div>
 
-              {/* STOCK */}
-              <div className="col-span-1 flex items-center text-sm font-medium">
-                {product.stock}
-              </div>
-
-              {/* EXPIRY */}
-              <div className="col-span-1 flex items-center text-sm text-gray-600">
-                {product.expiryDate ?? "—"}
-              </div>
-
-              {/* STATUS */}
+              {/* STOCK BADGE */}
               <div className="col-span-1 flex items-center">
                 <span
                   className={`
-                    px-2 py-0.5 text-[11px] rounded-full border
+                    px-3 py-1 text-[11px] rounded-md font-semibold shadow-sm
+                    ${
+                      isOutOfStock
+                        ? "bg-red-100 text-red-700"
+                        : isLowStock
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-emerald-100 text-emerald-700"
+                    }
+                  `}
+                >
+                  {product.stock}
+                </span>
+              </div>
+
+              {/* EXPIRY DATE */}
+              <div
+                className="col-span-1 flex items-center text-sm text-gray-700"
+                title={expiryFormatted}
+              >
+                {expiryFormatted}
+              </div>
+
+              {/* STATUS BADGE */}
+              <div className="col-span-1 flex items-center">
+                <span
+                  className={`
+                    px-3 py-1 text-[11px] rounded-full font-semibold border shadow-sm
                     ${
                       computedStatus === "Available"
-                        ? "bg-green-100 text-green-700 border-green-200"
-                        : "bg-red-100 text-red-700 border-red-200"
+                        ? "bg-emerald-100 text-emerald-700 border-emerald-300"
+                        : "bg-red-100 text-red-700 border-red-300"
                     }
                   `}
                 >
@@ -141,25 +197,25 @@ const ProductTable: React.FC<ProductTableProps> = ({
               </div>
 
               {/* ACTION BUTTONS */}
-              <div className="col-span-2 flex items-center justify-center gap-1.5">
+              <div className="col-span-2 flex items-center justify-center gap-2">
 
                 {/* EDIT */}
                 <button
+                  title="Edit Product"
                   onClick={() =>
                     handleEditProduct((currentPage - 1) * pageSize + idx)
                   }
                   className="
-                    px-2 py-1 text-[10px] font-medium rounded-sm
-                    bg-blue-500 text-white hover:bg-blue-600
-                    flex items-center gap-1 shadow-sm transition
+                    p-2 rounded-md bg-blue-500 text-white hover:bg-blue-600 
+                    shadow-sm transition flex items-center
                   "
                 >
-                  <Pencil className="w-3.5 h-3.5" />
-                  Edit
+                  <Pencil className="w-4 h-4" />
                 </button>
 
-                {/* STATUS TOGGLE */}
+                {/* AVAILABILITY TOGGLE */}
                 <button
+                  title={isOutOfStock || isLowStock ? "Cannot enable (low stock)" : "Toggle Status"}
                   disabled={isOutOfStock || isLowStock}
                   onClick={() => {
                     if (isOutOfStock || isLowStock) {
@@ -169,8 +225,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     toggleAvailability(product);
                   }}
                   className={`
-                    px-2 py-1 text-[10px] font-medium rounded-sm
-                    flex items-center gap-1 shadow-sm transition
+                    p-2 rounded-md shadow-sm transition flex items-center
                     ${
                       isOutOfStock || isLowStock
                         ? "bg-gray-400 cursor-not-allowed text-white"
@@ -181,43 +236,37 @@ const ProductTable: React.FC<ProductTableProps> = ({
                   `}
                 >
                   {computedStatus === "Available" ? (
-                    <>
-                      <XCircle className="w-3.5 h-3.5" /> Off
-                    </>
+                    <XCircle className="w-4 h-4" />
                   ) : (
-                    <>
-                      <CheckCircle className="w-3.5 h-3.5" /> On
-                    </>
+                    <CheckCircle className="w-4 h-4" />
                   )}
                 </button>
 
-                {/* VIEW */}
+                {/* VIEW RECOMMENDATIONS */}
                 <button
+                  title="View Recommendations"
                   onClick={() => onViewRecommendations(product)}
                   className="
-                    px-2 py-1 text-[10px] font-medium rounded-sm
-                    bg-indigo-500 text-white hover:bg-indigo-600
-                    flex items-center gap-1 shadow-sm transition
+                    p-2 rounded-md bg-indigo-500 text-white hover:bg-indigo-600 
+                    shadow-sm transition flex items-center
                   "
                 >
-                  <Eye className="w-3.5 h-3.5" />
-                  View
+                  <Eye className="w-4 h-4" />
                 </button>
 
                 {/* DELETE */}
                 <button
+                  title="Delete Product"
                   onClick={() => product.id && handleDeleteProduct(product.id)}
                   className="
-                    px-2 py-1 text-[10px] font-medium rounded-sm
-                    bg-red-600 text-white hover:bg-red-700
-                    flex items-center gap-1 shadow-sm transition
+                    p-2 rounded-md bg-red-600 text-white hover:bg-red-700 
+                    shadow-sm transition flex items-center
                   "
                 >
-                  <XCircle className="w-3.5 h-3.5" />
-                  Delete
+                  <XCircle className="w-4 h-4" />
                 </button>
-
               </div>
+
             </div>
           );
         })
