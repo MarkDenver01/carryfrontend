@@ -15,8 +15,7 @@ interface ProductTableProps {
   onViewRecommendations: (product: Product) => void;
 }
 
-// You can change this anytime
-const LOW_STOCK_LIMIT = 1;
+const LOW_STOCK_LIMIT = 1; // 🔥 change mo if needed (ex: 5)
 
 const ProductTable: React.FC<ProductTableProps> = ({
   paginatedProducts,
@@ -33,32 +32,26 @@ const ProductTable: React.FC<ProductTableProps> = ({
     <div className="space-y-5 p-3">
 
       {/* HEADER */}
-      <div
-        className="
-          grid grid-cols-12 text-[11px] font-semibold text-slate-600 px-4 pb-3
-          border-b border-emerald-200/60
-          bg-white/60 backdrop-blur-md rounded-xl shadow-sm
-        "
-      >
+      <div className="grid grid-cols-12 text-xs font-semibold text-gray-500 px-3 pb-2 border-b border-gray-200">
         <div className="col-span-3">Product</div>
 
         <div
+          className="col-span-1 cursor-pointer hover:text-emerald-600 transition"
           onClick={() => handleSort("code")}
-          className="col-span-1 cursor-pointer hover:text-emerald-600 transition select-none"
         >
           Code {getSortIcon("code")}
         </div>
 
         <div
+          className="col-span-2 cursor-pointer hover:text-emerald-600 transition"
           onClick={() => handleSort("name")}
-          className="col-span-2 cursor-pointer hover:text-emerald-600 transition select-none"
         >
           Name {getSortIcon("name")}
         </div>
 
         <div
+          className="col-span-2 cursor-pointer hover:text-emerald-600 transition"
           onClick={() => handleSort("categoryName")}
-          className="col-span-2 cursor-pointer hover:text-emerald-600 transition select-none"
         >
           Category {getSortIcon("categoryName")}
         </div>
@@ -75,6 +68,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
           const isOutOfStock = product.stock <= 0;
           const isLowStock = product.stock <= LOW_STOCK_LIMIT;
 
+          // Auto force "Not Available" when stock is 0 or low
           const computedStatus =
             isOutOfStock || isLowStock ? "Not Available" : product.status;
 
@@ -82,73 +76,51 @@ const ProductTable: React.FC<ProductTableProps> = ({
             <div
               key={product.id ?? idx}
               className="
-                grid grid-cols-12 gap-4 p-4 rounded-2xl
-                bg-white/90 backdrop-blur-xl
-                border border-emerald-100 shadow-[0_4px_20px_rgba(15,23,42,0.10)]
-                hover:shadow-[0_8px_28px_rgba(15,23,42,0.15)]
-                transform hover:-translate-y-[2px]
-                transition-all duration-300
+                grid grid-cols-12 gap-4 p-4 rounded-lg
+                bg-white border border-gray-200
+                shadow-sm hover:shadow transition-all
               "
             >
-              {/* IMAGE + NAME */}
+              {/* IMAGE + DETAILS */}
               <div className="col-span-3 flex items-center gap-3">
-                <div className="relative">
-                  <img
-                    src={product.imageUrl || "/placeholder.png"}
-                    className="w-16 h-16 rounded-xl object-cover border border-slate-200 shadow-sm"
-                  />
-
-                  {/* LOW STOCK BADGE */}
-                  {isLowStock && (
-                    <span className="
-                      absolute -top-2 -right-2 text-[9px] px-2 py-0.5 rounded-full
-                      bg-red-600 text-white font-semibold shadow
-                    ">
-                      Low
-                    </span>
-                  )}
-                </div>
-
+                <img
+                  src={product.imageUrl || '/placeholder.png'}
+                  className="w-16 h-16 rounded-md object-cover border border-gray-200"
+                />
                 <div>
-                  <p className="font-bold text-slate-900 text-sm leading-tight">
+                  <p className="font-semibold text-gray-900 text-sm">
                     {product.name}
                   </p>
-                  <p className="text-xs text-slate-500 line-clamp-2">
+                  <p className="text-xs text-gray-500 line-clamp-2">
                     {product.productDescription}
                   </p>
                 </div>
               </div>
 
               {/* CODE */}
-              <div className="col-span-1 flex items-center text-sm text-slate-600">
+              <div className="col-span-1 flex items-center text-sm text-gray-600">
                 {product.code}
               </div>
 
               {/* NAME */}
-              <div className="col-span-2 flex items-center text-sm text-slate-800 font-medium">
+              <div className="col-span-2 flex items-center text-sm text-gray-800">
                 {product.name}
               </div>
 
               {/* CATEGORY */}
               <div className="col-span-2 flex items-center">
-                <span
-                  className="
-                    px-2.5 py-1 text-[10px]
-                    rounded-xl font-semibold tracking-wide
-                    bg-emerald-50 text-emerald-700 border border-emerald-200
-                  "
-                >
+                <span className="px-2 py-0.5 text-[11px] rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
                   {product.categoryName ?? "—"}
                 </span>
               </div>
 
               {/* STOCK */}
-              <div className="col-span-1 flex items-center text-sm font-semibold text-slate-800">
+              <div className="col-span-1 flex items-center text-sm font-medium">
                 {product.stock}
               </div>
 
               {/* EXPIRY */}
-              <div className="col-span-1 flex items-center text-xs text-slate-600">
+              <div className="col-span-1 flex items-center text-sm text-gray-600">
                 {product.expiryDate ?? "—"}
               </div>
 
@@ -156,11 +128,11 @@ const ProductTable: React.FC<ProductTableProps> = ({
               <div className="col-span-1 flex items-center">
                 <span
                   className={`
-                    px-3 py-1 text-[10px] rounded-full border font-semibold
+                    px-2 py-0.5 text-[11px] rounded-full border
                     ${
                       computedStatus === "Available"
-                        ? "bg-emerald-100 text-emerald-700 border-emerald-300"
-                        : "bg-red-100 text-red-700 border-red-300"
+                        ? "bg-green-100 text-green-700 border-green-200"
+                        : "bg-red-100 text-red-700 border-red-200"
                     }
                   `}
                 >
@@ -169,7 +141,7 @@ const ProductTable: React.FC<ProductTableProps> = ({
               </div>
 
               {/* ACTION BUTTONS */}
-              <div className="col-span-2 flex items-center justify-center gap-2">
+              <div className="col-span-2 flex items-center justify-center gap-1.5">
 
                 {/* EDIT */}
                 <button
@@ -177,34 +149,34 @@ const ProductTable: React.FC<ProductTableProps> = ({
                     handleEditProduct((currentPage - 1) * pageSize + idx)
                   }
                   className="
-                    flex items-center gap-1 px-3 py-1.5 text-[10px]
-                    rounded-md bg-blue-500 text-white hover:bg-blue-600
-                    shadow-sm font-semibold
-                    transition-all
+                    px-2 py-1 text-[10px] font-medium rounded-sm
+                    bg-blue-500 text-white hover:bg-blue-600
+                    flex items-center gap-1 shadow-sm transition
                   "
                 >
-                  <Pencil className="w-3.5 h-3.5" /> Edit
+                  <Pencil className="w-3.5 h-3.5" />
+                  Edit
                 </button>
 
-                {/* TOGGLE STATUS */}
+                {/* STATUS TOGGLE */}
                 <button
                   disabled={isOutOfStock || isLowStock}
                   onClick={() => {
-                    if (isLowStock || isOutOfStock) {
-                      alert("Stock too low to activate.");
+                    if (isOutOfStock || isLowStock) {
+                      alert("This product has low or zero stock and cannot be set to Available.");
                       return;
                     }
                     toggleAvailability(product);
                   }}
                   className={`
-                    flex items-center gap-1 px-3 py-1.5 text-[10px]
-                    rounded-md shadow-sm font-semibold transition-all
+                    px-2 py-1 text-[10px] font-medium rounded-sm
+                    flex items-center gap-1 shadow-sm transition
                     ${
                       isOutOfStock || isLowStock
-                        ? "bg-slate-300 text-white cursor-not-allowed"
+                        ? "bg-gray-400 cursor-not-allowed text-white"
                         : computedStatus === "Available"
                         ? "bg-red-500 hover:bg-red-600 text-white"
-                        : "bg-emerald-500 hover:bg-emerald-600 text-white"
+                        : "bg-green-500 hover:bg-green-600 text-white"
                     }
                   `}
                 >
@@ -223,33 +195,34 @@ const ProductTable: React.FC<ProductTableProps> = ({
                 <button
                   onClick={() => onViewRecommendations(product)}
                   className="
-                    flex items-center gap-1 px-3 py-1.5 text-[10px]
-                    rounded-md bg-indigo-500 hover:bg-indigo-600
-                    text-white shadow-sm font-semibold transition-all
+                    px-2 py-1 text-[10px] font-medium rounded-sm
+                    bg-indigo-500 text-white hover:bg-indigo-600
+                    flex items-center gap-1 shadow-sm transition
                   "
                 >
-                  <Eye className="w-3.5 h-3.5" /> View
+                  <Eye className="w-3.5 h-3.5" />
+                  View
                 </button>
 
                 {/* DELETE */}
                 <button
                   onClick={() => product.id && handleDeleteProduct(product.id)}
                   className="
-                    flex items-center gap-1 px-3 py-1.5 text-[10px]
-                    rounded-md bg-red-600 text-white
-                    hover:bg-red-700 shadow-sm font-semibold transition-all
+                    px-2 py-1 text-[10px] font-medium rounded-sm
+                    bg-red-600 text-white hover:bg-red-700
+                    flex items-center gap-1 shadow-sm transition
                   "
                 >
-                  <XCircle className="w-3.5 h-3.5" /> Delete
+                  <XCircle className="w-3.5 h-3.5" />
+                  Delete
                 </button>
+
               </div>
             </div>
           );
         })
       ) : (
-        <div className="text-center text-slate-500 py-6 text-sm">
-          No products found.
-        </div>
+        <div className="text-center text-gray-500 py-6">No products found.</div>
       )}
     </div>
   );
