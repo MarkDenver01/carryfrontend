@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { Button, Dropdown, DropdownItem, Pagination } from "flowbite-react";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Sparkles } from "lucide-react";
 import Swal from "sweetalert2";
 import { motion } from "framer-motion";
 
@@ -34,6 +34,7 @@ export default function ProductInventoryTable() {
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<Product | null>(null);
 
+  // Modal state for viewing recommendations
   const [viewModal, setViewModal] = useState(false);
   const [recommendations, setRecommendations] = useState<
     RecommendationRuleDTO[]
@@ -42,51 +43,16 @@ export default function ProductInventoryTable() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
-  /** ============================
-   *   CATEGORY SIDEBAR
-   ============================ */
-  const [selectedCategory, setSelectedCategory] = useState("All");
-
-  /** Category extraction + count */
-  const categoryCount: Record<string, number> = {};
-  products.forEach((p) => {
-    if (p.categoryName) {
-      categoryCount[p.categoryName] = (categoryCount[p.categoryName] || 0) + 1;
-    }
-  });
-
-  const categories = useMemo(() => {
-    const list = Array.from(
-      new Set(
-        products
-          .map((p) => p.categoryName)
-          .filter((c): c is string => Boolean(c))
-      )
-    );
-    return ["All", ...list];
-  }, [products]);
-
-  /** ============================
-   *   FILTERING
-   ============================ */
+  /** FILTER */
   const filtered = useMemo(() => {
-    return products.filter((p) => {
-      const matchSearch = (p.name + p.code)
-        .toLowerCase()
-        .includes(search.toLowerCase());
+    return products.filter(
+      (p) =>
+        (p.name + p.code).toLowerCase().includes(search.toLowerCase()) &&
+        (status === "" || p.status === status)
+    );
+  }, [products, search, status]);
 
-      const matchStatus = status === "" || p.status === status;
-
-      const matchCategory =
-        selectedCategory === "All" || p.categoryName === selectedCategory;
-
-      return matchSearch && matchStatus && matchCategory;
-    });
-  }, [products, search, status, selectedCategory]);
-
-  /** ============================
-   *   SORTING
-   ============================ */
+  /** SORT */
   const [sortField, setSortField] = useState<ProductSortField>("name");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
@@ -114,18 +80,14 @@ export default function ProductInventoryTable() {
     return sortOrder === "asc" ? "↑" : "↓";
   };
 
-  /** ============================
-   *   PAGINATION
-   ============================ */
+  /** PAGINATION */
   const totalPages = Math.ceil(sortedProducts.length / pageSize);
   const paginatedProducts = sortedProducts.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
-  /** ============================
-   *   EDIT PRODUCT
-   ============================ */
+  /** EDIT PRODUCT */
   const handleEditProduct = (index: number) => {
     const product = sortedProducts[index];
     if (product) {
@@ -134,9 +96,7 @@ export default function ProductInventoryTable() {
     }
   };
 
-  /** ============================
-   *   DELETE PRODUCT
-   ============================ */
+  /** DELETE PRODUCT */
   const handleDeleteProduct = async (id: number) => {
     const result = await Swal.fire({
       title: "Delete Product?",
@@ -152,9 +112,7 @@ export default function ProductInventoryTable() {
     }
   };
 
-  /** ============================
-   *   TOGGLE AVAILABILITY
-   ============================ */
+  /** TOGGLE AVAILABILITY */
   const toggleAvailability = async (product: Product) => {
     if (!product?.id) return;
     const newStatus =
@@ -162,9 +120,7 @@ export default function ProductInventoryTable() {
     await updateProductStatusById(product.id, newStatus);
   };
 
-  /** ============================
-   *   RECOMMENDATIONS
-   ============================ */
+  /** VIEW RECOMMENDATIONS */
   const handleViewRecommendations = async (productId: number | undefined) => {
     if (!productId) return;
 
@@ -187,9 +143,6 @@ export default function ProductInventoryTable() {
     }
   };
 
-  /** ============================
-   *   JSX OUTPUT
-   ============================ */
   return (
     <motion.div
       initial={{ opacity: 0, y: 18 }}
@@ -211,7 +164,6 @@ export default function ProductInventoryTable() {
           }}
           transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
         />
-
         <motion.div
           className="absolute -bottom-24 right-[-3rem] h-72 w-72 bg-cyan-400/18 blur-3xl"
           animate={{
@@ -232,130 +184,116 @@ export default function ProductInventoryTable() {
         >
           Product Inventory Monitoring
         </motion.h2>
+
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-[0.8rem] text-slate-500">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 font-semibold">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
+            Inventory Overview
+          </span>
+          <span className="flex items-center gap-1 text-slate-500">
+            <Sparkles className="w-4 h-4 text-emerald-400" />
+            Monitor products, stock status, and recommendations at a glance.
+          </span>
+        </div>
+
+        <div className="mt-3 h-[3px] w-28 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN HUD CARD */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.45, ease: "easeOut" }}
         className="relative rounded-[24px] border border-emerald-200/80 bg-gradient-to-br from-white/96 via-slate-50/98 to-emerald-50/60 shadow-[0_18px_55px_rgba(15,23,42,0.28)] backdrop-blur-xl p-5 md:p-6 overflow-hidden"
       >
-        <div className="relative flex gap-5">
-          {/* =============================================
-              CATEGORY SIDEBAR (UPGRADED)
-              ============================================= */}
-          <div className="w-60 shrink-0 rounded-2xl border border-emerald-200 bg-white/80 shadow-sm p-4 h-fit max-h-[680px] overflow-y-auto sticky top-4">
-            <h3 className="text-sm font-semibold text-emerald-700 mb-3">
-              Categories
-            </h3>
+        {/* CORNER ACCENTS */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute top-3 left-3 h-4 w-4 border-t border-l border-emerald-200/80" />
+          <div className="absolute top-3 right-3 h-4 w-4 border-t border-r border-emerald-200/80" />
+          <div className="absolute bottom-3 left-3 h-4 w-4 border-b border-l border-emerald-200/80" />
+          <div className="absolute bottom-3 right-3 h-4 w-4 border-b border-r border-emerald-200/80" />
+        </div>
 
-            <div className="space-y-2">
-              {categories.map((cat) => (
-                <motion.button
-                  key={cat}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => {
-                    setSelectedCategory(cat);
-                    setCurrentPage(1);
-                  }}
-                  className={`
-                    w-full flex items-center justify-between gap-2 px-4 py-2 rounded-xl text-sm border transition-all
-                    ${
-                      selectedCategory === cat
-                        ? "bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-300/30 border-emerald-500"
-                        : "bg-white hover:bg-emerald-50 text-gray-700 border-emerald-200"
-                    }
-                  `}
-                >
-                  <span>{cat}</span>
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded-full ${
-                      selectedCategory === cat
-                        ? "bg-white/20 text-white"
-                        : "bg-emerald-100 text-emerald-700"
-                    }`}
-                  >
-                    {cat === "All"
-                      ? products.length
-                      : categoryCount[cat] ?? 0}
-                  </span>
-                </motion.button>
-              ))}
+        <div className="relative flex flex-col gap-5">
+          {/* TOP BAR */}
+          <div className="flex justify-between items-center mb-2">
+            <div className="flex flex-col gap-1 text-xs text-slate-500">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
+                Live Inventory Channel
+              </span>
+              <span className="text-[0.7rem] text-slate-500">
+                Filter, sort, and update product availability in one control
+                panel.
+              </span>
             </div>
+            <Button
+              onClick={() => {
+                setEditTarget(null);
+                setShowModal(true);
+              }}
+              className="rounded-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-400 text-white font-semibold shadow-[0_10px_28px_rgba(45,212,191,0.55)] hover:brightness-110 border border-emerald-300/80"
+            >
+              + Add Product
+            </Button>
           </div>
 
-          {/* =============================================
-              RIGHT CONTENT
-              ============================================= */}
-          <div className="flex-1 flex flex-col gap-5">
-            {/* FILTER TOOLBAR */}
-            <div className="rounded-xl bg-white/70 border border-emerald-200/50 shadow-sm px-4 py-3 flex items-center gap-3">
-              <div className="relative w-full max-w-xs">
-                <input
-                  type="text"
-                  placeholder="Search by name or code..."
-                  className="w-full border border-emerald-200 rounded-full px-4 py-2 pl-10 shadow-sm 
-                        focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-sm text-slate-800 placeholder:text-slate-400"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                />
-                <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
-              </div>
-
-              <Dropdown
-                dismissOnClick
-                label=""
-                renderTrigger={() => (
-                  <button
-                    className="flex items-center gap-2 border border-emerald-300 bg-emerald-50 
-                          text-emerald-900 font-semibold text-xs md:text-sm px-4 py-1.5 rounded-full shadow-sm 
-                          hover:shadow-md transition"
-                  >
-                    <span className="text-[0.7rem] uppercase tracking-[0.16em] text-emerald-700/90">
-                      Status
-                    </span>
-                    <span className="text-xs md:text-sm">
-                      {status === "" ? "All" : status}
-                    </span>
-                    <ChevronDown className="w-4 h-4 text-emerald-900" />
-                  </button>
-                )}
-              >
-                <DropdownItem onClick={() => setStatus("")}>
-                  All Status
-                </DropdownItem>
-                <DropdownItem onClick={() => setStatus("Available")}>
-                  Available
-                </DropdownItem>
-                <DropdownItem onClick={() => setStatus("Not Available")}>
-                  Not Available
-                </DropdownItem>
-              </Dropdown>
-
-              <Button
-                onClick={() => {
-                  setEditTarget(null);
-                  setShowModal(true);
+          {/* FILTER BAR */}
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            {/* Search box */}
+            <div className="relative w-full max-w-xs">
+              <input
+                type="text"
+                placeholder="Search by name or code..."
+                className="w-full border border-emerald-200 rounded-full px-4 py-2 pl-10 shadow-sm 
+                        focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white/95 text-sm text-slate-800 placeholder:text-slate-400"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setCurrentPage(1);
                 }}
-                className="ml-auto rounded-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-400 text-white font-semibold shadow-[0_10px_28px_rgba(45,212,191,0.55)] hover:brightness-110 border border-emerald-300/80"
-              >
-                + Add Product
-              </Button>
+              />
+              <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
             </div>
 
-            {/* TABLE */}
-            <motion.div
-              key={selectedCategory}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.25 }}
-              className="relative w-full overflow-x-auto pb-3 rounded-2xl border border-emerald-200/80 
-                       bg-white/98 shadow-[0_14px_40px_rgba(15,23,42,0.18)]"
+            {/* Status Dropdown */}
+            <Dropdown
+              dismissOnClick
+              label=""
+              renderTrigger={() => (
+                <button
+                  className="flex items-center gap-2 border border-emerald-300 bg-emerald-50 
+                          text-emerald-900 font-semibold text-xs md:text-sm px-4 py-1.5 rounded-full shadow-sm 
+                          hover:shadow-md transition"
+                >
+                  <span className="text-[0.7rem] uppercase tracking-[0.16em] text-emerald-700/90">
+                    Status
+                  </span>
+                  <span className="text-xs md:text-sm">
+                    {status === "" ? "All" : status}
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-emerald-900" />
+                </button>
+              )}
             >
+              <DropdownItem onClick={() => setStatus("")}>All Status</DropdownItem>
+              <DropdownItem onClick={() => setStatus("Available")}>
+                Available
+              </DropdownItem>
+              <DropdownItem onClick={() => setStatus("Not Available")}>
+                Not Available
+              </DropdownItem>
+            </Dropdown>
+          </div>
+
+          {/* PRODUCT TABLE */}
+          <motion.div
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.35, ease: "easeOut" }}
+            className="relative w-full overflow-x-auto pb-3 rounded-2xl border border-emerald-200/80 
+                       bg-white/98 shadow-[0_14px_40px_rgba(15,23,42,0.18)]"
+          >
+            <div className="relative">
               <ProductTable
                 sortedProducts={sortedProducts}
                 paginatedProducts={paginatedProducts}
@@ -370,39 +308,39 @@ export default function ProductInventoryTable() {
                   handleViewRecommendations(product.id!)
                 }
               />
-            </motion.div>
+            </div>
+          </motion.div>
 
-            {/* PAGINATION */}
-            {totalPages > 1 && (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-4 text-xs md:text-sm text-slate-600">
-                <span>
-                  Showing{" "}
-                  <span className="font-semibold text-emerald-700">
-                    {(currentPage - 1) * pageSize + 1}
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-semibold text-emerald-700">
-                    {Math.min(currentPage * pageSize, sortedProducts.length)}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-semibold text-emerald-700">
-                    {sortedProducts.length}
-                  </span>{" "}
-                  entries
-                </span>
+          {/* PAGINATION */}
+          {totalPages > 1 && (
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-4 text-xs md:text-sm text-slate-600">
+              <span>
+                Showing{" "}
+                <span className="font-semibold text-emerald-700">
+                  {(currentPage - 1) * pageSize + 1}
+                </span>{" "}
+                to{" "}
+                <span className="font-semibold text-emerald-700">
+                  {Math.min(currentPage * pageSize, sortedProducts.length)}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-emerald-700">
+                  {sortedProducts.length}
+                </span>{" "}
+                entries
+              </span>
 
-                <div className="flex overflow-x-auto sm:justify-center">
-                  <Pagination
-                    currentPage={currentPage}
-                    totalPages={totalPages}
-                    onPageChange={setCurrentPage}
-                    showIcons
-                    className="shadow-sm"
-                  />
-                </div>
+              <div className="flex overflow-x-auto sm:justify-center">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  showIcons
+                  className="shadow-sm"
+                />
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </motion.div>
 
