@@ -82,7 +82,7 @@ export default function Riders() {
   };
 
   // 🔥 DELETE RIDER — FRONTEND ONLY (no backend delete endpoint)
-const handleDelete = (id: number | string) => {
+const handleDelete = (id: string) => {
   Swal.fire({
     title: "Delete Rider?",
     text: "This action cannot be undone.",
@@ -94,11 +94,8 @@ const handleDelete = (id: number | string) => {
   }).then(async (result) => {
     if (result.isConfirmed) {
       try {
-        // 🧹 DELETE SA BACKEND
-        await deleteDriver(id);
-
-        // 🧹 DELETE SA CONTEXT (UI)
-        deleteRider(String(id));
+        await deleteDriver(id);       // backend delete
+        await deleteRider(id);        // context delete
 
         Swal.fire("Deleted!", "Rider has been removed permanently.", "success");
       } catch (error) {
@@ -107,6 +104,8 @@ const handleDelete = (id: number | string) => {
     }
   });
 };
+
+
 
 
 
@@ -381,6 +380,7 @@ const handleDelete = (id: number | string) => {
               <tbody>
   {filteredRiders.length > 0 ? (
     filteredRiders.map((rider, index) => {
+      console.log("RIDEEEER OBJECT:", rider); 
       // ===============================
       // 🔥 FRONTEND-ONLY FIXED LOGIC
       // ===============================
@@ -506,6 +506,7 @@ const handleDelete = (id: number | string) => {
               <button
                 className="w-9 h-9 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition shadow-sm flex items-center justify-center"
                 onClick={() => handleDelete(rider.id)}
+
               >
                 <Trash className="w-4 h-4" />
               </button>

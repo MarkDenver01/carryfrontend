@@ -79,18 +79,18 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
       const raw = res.data ?? [];
 
       const mapped: Rider[] = raw.map((d: any) => ({
-        id: String(d.riderId), // ALWAYS string, NEVER null
-        name: d.name ?? "Unnamed Driver",
-        contact: d.contact ?? "",
-        status: mapStatus(d.status),
-        ordersToday: d.ordersToday ?? 0,
-        completedDeliveries: d.completedDeliveries ?? 0,
-        workload: d.workload ?? (d.ordersToday ?? 0) * 10,
-        lastAssigned: d.lastAssigned ?? null,
-        lastActive: d.lastActive ?? null,
-        homeBase: d.homeBase ?? "N/A",
-        rating: d.rating ?? 5,
-      }));
+          id: String(d.id ?? d.riderId), // 🔥 FIXED HERE
+          name: d.name ?? "Unnamed Driver",
+          contact: d.contact ?? "",
+          status: mapStatus(d.status),
+          ordersToday: d.ordersToday ?? 0,
+          completedDeliveries: d.completedDeliveries ?? 0,
+          workload: d.workload ?? (d.ordersToday ?? 0) * 10,
+          lastAssigned: d.lastAssigned ?? null,
+          lastActive: d.lastActive ?? null,
+          homeBase: d.homeBase ?? "N/A",
+          rating: d.rating ?? 5,
+}));
 
       setRiders(mapped);
     } catch (err) {
