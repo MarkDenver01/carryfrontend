@@ -367,135 +367,153 @@ export default function Riders() {
               </thead>
 
               <tbody>
-                {filteredRiders.length > 0 ? (
-                  filteredRiders.map((rider, index) => (
-                    <tr
-                      key={index}
-                      className="hover:bg-emerald-50/70 transition border-b last:border-none"
-                    >
-                      {/* Rider */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-semibold text-lg">
-                            {rider.name.charAt(0)}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-gray-800">
-                              {rider.name}
-                            </p>
-                            <span className="text-gray-400 text-xs">
-                              {rider.id}
-                            </span>
-                            <p className="flex items-center gap-1 text-[11px] text-gray-500 mt-1">
-                              <MapPin className="w-3 h-3 text-emerald-500" />
-                              {rider.homeBase}
-                            </p>
-                          </div>
-                        </div>
-                      </td>
+  {filteredRiders.length > 0 ? (
+    filteredRiders.map((rider, index) => {
+      // ===============================
+      // 🔥 FRONTEND-ONLY FIXED LOGIC
+      // ===============================
 
-                      {/* Contact */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center gap-2 text-gray-700 text-xs md:text-sm">
-                          <Phone className="w-4 h-4 text-emerald-500" />
-                          {rider.contact}
-                        </div>
-                      </td>
+      const today = new Date().toDateString();
+      const assignedDate =
+   rider.lastAssigned && !isNaN(Date.parse(rider.lastAssigned))
+    ? new Date(rider.lastAssigned).toDateString()
+    : "";
 
-                      {/* Status */}
-                      <td className="p-4 align-middle">
-                        <span
-                          className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyles(
-                            rider.status
-                          )}`}
-                        >
-                          <CircleDot
-                            className={`w-3 h-3 ${getStatusDot(rider.status)}`}
-                          />
-                          {rider.status}
-                        </span>
-                        <p className="text-[11px] text-gray-500 mt-1">
-                          {rider.lastActive}
-                        </p>
-                      </td>
 
-                      {/* Rating */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center gap-1 text-yellow-500">
-                          <Star className="w-4 h-4 fill-yellow-400" />
-                          <span className="font-semibold text-gray-800">
-                            {rider.rating.toFixed(1)}
-                          </span>
-                        </div>
-                      </td>
+      // If status = Available → delivered na → +1 completed
+      const computedCompleted =
+        rider.status === "Available"
+          ? rider.completedDeliveries + 1
+          : rider.completedDeliveries;
 
-                      {/* Completed */}
-                      <td className="p-4 align-middle text-gray-800 font-medium">
-                        {rider.completedDeliveries}
-                      </td>
+      // Orders today follows completed count ONLY if delivery is today
+      const computedOrdersToday =
+        assignedDate === today ? computedCompleted : rider.ordersToday;
 
-                      {/* Orders Today */}
-                      <td className="p-4 align-middle">
-                        <p className="font-medium text-gray-700 text-sm">
-                          {rider.ordersToday}
-                        </p>
-                        <div className="mt-1 w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className="h-2 bg-emerald-500"
-                            style={{ width: `${rider.workload}%` }}
-                          />
-                        </div>
-                        <p className="text-[11px] text-gray-500 mt-0.5">
-                          Workload: {rider.workload}%
-                        </p>
-                      </td>
+      return (
+        <tr
+          key={index}
+          className="hover:bg-emerald-50/70 transition border-b last:border-none"
+        >
+          {/* Rider */}
+          <td className="p-4 align-middle">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700 flex items-center justify-center font-semibold text-lg">
+                {rider.name.charAt(0)}
+              </div>
+              <div>
+                <p className="font-semibold text-gray-800">{rider.name}</p>
+                <span className="text-gray-400 text-xs">{rider.id}</span>
+                <p className="flex items-center gap-1 text-[11px] text-gray-500 mt-1">
+                  <MapPin className="w-3 h-3 text-emerald-500" />
+                  {rider.homeBase}
+                </p>
+              </div>
+            </div>
+          </td>
 
-                      {/* Last Assigned */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center gap-2 text-gray-700 text-xs md:text-sm">
-                          <CalendarClock className="w-4 h-4 text-gray-500" />
-                          {rider.lastAssigned}
-                        </div>
-                      </td>
+          {/* Contact */}
+          <td className="p-4 align-middle">
+            <div className="flex items-center gap-2 text-gray-700 text-xs md:text-sm">
+              <Phone className="w-4 h-4 text-emerald-500" />
+              {rider.contact}
+            </div>
+          </td>
 
-                      {/* Actions */}
-                      <td className="p-4 align-middle">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            className="w-9 h-9 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition shadow-sm flex items-center justify-center"
-                            onClick={() => openProfile(rider)}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </button>
+          {/* Status */}
+          <td className="p-4 align-middle">
+            <span
+              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyles(
+                rider.status
+              )}`}
+            >
+              <CircleDot className={`w-3 h-3 ${getStatusDot(rider.status)}`} />
+              {rider.status}
+            </span>
+            <p className="text-[11px] text-gray-500 mt-1">
+              {rider.lastActive}
+            </p>
+          </td>
 
-                          <button
-                            className="w-9 h-9 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition shadow-sm flex items-center justify-center"
-                            onClick={() => openEditModal(rider)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </button>
+          {/* Rating */}
+          <td className="p-4 align-middle">
+            <div className="flex items-center gap-1 text-yellow-500">
+              <Star className="w-4 h-4 fill-yellow-400" />
+              <span className="font-semibold text-gray-800">
+                {rider.rating.toFixed(1)}
+              </span>
+            </div>
+          </td>
 
-                          <button
-                            className="w-9 h-9 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition shadow-sm flex items-center justify-center"
-                            onClick={() => handleDelete(rider.id)}
-                          >
-                            <Trash className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td
-                      colSpan={8}
-                      className="text-center p-5 text-gray-500 bg-gray-50 text-sm"
-                    >
-                      No riders found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
+          {/* Completed Deliveries (FIXED) */}
+          <td className="p-4 align-middle text-gray-800 font-medium">
+            {computedCompleted}
+          </td>
+
+          {/* Orders Today (FIXED) */}
+          <td className="p-4 align-middle">
+            <p className="font-medium text-gray-700 text-sm">
+              {computedOrdersToday}
+            </p>
+            <div className="mt-1 w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-2 bg-emerald-500"
+                style={{ width: `${rider.workload}%` }}
+              />
+            </div>
+            <p className="text-[11px] text-gray-500 mt-0.5">
+              Workload: {rider.workload}%
+            </p>
+          </td>
+
+          {/* Last Assigned */}
+          <td className="p-4 align-middle">
+            <div className="flex items-center gap-2 text-gray-700 text-xs md:text-sm">
+              <CalendarClock className="w-4 h-4 text-gray-500" />
+              {rider.lastAssigned}
+            </div>
+          </td>
+
+          {/* Actions */}
+          <td className="p-4 align-middle">
+            <div className="flex items-center justify-center gap-2">
+              <button
+                className="w-9 h-9 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition shadow-sm flex items-center justify-center"
+                onClick={() => openProfile(rider)}
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+
+              <button
+                className="w-9 h-9 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition shadow-sm flex items-center justify-center"
+                onClick={() => openEditModal(rider)}
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+
+              <button
+                className="w-9 h-9 bg-rose-100 text-rose-700 rounded-lg hover:bg-rose-200 transition shadow-sm flex items-center justify-center"
+                onClick={() => handleDelete(rider.id)}
+              >
+                <Trash className="w-4 h-4" />
+              </button>
+            </div>
+          </td>
+        </tr>
+      );
+    })
+  ) : (
+    <tr>
+      <td
+        colSpan={8}
+        className="text-center p-5 text-gray-500 bg-gray-50 text-sm"
+      >
+        No riders found.
+      </td>
+    </tr>
+  )}
+</tbody>
+
             </table>
           </div>
         </div>
