@@ -79,18 +79,18 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
       const raw = res.data ?? [];
 
       const mapped: Rider[] = raw.map((d: any) => ({
-          id: String(d.id ?? d.riderId), // 🔥 FIXED HERE
-          name: d.name ?? "Unnamed Driver",
-          contact: d.contact ?? "",
-          status: mapStatus(d.status),
-          ordersToday: d.ordersToday ?? 0,
-          completedDeliveries: d.completedDeliveries ?? 0,
-          workload: d.workload ?? (d.ordersToday ?? 0) * 10,
-          lastAssigned: d.lastAssigned ?? null,
-          lastActive: d.lastActive ?? null,
-          homeBase: d.homeBase ?? "N/A",
-          rating: d.rating ?? 5,
-}));
+        id: String(d.id ?? d.riderId),
+        name: d.name ?? "Unnamed Driver",
+        contact: d.contact ?? "",
+        status: mapStatus(d.status),
+        ordersToday: d.ordersToday ?? 0,
+        completedDeliveries: d.completedDeliveries ?? 0,
+        workload: d.workload ?? (d.ordersToday ?? 0) * 10,
+        lastAssigned: d.lastAssigned ?? null,
+        lastActive: d.lastActive ?? null,
+        homeBase: d.homeBase ?? "N/A",
+        rating: d.rating ?? 5,
+      }));
 
       setRiders(mapped);
     } catch (err) {
@@ -143,25 +143,68 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
 
   /* ----------------------------------------------------
       ASSIGN RIDER
+      👉 FRONTEND LANG: +1 ordersToday, On Delivery, lastAssigned
   ---------------------------------------------------- */
   const assignRider = async (riderId: string) => {
     try {
+      // HINDI binago backend/API – same endpoint pa rin
       await api.put(`/user/public/api/riders/${riderId}/assign`);
-      await loadRidersFromBackend();
+
+      const nowIso = new Date().toISOString();
+
+      setRiders((prev) =>
+        prev.map((r) => {
+          if (r.id !== riderId) return r;
+
+          const updatedOrdersToday = (r.ordersToday ?? 0) + 1;
+          const updatedWorkload =
+            r.workload ?? updatedOrdersToday * 10; // simple fallback
+
+          return {
+            ...r,
+            status: "On Delivery",
+            ordersToday: updatedOrdersToday,
+            workload: updatedWorkload,
+            lastAssigned: nowIso,
+            lastActive: nowIso,
+          };
+        })
+      );
     } catch (err) {
       console.error("❌ Failed to assign rider:", err);
+      throw err;
     }
   };
 
   /* ----------------------------------------------------
       COMPLETE DELIVERY
+      👉 FRONTEND LANG: +1 completedDeliveries, Available
+      (ordersToday = total na na-assign today, hindi binabawas)
   ---------------------------------------------------- */
   const completeDelivery = async (riderId: string) => {
     try {
+      // same backend endpoint pa rin
       await api.put(`/user/public/api/riders/${riderId}/complete`);
-      await loadRidersFromBackend();
+
+      const nowIso = new Date().toISOString();
+
+      setRiders((prev) =>
+        prev.map((r) => {
+          if (r.id !== riderId) return r;
+
+          const updatedCompleted = (r.completedDeliveries ?? 0) + 1;
+
+          return {
+            ...r,
+            status: "Available",
+            completedDeliveries: updatedCompleted,
+            lastActive: nowIso,
+          };
+        })
+      );
     } catch (err) {
       console.error("❌ Complete delivery failed:", err);
+      throw err;
     }
   };
 
