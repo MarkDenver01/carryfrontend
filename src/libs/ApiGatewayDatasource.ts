@@ -375,15 +375,19 @@ export async function markDelivered(orderId: string, payload: any, riderId?: str
 }
 
 
-export async function markInTransit(orderId: string) {
+export async function markInTransit(orderId: string, riderId: string) {
   try {
-    const res = await api.put(`/user/public/api/orders/${orderId}/in-transit`);
+    const res = await api.put(
+      `/user/public/api/orders/${orderId}/in-transit/${riderId}`
+    );
     return res.data;
   } catch (error: any) {
     console.error("❌ Mark in transit error:", error);
     throw error.response?.data || { message: "Failed to set In Transit" };
   }
 }
+
+
 export async function markProcessing(orderId: string) {
   try {
     const res = await api.put(`/user/public/api/orders/${orderId}/processing`);
@@ -408,7 +412,9 @@ export async function deleteDriver(id: string) {
 }
 export async function assignRiderToOrder(orderId: string, riderId: string) {
   try {
-    const res = await api.put(`/user/public/api/orders/${orderId}/assign-rider/${riderId}`);
+    const res = await api.put(
+      `/user/public/api/orders/${orderId}/assign-rider/${riderId}`
+    );
     return res.data;
   } catch (error: any) {
     console.error("❌ Assign rider to order error:", error);

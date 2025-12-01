@@ -148,25 +148,25 @@ export default function Orders() {
         // Map backend enum/string status → UI OrderStatus
         let status: OrderStatus = "Pending";
         switch (o.status) {
-          case "PENDING":
-            status = "Pending";
-            break;
-          case "CONFIRMED":
-          case "PROCESSING":
-            status = "Processing";
-            break;
-          case "IN_TRANSIT":
-            status = "In Transit";
-            break;
-          case "DELIVERED":
-            status = "Delivered";
-            break;
-          case "CANCELLED":
-            status = "Cancelled";
-            break;
-          default:
-            status = "Pending";
-        }
+  case "PENDING":
+    status = "Pending";
+    break;
+  case "PROCESSING":
+    status = "Processing";
+    break;
+  case "IN_TRANSIT":
+    status = "In Transit";
+    break;
+  case "DELIVERED":
+    status = "Delivered";
+    break;
+  case "CANCELLED":
+    status = "Cancelled";
+    break;
+  default:
+    status = "Pending";
+}
+
 
         return {
           id: o.orderId?.toString() ?? "",
@@ -195,7 +195,8 @@ export default function Orders() {
               : o.rider?.riderId != null
               ? o.rider.riderId.toString()
               : null,
-          riderName: o.riderName ?? o.rider?.name ?? "Unassigned",
+          riderName: o.riderName || o.rider?.name || "Unassigned",
+
         };
       });
 
@@ -308,74 +309,77 @@ export default function Orders() {
   const closeDelivered = () => setIsDeliveredOpen(false);
 
   // 🔗 Assign Rider → backend + local state + riders refresh
-  const assignRiderToOrder = async (rider: Rider) => {
-    if (!selectedOrder) return;
+  // 🔥 REAL FIX — Assign Rider Proper Flow
+const assignRiderToOrder = async (rider: Rider) => {
+  if (!selectedOrder) return;
 
-    try {
-      // ✅ 1) Call backend: link order + rider + set IN_TRANSIT
-      await api.put(
-        `/user/public/api/orders/${selectedOrder.id}/assign-rider/${rider.id}`
-      );
+  try {
+    // 1) ASSIGN RIDER
+    await api.put(
+      `/user/public/api/orders/${selectedOrder.id}/assign-rider/${rider.id}`
+    );
 
-      // ✅ 2) Update active orders list (frontend)
-      setOrders((prev) =>
-        prev.map((o) =>
-          o.id === selectedOrder.id
-            ? {
-                ...o,
-                riderId: rider.id,
-                riderName: rider.name,
-                status: "In Transit",
-              }
-            : o
-        )
-      );
+    // 2) SET STATUS TO IN_TRANSIT (VERY IMPORTANT!)
+    await api.put(
+      `/user/public/api/orders/${selectedOrder.id}/in-transit`
+    );
 
-      // ✅ 3) Update allOrders
-      setAllOrders((prev) =>
-        prev.map((o) =>
-          o.id === selectedOrder.id
-            ? {
-                ...o,
-                riderId: rider.id,
-                riderName: rider.name,
-                status: "In Transit",
-              }
-            : o
-        )
-      );
-
-      // ✅ 4) Update selectedOrder (modal)
-      setSelectedOrder((prev) =>
-        prev
+    // 3) UPDATE FRONTEND
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === selectedOrder.id
           ? {
-              ...prev,
+              ...o,
               riderId: rider.id,
               riderName: rider.name,
               status: "In Transit",
             }
-          : prev
-      );
+          : o
+      )
+    );
 
-      // ✅ 5) Refresh riders from backend (status ON_DELIVERY etc.)
-      await resetRiders();
+    setAllOrders((prev) =>
+      prev.map((o) =>
+        o.id === selectedOrder.id
+          ? {
+              ...o,
+              riderId: rider.id,
+              riderName: rider.name,
+              status: "In Transit",
+            }
+          : o
+      )
+    );
 
-      setToast({
-        type: "success",
-        message: `Rider ${rider.name} assigned to order #${selectedOrder.id} (now In Transit).`,
-      });
-    } catch (error: any) {
-      console.error("❌ Assign rider / mark in-transit failed:", error);
-      setToast({
-        type: "error",
-        message:
-          error?.message ||
-          "Failed to assign rider / set In Transit. Please try again.",
-      });
-    } finally {
-      closeAssign();
-    }
-  };
+    setSelectedOrder((prev) =>
+      prev
+        ? {
+            ...prev,
+            riderId: rider.id,
+            riderName: rider.name,
+            status: "In Transit",
+          }
+        : prev
+    );
+
+    await resetRiders();
+
+    setToast({
+      type: "success",
+      message: `Rider ${rider.name} assigned to order #${selectedOrder.id}.`,
+    });
+  } catch (error: any) {
+    console.error("❌ Assign rider failed:", error);
+    setToast({
+      type: "error",
+      message: error?.message || "Failed to assign rider. Try again.",
+    });
+  } finally {
+    closeAssign();
+  }
+};
+
+
 
   const handleCancelOrder = async (orderId: string, reason: string) => {
     try {
@@ -475,11 +479,11 @@ export default function Orders() {
   };
 
   const getPrimaryActionLabel = (order: Order): string | null => {
-    if (order.status === "Pending") return "Accept Order";
-    if (order.status === "Processing") return "Complete & Assign Rider";
-    if (order.status === "In Transit") return "Mark Delivered";
-    return null;
-  };
+  if (order.status === "Pending") return "Accept Order";
+  if (order.status === "Processing") return "Assign Rider";
+  if (order.status === "In Transit") return "Mark Delivered";
+  return null;
+};
 
   const handlePrimaryAction = async (order: Order) => {
     if (order.status === "Pending") {
