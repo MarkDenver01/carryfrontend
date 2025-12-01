@@ -1,3 +1,5 @@
+// src/page/.../Orders.tsx
+
 import React, { useMemo, useState, useEffect } from "react";
 import {
   Search,
@@ -16,17 +18,21 @@ import { motion } from "framer-motion";
 // ✅ IMPORT GLOBAL RIDERS CONTEXT
 import { useDrivers } from "../../../context/DriverContext";
 import type { Rider } from "../../../context/DriverContext";
-import DriverTrackerMap from '../../../components/maps/LiveRouteMap';
+
+// ✅ MAP & LIVE LOCATION
+import DriverTrackerMap from "../../../components/maps/LiveRouteMap";
 import { useDriverLocation } from "../../../hooks/useDriverLocation";
 
-// ✅ IMPORT BACKEND API
+// ✅ BACKEND API WRAPPER
 import {
   fetchAllOrders,
   cancelOrder,
   markDelivered,
-  markInTransit,
   markProcessing,
 } from "../../../libs/ApiGatewayDatasource";
+
+// ✅ DIRECT AXIOS INSTANCE (for assign-rider)
+import api from "../../../libs/api";
 
 /* ============================================================
    TYPES
@@ -48,7 +54,6 @@ type Order = {
   status: OrderStatus;
   scheduledTime?: string;
 
-  // 🔥 FIXED: we now track rider by ID + Name
   riderId?: string | null;
   riderName?: string;
 
@@ -120,8 +125,8 @@ export default function Orders() {
   const [isLoading, setIsLoading] = useState(false);
   const [toast, setToast] = useState<ToastState>(null);
 
-  // ✅ RIDER CONTEXT (may assignRider + completeDelivery)
-  const { riders, assignRider, completeDelivery, resetRiders } = useDrivers();
+  // ✅ RIDER CONTEXT (we only need riders + resetRiders here)
+  const { riders, resetRiders } = useDrivers();
   const availableRiders = riders.filter((r) => r.status === "Available");
 
   /* ============================================================
@@ -140,15 +145,13 @@ export default function Orders() {
       const mobileOnly = raw ?? [];
 
       const mapped: Order[] = mobileOnly.map((o: any) => {
-        // console.log("🔥 RAW BACKEND ORDER:", o);
-
         // Map backend enum/string status → UI OrderStatus
         let status: OrderStatus = "Pending";
         switch (o.status) {
           case "PENDING":
             status = "Pending";
             break;
-          case "CONFIRMED": // ⭐ treat as Processing
+          case "CONFIRMED":
           case "PROCESSING":
             status = "Processing";
             break;
@@ -186,7 +189,6 @@ export default function Orders() {
             ? new Date(o.createdAt).toLocaleString()
             : "Unknown date",
 
-          // 🔥 FIX: rider info
           riderId:
             o.riderId != null
               ? o.riderId.toString()
@@ -197,9 +199,6 @@ export default function Orders() {
         };
       });
 
-      // 🔥 FRONTEND RULE:
-      // - allOrders: lahat (for summary counts & history)
-      // - orders: HIDE Delivered + Cancelled from list
       const activeOnly = mapped.filter(
         (o) => o.status !== "Delivered" && o.status !== "Cancelled"
       );
@@ -236,7 +235,6 @@ export default function Orders() {
     });
   }, [orders, allOrders, filter, searchTerm]);
 
-  // Para sa "Showing X of Y ..." text
   const currentSource = useMemo(() => {
     if (filter === "Delivered" || filter === "Cancelled") {
       return allOrders.filter((o) => o.status === filter);
@@ -248,10 +246,7 @@ export default function Orders() {
      SUMMARY COUNTS
   ============================================================= */
 
-  // 👉 Total Orders = ACTIVE orders only (bumababa pag cancel/deliver)
   const totalOrders = orders.length;
-
-  // 👉 Other stats based on ALL orders para may history view ka pa rin
   const totalPending = allOrders.filter((o) => o.status === "Pending").length;
   const totalInTransit = allOrders.filter(
     (o) => o.status === "In Transit"
@@ -312,13 +307,15 @@ export default function Orders() {
   const closeCancel = () => setIsCancelOpen(false);
   const closeDelivered = () => setIsDeliveredOpen(false);
 
-  // 🔗 Assign Rider + update RiderContext + PERSIST IN_TRANSIT sa backend
+  // 🔗 Assign Rider → backend + local state + riders refresh
   const assignRiderToOrder = async (rider: Rider) => {
     if (!selectedOrder) return;
 
     try {
-      // ✅ 1) Persist IN_TRANSIT sa backend
-      await markInTransit(selectedOrder.id);
+      // ✅ 1) Call backend: link order + rider + set IN_TRANSIT
+      await api.put(
+        `/user/public/api/orders/${selectedOrder.id}/assign-rider/${rider.id}`
+      );
 
       // ✅ 2) Update active orders list (frontend)
       setOrders((prev) =>
@@ -334,7 +331,7 @@ export default function Orders() {
         )
       );
 
-      // ✅ 3) Update allOrders list (for summary cards & filters)
+      // ✅ 3) Update allOrders
       setAllOrders((prev) =>
         prev.map((o) =>
           o.id === selectedOrder.id
@@ -348,7 +345,7 @@ export default function Orders() {
         )
       );
 
-      // ✅ 4) Update selectedOrder (UI detail modal)
+      // ✅ 4) Update selectedOrder (modal)
       setSelectedOrder((prev) =>
         prev
           ? {
@@ -360,8 +357,8 @@ export default function Orders() {
           : prev
       );
 
-      // ✅ 5) Update RiderContext (ordersToday, workload, status, lastAssigned)
-      assignRider(rider.id);
+      // ✅ 5) Refresh riders from backend (status ON_DELIVERY etc.)
+      await resetRiders();
 
       setToast({
         type: "success",
@@ -384,14 +381,12 @@ export default function Orders() {
     try {
       await cancelOrder(orderId, reason || "No reason provided");
 
-      // 🧠 Update allOrders: mark as Cancelled
       setAllOrders((prev) =>
         prev.map((o) =>
           o.id === orderId ? { ...o, status: "Cancelled" } : o
         )
       );
 
-      // 🔥 Update active orders: REMOVE from list (bababa yung Total Orders)
       setOrders((prev) => prev.filter((o) => o.id !== orderId));
 
       if (selectedOrder && selectedOrder.id === orderId) {
@@ -415,87 +410,69 @@ export default function Orders() {
   };
 
   const handleMarkDelivered = async (
-  orderId: string,
-  payload: { note?: string }
-) => {
-  try {
-    // 🔎 Hanapin muna yung order sa state
-    const currentOrder =
-      allOrders.find((o) => o.id === orderId) || selectedOrder;
+    orderId: string,
+    payload: { note?: string }
+  ) => {
+    try {
+      const currentOrder =
+        allOrders.find((o) => o.id === orderId) || selectedOrder;
 
-    // 🔎 Hanapin rider by ID or Name
-    let riderForOrder: Rider | undefined = undefined;
+      // 🔥 Call backend: mark order as delivered (backend na mag-update ng rider status)
+      await markDelivered(orderId, payload, currentOrder?.riderId ?? undefined);
 
-    if (currentOrder?.riderId) {
-      riderForOrder = riders.find((r) => r.id === currentOrder.riderId);
-    }
+      // 🔥 Refresh riders (para mag-reflect AVAILABLE na yung rider)
+      await resetRiders();
 
-    if (!riderForOrder && currentOrder?.riderName) {
-      riderForOrder = riders.find((r) => r.name === currentOrder.riderName);
-    }
-
-    // 🔥 Call backend: mark order as delivered
-    await markDelivered(orderId, payload, currentOrder?.riderId ?? undefined);
-
-    // 🔥 Refresh riders
-    await resetRiders();
-
-    // 🧠 Update allOrders: mark as Delivered + note
-    setAllOrders((prev) =>
-      prev.map((o) =>
-        o.id === orderId
-          ? {
-              ...o,
-              status: "Delivered",
-              notes:
-                payload.note && payload.note.trim().length > 0
-                  ? `Delivered: ${payload.note}`
-                  : o.notes || "Marked as delivered.",
-            }
-          : o
-      )
-    );
-
-    // 🔥 Remove from active orders
-    setOrders((prev) => prev.filter((o) => o.id !== orderId));
-
-    // 🧹 Update modal order
-    if (selectedOrder?.id === orderId) {
-      setSelectedOrder((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: "Delivered",
-              notes:
-                payload.note && payload.note.trim().length > 0
-                  ? `Delivered: ${payload.note}`
-                  : prev.notes || "Marked as delivered.",
-            }
-          : prev
+      // 🧠 Update allOrders: mark as Delivered + note
+      setAllOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId
+            ? {
+                ...o,
+                status: "Delivered",
+                notes:
+                  payload.note && payload.note.trim().length > 0
+                    ? `Delivered: ${payload.note}`
+                    : o.notes || "Marked as delivered.",
+              }
+            : o
+        )
       );
+
+      // 🔥 Remove from active orders
+      setOrders((prev) => prev.filter((o) => o.id !== orderId));
+
+      // 🧹 Update modal order
+      if (selectedOrder?.id === orderId) {
+        setSelectedOrder((prev) =>
+          prev
+            ? {
+                ...prev,
+                status: "Delivered",
+                notes:
+                  payload.note && payload.note.trim().length > 0
+                    ? `Delivered: ${payload.note}`
+                    : prev.notes || "Marked as delivered.",
+              }
+            : prev
+        );
+      }
+
+      setToast({
+        type: "success",
+        message: `Order #${orderId} marked as delivered.`,
+      });
+    } catch (error: any) {
+      console.error("❌ Mark delivered failed:", error);
+      setToast({
+        type: "error",
+        message:
+          error?.message || "Failed to mark as delivered. Please try again.",
+      });
+    } finally {
+      closeDelivered();
     }
-
-    // 🔥 Update rider if known
-    if (riderForOrder) {
-      await completeDelivery(riderForOrder.id);
-    }
-
-    setToast({
-      type: "success",
-      message: `Order #${orderId} marked as delivered.`,
-    });
-  } catch (error: any) {
-    console.error("❌ Mark delivered failed:", error);
-    setToast({
-      type: "error",
-      message:
-        error?.message || "Failed to mark as delivered. Please try again.",
-    });
-  } finally {
-    closeDelivered();
-  }
-};
-
+  };
 
   const getPrimaryActionLabel = (order: Order): string | null => {
     if (order.status === "Pending") return "Accept Order";
@@ -507,10 +484,8 @@ export default function Orders() {
   const handlePrimaryAction = async (order: Order) => {
     if (order.status === "Pending") {
       try {
-        // ✅ Call backend: set PROCESSING
         await markProcessing(order.id);
 
-        // ✅ Optimistic UI update
         setOrders((prev) =>
           prev.map((o) =>
             o.id === order.id ? { ...o, status: "Processing" } : o
