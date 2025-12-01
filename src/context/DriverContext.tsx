@@ -182,26 +182,31 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
       (ordersToday = total na na-assign today, hindi binabawas)
   ---------------------------------------------------- */
   const completeDelivery = async (riderId: string) => {
-  try {
-    await api.put(`/user/public/api/riders/${riderId}/complete`);
+    try {
+      // same backend endpoint pa rin
+      await api.put(`/user/public/api/riders/${riderId}/complete`);
 
-    const nowIso = new Date().toISOString();
+      const nowIso = new Date().toISOString();
 
-    setRiders((prev) =>
-      prev.map((r) => {
-        if (r.id !== riderId) return r;
+      setRiders((prev) =>
+        prev.map((r) => {
+          if (r.id !== riderId) return r;
 
-        return {
-          ...r,
-          status: "Available",
-          lastActive: nowIso,
-        };
-      })
-    );
-  } catch (err) {
-    console.error("❌ Complete delivery failed:", err);
-  }
-};
+          const updatedCompleted = (r.completedDeliveries ?? 0) + 1;
+
+          return {
+            ...r,
+            status: "Available",
+            completedDeliveries: updatedCompleted,
+            lastActive: nowIso,
+          };
+        })
+      );
+    } catch (err) {
+      console.error("❌ Complete delivery failed:", err);
+      throw err;
+    }
+  };
 
   /* ----------------------------------------------------
       FINAL RETURN CONTEXT
