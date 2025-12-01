@@ -52,7 +52,7 @@ interface EnrichedProduct {
   daysLeft: number | null;
   shelfLifeDays: number | null;
   elapsedDays: number | null;
-  percentUsed: number | null; // kept for possible analytics, di na lang pinapakita sa UI
+  percentUsed: number | null; // for potential analytics
   status: ExpiryStatus;
   statusPriority: number;
   statusColorClass: string;
@@ -179,6 +179,17 @@ export default function ProductReport() {
 
   const [page, setPage] = useState(1);
   const [statusUpdatingId, setStatusUpdatingId] = useState<number | null>(null);
+
+  // 🔥 For background spotlight effect (like Orders page)
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCursorPos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   const fetchProducts = async (isRefresh = false) => {
     try {
@@ -327,6 +338,7 @@ export default function ProductReport() {
     });
   }, [products]);
 
+  // ✅ Table + category overview: monitoredData (hide Out of Stock / Not Available)
   const monitoredData: EnrichedProduct[] = useMemo(
     () =>
       enrichedData.filter((p) => {
@@ -340,6 +352,7 @@ export default function ProductReport() {
      SUMMARY & CATEGORY
   ========================= */
 
+  // ✅ SUMMARY CARDS: use ALL products (enrichedData), including Out of Stock, etc.
   const summary = useMemo(() => {
     const counts: Record<ExpiryStatus, number> = {
       "New Stocks": 0,
@@ -349,14 +362,14 @@ export default function ProductReport() {
       Expired: 0,
     };
 
-    monitoredData.forEach((item) => {
+    enrichedData.forEach((item) => {
       counts[item.status]++;
     });
 
-    const total = monitoredData.length;
+    const total = enrichedData.length;
     const expiringSoon = counts["Expired"] + counts["Near Expiry"];
 
-    const warningStockCount = monitoredData.filter(
+    const warningStockCount = enrichedData.filter(
       (p) =>
         p.stock >= 30 &&
         p.stock <= 50 &&
@@ -369,7 +382,7 @@ export default function ProductReport() {
       expiringSoon,
       warningStockCount,
     };
-  }, [monitoredData]);
+  }, [enrichedData]);
 
   const uniqueCategories = useMemo(
     () =>
@@ -479,24 +492,71 @@ export default function ProductReport() {
   ========================= */
 
   return (
-    <div className="p-6 md:p-8 flex flex-col gap-8 bg-slate-50 min-h-full">
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden bg-slate-50 min-h-full"
+      onMouseMove={handleMouseMove}
+    >
+      {/* ---------- BACKDROP GRID + BLOB (like Orders page) ---------- */}
+      <div className="pointer-events-none absolute inset-0 -z-30">
+        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" />
+
+        <motion.div
+          className="absolute -top-16 -left-20 h-64 w-64 bg-emerald-500/30 blur-3xl"
+          animate={{
+            x: [0, 18, 8, -6, 0],
+            y: [0, 8, 18, 4, 0],
+            borderRadius: ["45%", "60%", "55%", "65%", "45%"],
+          }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/26 blur-3xl"
+          animate={{
+            x: [0, -15, -25, -8, 0],
+            y: [0, -10, -16, -5, 0],
+            borderRadius: ["50%", "65%", "55%", "70%", "50%"],
+          }}
+          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
+      {/* ---------- CURSOR SPOTLIGHT ---------- */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 -z-20"
+        style={{
+          background: `radial-gradient(520px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.25), transparent 70%)`,
+        }}
+      />
+
       {/* HEADER */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+      <div className="relative flex flex-col gap-3">
+        <motion.h1
+          initial={{ opacity: 0, x: -18 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4 }}
+          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-sky-500 bg-clip-text text-transparent"
+        >
           Product Expiry Monitor
-        </h1>
-        <p className="text-sm text-slate-500 max-w-xl">
+        </motion.h1>
+
+        <p className="text-gray-500 text-sm max-w-xl">
           Central view for{" "}
-          <span className="font-semibold text-emerald-600">
-            live expiry & stock status
-          </span>{" "}
-          of all products. Filter by status, category, and stock levels to
-          avoid losses and plan promos.
+          <span className="font-medium text-emerald-700">
+            live expiry & stock health
+          </span>
+          . Track expiring items, warning stocks, and promos before they
+          become losses.
         </p>
+
+        <div className="mt-3 h-[3px] w-32 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
       {/* MAIN CARD */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm px-5 py-6 flex flex-col gap-7">
+      <div className="rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-md shadow-[0_18px_45px_rgba(15,23,42,0.12)] px-5 py-6 flex flex-col gap-7">
         {/* TABS + SUMMARY */}
         <div className="flex flex-col gap-5">
           {/* Status Tabs */}
@@ -522,26 +582,26 @@ export default function ProductReport() {
           </div>
 
           {/* SUMMARY CARDS */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-1">
             <SummaryCard
               icon={<Package className="w-6 h-6" />}
               label="Total Products"
               value={summary.total.toString()}
-              accent=""
+              accent="Includes all statuses (even out of stock)"
               color="emerald"
             />
             <SummaryCard
               icon={<ShieldAlert className="w-6 h-6" />}
               label="Expiring / Expired"
               value={summary.expiringSoon.toString()}
-              accent=""
+              accent="Items to prioritize for promo & clearance"
               color="rose"
             />
             <SummaryCard
               icon={<AlertTriangle className="w-6 h-6" />}
               label="Warning Stocks (30–50)"
               value={summary.warningStockCount.toString()}
-              accent=""
+              accent="Low but not yet out of stock"
               color="amber"
             />
             <SummaryCard
@@ -550,14 +610,14 @@ export default function ProductReport() {
               value={(
                 summary.counts["Good"] + summary.counts["New Stocks"]
               ).toString()}
-              accent=""
+              accent="Safe inventory across all products"
               color="indigo"
             />
           </section>
         </div>
 
         {/* FILTER BAR */}
-        <section className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 flex flex-col gap-4">
+        <section className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-4 flex flex-col gap-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
               <Filter className="w-3.5 h-3.5 text-emerald-500" />
@@ -573,7 +633,7 @@ export default function ProductReport() {
                 <span className="font-semibold text-slate-800">
                   {filteredAndSorted.length}
                 </span>{" "}
-                filtered products
+                monitored products
               </span>
               {lastUpdated && (
                 <span className="hidden lg:inline text-[11px] text-slate-400 border-l pl-2 border-slate-200">
@@ -730,7 +790,7 @@ export default function ProductReport() {
                 </p>
               </div>
               <span className="text-[11px] text-slate-500">
-                {visibleCount} of {filteredAndSorted.length} filtered
+                {visibleCount} of {filteredAndSorted.length} monitored
               </span>
             </div>
 
@@ -900,8 +960,8 @@ export default function ProductReport() {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto rounded-xl border border-slate-200">
-                <table className="min-w-full divide-y divide-slate-200 text-xs md:text-sm bg-white">
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="min-w-full divide-y divide-slate-200 text-[11px] sm:text-xs md:text-sm">
                   <thead className="bg-slate-50">
                     <tr>
                       <Th label="Product" />
@@ -971,17 +1031,17 @@ export default function ProductReport() {
                       return (
                         <tr
                           key={item.id}
-                          className="hover:bg-slate-50 cursor-pointer"
+                          className="hover:bg-slate-50/70 cursor-pointer transition-colors"
                           onClick={() => setSelectedProduct(item)}
                         >
                           {/* Product */}
                           <td className="px-4 py-3 align-top">
                             <div className="flex items-start gap-3">
-                              <div className="hidden sm:flex w-8 h-8 rounded-full bg-slate-100 text-slate-700 items-center justify-center text-xs font-semibold">
+                              <div className="hidden sm:flex w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 items-center justify-center text-xs font-semibold">
                                 {item.name.charAt(0).toUpperCase()}
                               </div>
-                              <div>
-                                <p className="text-[13px] font-semibold text-slate-900 line-clamp-2">
+                              <div className="flex flex-col gap-0.5">
+                                <p className="text-[12px] sm:text-[13px] font-semibold text-slate-900 line-clamp-2">
                                   {item.name}
                                 </p>
                                 {isWarningStock && !isOutOfStock && (
@@ -1009,28 +1069,28 @@ export default function ProductReport() {
                           </td>
 
                           {/* Stock-In */}
-                          <td className="px-4 py-3 align-top text-slate-600">
+                          <td className="px-4 py-3 align-top text-slate-600 whitespace-nowrap">
                             {item.stockInDate
                               ? dayjs(item.stockInDate).format("MMM D, YYYY")
                               : "N/A"}
                           </td>
 
                           {/* Expiry */}
-                          <td className="px-4 py-3 align-top text-slate-600">
+                          <td className="px-4 py-3 align-top text-slate-600 whitespace-nowrap">
                             {item.expiryDate
                               ? dayjs(item.expiryDate).format("MMM D, YYYY")
                               : "N/A"}
                           </td>
 
                           {/* Days left */}
-                          <td className="px-4 py-3 align-top text-right text-slate-700">
+                          <td className="px-4 py-3 align-top text-right text-slate-700 whitespace-nowrap">
                             {daysLeftLabel}
                           </td>
 
                           {/* Expiry Status */}
                           <td className="px-4 py-3 align-top">
                             <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold ${item.statusSoftClass}`}
+                              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-semibold ${item.statusSoftClass}`}
                             >
                               {item.status === "Expired" && "❌"}
                               {item.status === "Near Expiry" && "⏳"}
@@ -1043,7 +1103,7 @@ export default function ProductReport() {
 
                           {/* Inventory Status */}
                           <td className="px-4 py-3 align-top">
-                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-100 text-[10px] text-slate-600 border border-slate-200/70">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-[10px] text-slate-600 border border-slate-200/70 whitespace-nowrap">
                               {item.backendStatus || "Not set"}
                             </span>
                           </td>
@@ -1053,7 +1113,7 @@ export default function ProductReport() {
                             className="px-4 py-3 align-top text-right"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            <div className="flex flex-wrap justify-end gap-1.5">
+                            <div className="flex flex-wrap justify-end gap-2">
                               {actions.map((btn) => (
                                 <button
                                   key={btn.label}
@@ -1065,7 +1125,7 @@ export default function ProductReport() {
                                       btn.action
                                     )
                                   }
-                                  className={`px-2.5 py-1 rounded-full text-[10px] font-semibold flex items-center gap-1 transition ${getButtonClasses(
+                                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition ${getButtonClasses(
                                     btn.kind
                                   )} ${
                                     statusUpdatingId === item.productId
@@ -1155,7 +1215,7 @@ export default function ProductReport() {
           </motion.div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -1328,7 +1388,7 @@ function SummaryCard({
         scale: 1.01,
       }}
       transition={{ duration: 0.2 }}
-      className={`relative p-4 rounded-xl text-white bg-gradient-to-br ${colors[color]} shadow-sm`}
+      className={`relative p-4 rounded-xl text-white bg-gradient-to-br ${colors[color]} shadow-md overflow-hidden`}
     >
       <div className="relative flex items-center gap-3">
         <div className="p-2.5 bg-white/15 rounded-lg flex items-center justify-center">
