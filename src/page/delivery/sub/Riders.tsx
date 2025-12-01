@@ -19,6 +19,7 @@ import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 
 import RiderFormModal from "../../../components/driver/RiderFormModal";
+import { deleteDriver } from "../../../libs/ApiGatewayDatasource";
 
 // ✅ USE GLOBAL DRIVER CONTEXT (connected to backend)
 import {
@@ -81,22 +82,33 @@ export default function Riders() {
   };
 
   // 🔥 DELETE RIDER — FRONTEND ONLY (no backend delete endpoint)
-  const handleDelete = (id: string) => {
-    Swal.fire({
-      title: "Delete Rider?",
-      text: "This action cannot be undone.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#dc2626",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Delete",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        deleteRider(id);
-        Swal.fire("Deleted!", "The rider has been removed.", "success");
+const handleDelete = (id: number | string) => {
+  Swal.fire({
+    title: "Delete Rider?",
+    text: "This action cannot be undone.",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#dc2626",
+    cancelButtonColor: "#6b7280",
+    confirmButtonText: "Delete",
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        // 🧹 DELETE SA BACKEND
+        await deleteDriver(id);
+
+        // 🧹 DELETE SA CONTEXT (UI)
+        deleteRider(String(id));
+
+        Swal.fire("Deleted!", "Rider has been removed permanently.", "success");
+      } catch (error) {
+        Swal.fire("Error", "Failed to delete rider.", "error");
       }
-    });
-  };
+    }
+  });
+};
+
+
 
   // 🔥 EDIT RIDER — FRONTEND ONLY (update global context)
   const handleFormSubmit = (data: any) => {

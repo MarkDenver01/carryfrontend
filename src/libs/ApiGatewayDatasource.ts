@@ -274,7 +274,6 @@ export async function registerDriver(formData: FormData) {
     throw error.response?.data || { message: "Failed to register driver" };
   }
 }
-
 // ===============================
 //      EXPIRY ANALYTICS API
 // ===============================
@@ -398,18 +397,24 @@ export async function markProcessing(orderId: string) {
   }
 }
 export async function fetchAllRiders() {
-  const res = await api.get("/user/public/api/riders/all");
-  console.log("🔥 BACKEND RIDERS RESPONSE:", res.data);
-  return res.data;
+  try {
+    const res = await api.get("/user/public/api/riders/all");
+    console.log("🔥 BACKEND RIDERS RESPONSE:", res.data);
+    return res.data;
+  } catch (error: any) {
+    console.error("❌ Fetch riders error:", error);
+    throw error.response?.data || { message: "Failed to fetch riders" };
+  }
 }
-export async function deleteDriver(id: string) {
+export async function deleteDriver(id: number | string) {
   try {
     await api.delete(`/user/public/api/riders/${id}`);
   } catch (error: any) {
     console.error("❌ Delete driver error:", error);
-    throw error.response?.data || { message: "Failed to delete driver" };
+    throw error.response?.data || { message: "Failed to delete rider" };
   }
 }
+
 export async function assignRiderToOrder(orderId: string, riderId: string) {
   try {
     const res = await api.put(
