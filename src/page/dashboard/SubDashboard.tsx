@@ -1,3 +1,5 @@
+// src/page/dashboard/SubDashboard.tsx
+
 import React, { useState, useEffect } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import {
@@ -10,7 +12,10 @@ import {
 import { motion } from "framer-motion";
 
 // 🔗 CONNECT TO BACKEND
-import { fetchAllOrders } from "../../libs/ApiGatewayDatasource";
+import {
+  fetchAllOrders,
+  fetchAllRiders,
+} from "../../libs/ApiGatewayDatasource";
 
 export default function SubDashboard() {
   const [currentTime, setCurrentTime] = useState("");
@@ -21,8 +26,11 @@ export default function SubDashboard() {
   const [totalOrders, setTotalOrders] = useState(0);
   const [pendingOrders, setPendingOrders] = useState(0);
   const [inTransitOrders, setInTransitOrders] = useState(0);
-  const [activeDrivers, setActiveDrivers] = useState(0);
+  const [activeDrivers, setActiveDrivers] = useState(0); // ✅ AVAILABLE RIDERS
   const [loadingStats, setLoadingStats] = useState(false);
+
+  // 🧾 TODAY'S ORDERS PREVIEW
+  const [todayOrders, setTodayOrders] = useState<any[]>([]);
 
   // CLOCK
   useEffect(() => {
@@ -73,36 +81,26 @@ export default function SubDashboard() {
     return String(status).trim().toUpperCase().replace(/\s+/g, "_");
   };
 
-  /** 🧠 Compute stats from full orders list */
+  const normalizeRiderStatus = (status: any): string => {
+    if (!status) return "";
+    return String(status).trim().toUpperCase();
+  };
+
+  /** 🧠 Compute stats from full orders list (ALL TIME) */
   const computeOrderStats = (orders: any[]) => {
     let pending = 0;
     let inTransit = 0;
-    const activeRiderIds = new Set<string>();
 
     orders.forEach((order) => {
       const rawStatus =
         order.status ?? order.orderStatus ?? order.deliveryStatus;
       const norm = normalizeStatus(rawStatus);
 
-      // PENDING
       if (norm === "PENDING") {
         pending += 1;
       }
-
-      // IN TRANSIT
       if (norm === "IN_TRANSIT") {
         inTransit += 1;
-
-        // rider id detection (flexible, para safe kahit ano DTO mo)
-        const riderId =
-          order.riderId ??
-          order.rider?.id ??
-          order.rider?.riderId ??
-          order.rider_id;
-
-        if (riderId !== null && riderId !== undefined) {
-          activeRiderIds.add(String(riderId));
-        }
       }
     });
 
@@ -110,9 +108,25 @@ export default function SubDashboard() {
       totalOrders: orders.length,
       pending,
       inTransit,
-      activeDrivers: activeRiderIds.size,
     };
   };
+
+  /** 🧠 Filter orders for TODAY (local browser date) */
+  const isToday = (dateValue: any): boolean => {
+    if (!dateValue) return false;
+    const d = new Date(dateValue);
+    if (Number.isNaN(d.getTime())) return false;
+
+    const now = new Date();
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  };
+
+  const extractCreatedAt = (order: any) =>
+    order.createdAt ?? order.orderDate ?? order.created_at ?? null;
 
   // ===============================
   //  LOAD STATS FROM BACKEND
@@ -121,14 +135,30 @@ export default function SubDashboard() {
     const loadStats = async () => {
       try {
         setLoadingStats(true);
-        const orders = await fetchAllOrders(); // 🔥 /user/public/api/orders/all
 
+        // 🔥 Sabay kuha ng orders + riders
+        const [orders, riders] = await Promise.all([
+          fetchAllOrders(), // /user/public/api/orders/all
+          fetchAllRiders(), // /user/public/api/riders/all
+        ]);
+
+        // -------- ORDERS (ALL-TIME) --------
         const stats = computeOrderStats(orders);
-
         setTotalOrders(stats.totalOrders);
         setPendingOrders(stats.pending);
         setInTransitOrders(stats.inTransit);
-        setActiveDrivers(stats.activeDrivers);
+
+        // -------- TODAY'S ORDERS (PREVIEW) --------
+        const todays = orders.filter((o: any) =>
+          isToday(extractCreatedAt(o))
+        );
+        setTodayOrders(todays);
+
+        // -------- ACTIVE DRIVERS = AVAILABLE RIDERS --------
+        const availableCount = riders.filter(
+          (r: any) => normalizeRiderStatus(r.status) === "AVAILABLE"
+        ).length;
+        setActiveDrivers(availableCount);
       } catch (err) {
         console.error("❌ Failed to load sub admin stats:", err);
       } finally {
@@ -138,6 +168,62 @@ export default function SubDashboard() {
 
     loadStats();
   }, []);
+
+  // Limit preview para hindi sobrang haba
+  const todaysPreview = todayOrders.slice(0, 6);
+
+  const getOrderId = (order: any) =>
+    order.id ?? order.orderId ?? order.order_id ?? "—";
+
+  const getCustomerName = (order: any) =>
+    order.customerName ??
+    order.customer_name ??
+    order.customer?.name ??
+    "Customer";
+
+  const getPaymentMethod = (order: any) =>
+    (order.paymentMethod ?? order.payment_method ?? "")
+      .toString()
+      .replace(/_/g, " ")
+      .toUpperCase();
+
+  const getCreatedTimeLabel = (order: any) => {
+    const raw = extractCreatedAt(order);
+    if (!raw) return "—";
+    const d = new Date(raw);
+    if (Number.isNaN(d.getTime())) return "—";
+    return d.toLocaleTimeString("en-PH", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const getOrderStatusLabel = (order: any) => {
+    const raw =
+      order.status ?? order.orderStatus ?? order.deliveryStatus ?? "";
+    return normalizeStatus(raw).replace(/_/g, " ");
+  };
+
+  const getOrderStatusClass = (order: any) => {
+    const norm = normalizeStatus(
+      order.status ?? order.orderStatus ?? order.deliveryStatus
+    );
+
+    if (norm === "PENDING")
+      return "bg-amber-50 text-amber-700 border border-amber-200";
+    if (norm === "PROCESSING")
+      return "bg-sky-50 text-sky-700 border border-sky-200";
+    if (norm === "IN_TRANSIT")
+      return "bg-indigo-50 text-indigo-700 border border-indigo-200";
+    if (norm === "DELIVERED")
+      return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+    if (norm === "CANCELLED")
+      return "bg-rose-50 text-rose-700 border border-rose-200";
+    return "bg-slate-50 text-slate-600 border border-slate-200";
+  };
+
+  const getRiderName = (order: any) =>
+    order.rider?.name ?? order.riderName ?? "Unassigned";
 
   return (
     <motion.div
@@ -274,7 +360,7 @@ export default function SubDashboard() {
             </div>
           </motion.div>
 
-          {/* STAT CARDS (NOW LIVE DATA) */}
+          {/* STAT CARDS (LIVE DATA) */}
           <section className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-5">
             <SubStatCard
               gradient="from-emerald-600 to-green-700"
@@ -309,7 +395,7 @@ export default function SubDashboard() {
               Icon={Truck}
               value={activeDrivers}
               label="Active Drivers"
-              helper="With assigned deliveries"
+              helper="Available riders today"
               loading={loadingStats}
             />
           </section>
@@ -317,11 +403,100 @@ export default function SubDashboard() {
           {/* Divider */}
           <div className="relative h-px w-full bg-gradient-to-r from-transparent via-gray-300/90 dark:via-slate-700/90 to-transparent mt-1" />
 
-          {/* 👉 dito natin pwedeng idagdag next:
-              - mini table of today's orders
-              - queue of pending orders
-              - quick actions buttons (Assign rider, View full orders page, etc.)
-          */}
+          {/* TODAY'S ORDERS QUEUE */}
+          <section className="mt-1">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <p className="text-sm font-semibold text-slate-900">
+                  Today&apos;s Order Queue
+                </p>
+                <span className="px-2 py-0.5 rounded-full text-[0.65rem] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  {todayOrders.length} orders today
+                </span>
+              </div>
+              <p className="text-[0.7rem] text-slate-500">
+                Quick view of orders created today. Open full Orders page for
+                full management.
+              </p>
+            </div>
+
+            {todayOrders.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50/70 px-4 py-6 text-center text-xs text-slate-500">
+                No orders placed today yet. New orders will appear here in
+                real-time.
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-slate-50/60">
+                <table className="min-w-full text-xs">
+                  <thead className="bg-slate-100/80">
+                    <tr>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-500 text-[0.7rem] uppercase tracking-wide">
+                        Order
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-500 text-[0.7rem] uppercase tracking-wide">
+                        Customer
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-500 text-[0.7rem] uppercase tracking-wide">
+                        Time
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-500 text-[0.7rem] uppercase tracking-wide">
+                        Payment
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-500 text-[0.7rem] uppercase tracking-wide">
+                        Status
+                      </th>
+                      <th className="px-3 py-2 text-left font-semibold text-slate-500 text-[0.7rem] uppercase tracking-wide">
+                        Rider
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {todaysPreview.map((order) => (
+                      <tr
+                        key={getOrderId(order)}
+                        className="hover:bg-white/80 transition-colors"
+                      >
+                        <td className="px-3 py-2 align-top text-[0.75rem] font-semibold text-slate-900 whitespace-nowrap">
+                          #{getOrderId(order)}
+                        </td>
+                        <td className="px-3 py-2 align-top text-[0.75rem] text-slate-700">
+                          {getCustomerName(order)}
+                        </td>
+                        <td className="px-3 py-2 align-top text-[0.75rem] text-slate-600 whitespace-nowrap">
+                          {getCreatedTimeLabel(order)}
+                        </td>
+                        <td className="px-3 py-2 align-top text-[0.7rem] text-slate-600 whitespace-nowrap">
+                          {getPaymentMethod(order) || "—"}
+                        </td>
+                        <td className="px-3 py-2 align-top">
+                          <span
+                            className={
+                              "inline-flex px-2.5 py-1 rounded-full text-[0.65rem] font-semibold " +
+                              getOrderStatusClass(order)
+                            }
+                          >
+                            {getOrderStatusLabel(order)}
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 align-top text-[0.7rem] text-slate-700 whitespace-nowrap">
+                          {getRiderName(order)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {todayOrders.length > todaysPreview.length && (
+              <div className="mt-2 flex justify-end">
+                <button className="inline-flex items-center gap-1 text-[0.7rem] text-emerald-700 hover:text-emerald-800">
+                  View all today&apos;s orders
+                  <ArrowRight size={14} className="mt-[1px]" />
+                </button>
+              </div>
+            )}
+          </section>
         </div>
       </motion.div>
     </motion.div>
