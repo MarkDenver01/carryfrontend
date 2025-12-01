@@ -32,7 +32,7 @@ type SortOption = "Name" | "Status" | "Deliveries" | "Rating";
 
 export default function Riders() {
   const { riders, deleteRider, updateRider } = useDrivers();
-
+      console.log("RIDERS:", riders); 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<"All" | RiderStatus>("All");
   const [sortBy, setSortBy] = useState<SortOption>("Name");
