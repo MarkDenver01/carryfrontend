@@ -268,7 +268,10 @@ export default function ProductReport() {
         }
         if (parsedExpiry.isValid()) {
           expiry = parsedExpiry.startOf("day");
-          daysLeft = expiry.diff(today, "day");
+          const diff = expiry.diff(today, "day");
+
+          // ✅ clamp negative days to 0 para walang -4, -3, etc.
+          daysLeft = diff < 0 ? 0 : diff;
         }
       }
 
@@ -289,7 +292,19 @@ export default function ProductReport() {
         percentUsed = clamp(safeElapsed / shelfLifeDays, 0, 1);
       }
 
-      const statusInfo = classifyByDaysLeft(daysLeft);
+      // 👉 Base classification by days left
+      let statusInfo = classifyByDaysLeft(daysLeft);
+
+      // ✅ STOCK-BASED OVERRIDE:
+      //  - 30–50 stocks = Warning (as long as hindi Expired)
+      if (stock >= 30 && stock <= 50 && statusInfo.status !== "Expired") {
+        statusInfo = {
+          status: "Warning",
+          priority: 2,
+          colorClass: "border-amber-300",
+          softClass: "bg-amber-50 text-amber-700",
+        };
+      }
 
       return {
         productId: p.productId,
@@ -915,6 +930,12 @@ export default function ProductReport() {
                         item.stock <= 0 ||
                         normalizeStatus(item.backendStatus) === "Out of Stock";
 
+                      // ✅ Promo dapat lang sa malapit mag-expire (1–90 days)
+                      const canPromo =
+                        item.daysLeft !== null &&
+                        item.daysLeft > 0 &&
+                        item.daysLeft <= 90;
+
                       const actions: {
                         label: string;
                         action: "For Promo" | "Out of Stock";
@@ -922,18 +943,18 @@ export default function ProductReport() {
                       }[] = [];
 
                       if (!isOutOfStock) {
-                        actions.push(
-                          {
+                        if (canPromo) {
+                          actions.push({
                             label: "Promo",
                             action: "For Promo",
                             kind: "promo",
-                          },
-                          {
-                            label: "Out of Stock",
-                            action: "Out of Stock",
-                            kind: "danger",
-                          }
-                        );
+                          });
+                        }
+                        actions.push({
+                          label: "Out of Stock",
+                          action: "Out of Stock",
+                          kind: "danger",
+                        });
                       } else {
                         actions.push({
                           label: "Confirm OOS",
