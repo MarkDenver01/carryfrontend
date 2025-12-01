@@ -9,10 +9,20 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
+// 🔗 CONNECT TO BACKEND
+import { fetchAllOrders } from "../../libs/ApiGatewayDatasource";
+
 export default function SubDashboard() {
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+
+  // 📊 DASHBOARD STATS
+  const [totalOrders, setTotalOrders] = useState(0);
+  const [pendingOrders, setPendingOrders] = useState(0);
+  const [inTransitOrders, setInTransitOrders] = useState(0);
+  const [activeDrivers, setActiveDrivers] = useState(0);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   // CLOCK
   useEffect(() => {
@@ -54,6 +64,80 @@ export default function SubDashboard() {
       y: e.clientY - rect.top,
     });
   };
+
+  // ===============================
+  //   HELPERS FOR ORDER STATUSES
+  // ===============================
+  const normalizeStatus = (status: any): string => {
+    if (!status) return "";
+    return String(status).trim().toUpperCase().replace(/\s+/g, "_");
+  };
+
+  /** 🧠 Compute stats from full orders list */
+  const computeOrderStats = (orders: any[]) => {
+    let pending = 0;
+    let inTransit = 0;
+    const activeRiderIds = new Set<string>();
+
+    orders.forEach((order) => {
+      const rawStatus =
+        order.status ?? order.orderStatus ?? order.deliveryStatus;
+      const norm = normalizeStatus(rawStatus);
+
+      // PENDING
+      if (norm === "PENDING") {
+        pending += 1;
+      }
+
+      // IN TRANSIT
+      if (norm === "IN_TRANSIT") {
+        inTransit += 1;
+
+        // rider id detection (flexible, para safe kahit ano DTO mo)
+        const riderId =
+          order.riderId ??
+          order.rider?.id ??
+          order.rider?.riderId ??
+          order.rider_id;
+
+        if (riderId !== null && riderId !== undefined) {
+          activeRiderIds.add(String(riderId));
+        }
+      }
+    });
+
+    return {
+      totalOrders: orders.length,
+      pending,
+      inTransit,
+      activeDrivers: activeRiderIds.size,
+    };
+  };
+
+  // ===============================
+  //  LOAD STATS FROM BACKEND
+  // ===============================
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        setLoadingStats(true);
+        const orders = await fetchAllOrders(); // 🔥 /user/public/api/orders/all
+
+        const stats = computeOrderStats(orders);
+
+        setTotalOrders(stats.totalOrders);
+        setPendingOrders(stats.pending);
+        setInTransitOrders(stats.inTransit);
+        setActiveDrivers(stats.activeDrivers);
+      } catch (err) {
+        console.error("❌ Failed to load sub admin stats:", err);
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    loadStats();
+  }, []);
 
   return (
     <motion.div
@@ -190,46 +274,54 @@ export default function SubDashboard() {
             </div>
           </motion.div>
 
-          {/* STAT CARDS */}
+          {/* STAT CARDS (NOW LIVE DATA) */}
           <section className="grid grid-cols-1 md:grid-cols-4 gap-4 md:gap-5">
             <SubStatCard
               gradient="from-emerald-600 to-green-700"
               iconBg="bg-emerald-100 text-emerald-600"
               Icon={ShoppingCart}
-              value="8"
-              label="Pending Orders"
-              helper="Awaiting processing"
+              value={totalOrders}
+              label="Total Orders"
+              helper="All orders in the system"
+              loading={loadingStats}
             />
             <SubStatCard
               gradient="from-blue-700 to-blue-900"
               iconBg="bg-blue-100 text-blue-600"
               Icon={Package}
-              value="12"
-              label="To Pack Today"
-              helper="Prioritize before cutoff"
+              value={pendingOrders}
+              label="Pending Orders"
+              helper="Waiting for processing"
+              loading={loadingStats}
             />
             <SubStatCard
               gradient="from-amber-500 to-amber-700"
               iconBg="bg-amber-100 text-amber-700"
               Icon={ClipboardCheck}
-              value="5"
-              label="To Dispatch"
-              helper="Ready for handoff"
+              value={inTransitOrders}
+              label="In Transit"
+              helper="Currently on the way"
+              loading={loadingStats}
             />
             <SubStatCard
               gradient="from-indigo-700 to-indigo-900"
               iconBg="bg-indigo-100 text-indigo-600"
               Icon={Truck}
-              value="4"
+              value={activeDrivers}
               label="Active Drivers"
-              helper="Currently on-route"
+              helper="With assigned deliveries"
+              loading={loadingStats}
             />
           </section>
 
           {/* Divider */}
           <div className="relative h-px w-full bg-gradient-to-r from-transparent via-gray-300/90 dark:via-slate-700/90 to-transparent mt-1" />
 
-          {/* 🚫 TABLE SECTION REMOVED COMPLETELY 🚫 */}
+          {/* 👉 dito natin pwedeng idagdag next:
+              - mini table of today's orders
+              - queue of pending orders
+              - quick actions buttons (Assign rider, View full orders page, etc.)
+          */}
         </div>
       </motion.div>
     </motion.div>
@@ -247,6 +339,7 @@ type SubStatCardProps = {
   value: string | number;
   label: string;
   helper?: string;
+  loading?: boolean;
 };
 
 function SubStatCard({
@@ -256,7 +349,10 @@ function SubStatCard({
   value,
   label,
   helper,
+  loading,
 }: SubStatCardProps) {
+  const displayValue = loading ? "…" : value;
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 12 }}
@@ -288,7 +384,7 @@ function SubStatCard({
         <div>
           <p className="text-xs text-white/90">{label}</p>
           <p className="text-3xl font-extrabold leading-tight mt-0.5">
-            {value}
+            {displayValue}
           </p>
           {helper && (
             <p className="text-[0.7rem] text-white/80 mt-0.5">{helper}</p>
