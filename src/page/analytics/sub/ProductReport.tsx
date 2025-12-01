@@ -52,7 +52,7 @@ interface EnrichedProduct {
   daysLeft: number | null;
   shelfLifeDays: number | null;
   elapsedDays: number | null;
-  percentUsed: number | null; // 0–1 (kept for logic if needed later, but not displayed)
+  percentUsed: number | null; // 0–1
   status: ExpiryStatus;
   statusPriority: number;
   statusColorClass: string;
@@ -168,6 +168,8 @@ const classifyByDaysLeft = (
 ========================= */
 
 export default function ProductReport() {
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+
   const [statusFilter, setStatusFilter] = useState<ExpiryStatus | "All">("All");
   const [categoryFilter, setCategoryFilter] = useState<string>("All");
   const [sortBy, setSortBy] = useState<SortOption>("Urgency");
@@ -185,6 +187,14 @@ export default function ProductReport() {
 
   // 🔄 status update tracker (UI loading per product)
   const [statusUpdatingId, setStatusUpdatingId] = useState<number | null>(null);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCursorPos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    });
+  };
 
   const fetchProducts = async (isRefresh = false) => {
     try {
@@ -248,7 +258,7 @@ export default function ProductReport() {
 
   /* =========================
      DATA ENRICH
-  ========================== */
+  ========================= */
 
   const enrichedData: EnrichedProduct[] = useMemo(() => {
     const today = dayjs().startOf("day");
@@ -303,7 +313,7 @@ export default function ProductReport() {
         }
       }
 
-      // Shelf-life % (kept for logic but not shown in UI)
+      // Shelf-life % (optional visual only)
       if (stockIn && expiry && expiry.isAfter(stockIn)) {
         shelfLifeDays = expiry.diff(stockIn, "day");
         elapsedDays = today.diff(stockIn, "day");
@@ -492,530 +502,621 @@ export default function ProductReport() {
   ========================= */
 
   return (
-    <div className="p-6 md:p-8 flex flex-col gap-8 bg-slate-50 min-h-full">
+    <motion.div
+      initial={{ opacity: 0, y: 18 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: "easeOut" }}
+      className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
+      onMouseMove={handleMouseMove}
+    >
+      {/* 🔳 HUD GRID BACKDROP */}
+      <div className="pointer-events-none absolute inset-0 -z-30">
+        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.85)_0px,rgba(15,23,42,0.85)_1px,transparent_1px,transparent_3px)]" />
+        <motion.div
+          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/28 blur-3xl"
+          animate={{
+            x: [0, 20, 10, -5, 0],
+            y: [0, 10, 20, 5, 0],
+            borderRadius: ["45%", "60%", "55%", "65%", "45%"],
+          }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/24 blur-3xl"
+          animate={{
+            x: [0, -15, -25, -10, 0],
+            y: [0, -10, -20, -5, 0],
+            borderRadius: ["50%", "65%", "55%", "70%", "50%"],
+          }}
+          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
+      {/* 🎯 SPOTLIGHT FOLLOWING CURSOR */}
+      <motion.div
+        className="pointer-events-none absolute inset-0 -z-20"
+        style={{
+          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)`,
+        }}
+      />
+
       {/* HEADER */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
+      <div className="relative flex flex-col gap-3">
+        <motion.h1
+          initial={{ opacity: 0, x: -18 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent"
+        >
           Product Expiry Monitor
-        </h1>
-        <p className="text-sm text-slate-500 max-w-xl">
-          Central view for{" "}
-          <span className="font-semibold text-emerald-600">
-            expiry and freshness status
+        </motion.h1>
+        <p className="text-gray-500 text-sm max-w-xl">
+          Live{" "}
+          <span className="font-medium text-emerald-700">
+            expiry & freshness intelligence
           </span>{" "}
-          of all products. Filter by status, category, and stock levels to
-          avoid losses and plan promos.
+          across all products to prevent losses and optimize promos.
         </p>
+        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
       {/* MAIN CARD */}
-      <div className="rounded-2xl border border-slate-200 bg-white shadow-sm px-5 py-6 flex flex-col gap-7">
-        {/* TABS + SUMMARY */}
-        <div className="flex flex-col gap-5">
-          {/* Status Tabs */}
-          <div className="flex flex-wrap gap-2">
-            {(["All", ...STATUS_ORDER] as (ExpiryStatus | "All")[]).map(
-              (tab) => (
-                <button
-                  key={tab}
-                  onClick={() => {
-                    setStatusFilter(tab);
-                    setPage(1);
-                  }}
-                  className={`px-4 py-1.5 rounded-full text-xs font-medium border transition whitespace-nowrap ${
-                    statusFilter === tab
-                      ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                      : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  {tab === "All" ? "All Statuses" : tab}
-                </button>
-              )
-            )}
-          </div>
-
-          {/* SUMMARY CARDS */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <SummaryCard
-              icon={<Package className="w-6 h-6" />}
-              label="Total Products"
-              value={summary.total.toString()}
-              accent=""
-              color="emerald"
-            />
-            <SummaryCard
-              icon={<ShieldAlert className="w-6 h-6" />}
-              label="Expiring / Expired"
-              value={summary.expiringSoon.toString()}
-              accent=""
-              color="rose"
-            />
-            <SummaryCard
-              icon={<AlertTriangle className="w-6 h-6" />}
-              label="Warning Stocks (30–50)"
-              value={summary.warningStockCount.toString()}
-              accent=""
-              color="amber"
-            />
-            <SummaryCard
-              icon={<CheckCircle2 className="w-6 h-6" />}
-              label="Healthy / New"
-              value={(
-                summary.counts["Good"] + summary.counts["New Stocks"]
-              ).toString()}
-              accent=""
-              color="indigo"
-            />
-          </section>
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative rounded-[26px] border border-emerald-500/30 bg-white/95 shadow-[0_22px_70px_rgba(15,23,42,0.40)] overflow-hidden"
+      >
+        {/* Outer brackets */}
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
+          <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
+          <div className="absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-emerald-400/80" />
+          <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-400/80" />
         </div>
 
-        {/* FILTER BAR */}
-        <section className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 flex flex-col gap-4">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-              <Filter className="w-3.5 h-3.5 text-emerald-500" />
-              <span className="font-semibold uppercase tracking-wide">
-                Filters & Sorting
-              </span>
-              <span className="hidden md:inline text-slate-400">
-                Showing{" "}
-                <span className="font-semibold text-slate-700">
-                  {visibleCount}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-slate-800">
-                  {filteredAndSorted.length}
-                </span>{" "}
-                filtered products
-              </span>
-              {lastUpdated && (
-                <span className="hidden lg:inline text-[11px] text-slate-400 border-l pl-2 border-slate-200">
-                  Last updated{" "}
-                  <span className="font-medium text-slate-700">
-                    {lastUpdated}
-                  </span>
-                </span>
+        <div className="relative flex flex-col gap-8 p-5 md:p-6 lg:p-7">
+          {/* Scanning line */}
+          <motion.div
+            className="pointer-events-none absolute top-10 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-70"
+            animate={{ x: ["-20%", "20%", "-20%"] }}
+            transition={{ duration: 5, repeat: Infinity }}
+          />
+
+          {/* TABS + SUMMARY */}
+          <div className="flex flex-col gap-6">
+            {/* Status Tabs */}
+            <div className="flex flex-wrap gap-3 overflow-x-auto pb-1">
+              {(["All", ...STATUS_ORDER] as (ExpiryStatus | "All")[]).map(
+                (tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => {
+                      setStatusFilter(tab);
+                      setPage(1);
+                    }}
+                    className={`px-4 py-2 rounded-full text-xs sm:text-sm font-semibold border transition whitespace-nowrap ${
+                      statusFilter === tab
+                        ? "bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-400/50"
+                        : "bg-white/90 border-gray-300 text-gray-700 hover:bg-emerald-50"
+                    }`}
+                  >
+                    {tab === "All" ? "All Status" : tab}
+                  </button>
+                )
               )}
             </div>
 
-            {/* Search */}
-            <div className="relative w-full md:max-w-xs">
-              <input
-                type="text"
-                placeholder="Search by product or category..."
-                className="w-full h-10 border border-slate-300 rounded-lg px-4 pl-10 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(1);
-                }}
+            {/* SUMMARY CARDS */}
+            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <SummaryCard
+                icon={<Package className="w-7 h-7" />}
+                label="Total Products"
+                value={summary.total.toString()}
+                accent=""
+                color="emerald"
               />
-              <Search className="absolute left-3 top-2.5 text-slate-400 w-4 h-4" />
-            </div>
+              <SummaryCard
+                icon={<ShieldAlert className="w-7 h-7" />}
+                label="Expiring / Expired"
+                value={summary.expiringSoon.toString()}
+                accent=""
+                color="rose"
+              />
+              <SummaryCard
+                icon={<AlertTriangle className="w-7 h-7" />}
+                label="Warning Stocks (30–50)"
+                value={summary.warningStockCount.toString()}
+                accent=""
+                color="amber"
+              />
+              <SummaryCard
+                icon={<CheckCircle2 className="w-7 h-7" />}
+                label="Healthy / New"
+                value={(
+                  summary.counts["Good"] + summary.counts["New Stocks"]
+                ).toString()}
+                accent=""
+                color="indigo"
+              />
+            </section>
           </div>
 
-          {/* Dropdown row + Refresh */}
-          <div className="flex flex-wrap gap-3 items-center">
-            {/* Status filter dropdown */}
-            <Dropdown
-              dismissOnClick
-              renderTrigger={() => (
-                <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
-                  <Filter className="w-4 h-4 text-emerald-500" />
-                  <span className="font-medium">
-                    Status:{" "}
-                    <span className="text-slate-900">{statusFilter}</span>
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                </button>
-              )}
-            >
-              {["All", ...STATUS_ORDER].map((s) => (
-                <DropdownItem
-                  key={s}
-                  onClick={() => {
-                    setStatusFilter(s as any);
-                    setPage(1);
-                  }}
-                >
-                  {s}
-                </DropdownItem>
-              ))}
-            </Dropdown>
-
-            {/* Category filter dropdown */}
-            <Dropdown
-              dismissOnClick
-              renderTrigger={() => (
-                <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
-                  <Tag className="w-4 h-4 text-sky-500" />
-                  <span className="font-medium">
-                    Category:{" "}
-                    <span className="text-slate-900">
-                      {categoryFilter === "All" ? "All" : categoryFilter}
+          {/* FILTER BAR */}
+          <section className="rounded-2xl border border-slate-200 bg-white/80 backdrop-blur-md shadow-sm px-4 py-4 flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+                <Filter className="w-3.5 h-3.5 text-emerald-500" />
+                <span className="font-medium uppercase tracking-wide">
+                  Filters & Sorting
+                </span>
+                <span className="hidden md:inline text-slate-400">
+                  Showing{" "}
+                  <span className="font-semibold text-slate-700">
+                    {visibleCount}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-semibold text-slate-800">
+                    {filteredAndSorted.length}
+                  </span>{" "}
+                  filtered products
+                </span>
+                {lastUpdated && (
+                  <span className="hidden lg:inline text-[11px] text-slate-400 border-l pl-2 border-slate-200">
+                    Last updated{" "}
+                    <span className="font-medium text-slate-700">
+                      {lastUpdated}
                     </span>
                   </span>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                </button>
-              )}
-            >
-              <DropdownItem
-                onClick={() => {
-                  setCategoryFilter("All");
-                  setPage(1);
-                }}
+                )}
+              </div>
+
+              {/* Search */}
+              <div className="relative w-full md:max-w-xs">
+                <input
+                  type="text"
+                  placeholder="Search by product or category..."
+                  className="w-full h-10 border border-slate-300 rounded-xl px-4 pl-10 text-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400 shadow-sm"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                />
+                <Search className="absolute left-3 top-2.5 text-slate-400 w-4 h-4" />
+              </div>
+            </div>
+
+            {/* Dropdown row + Refresh */}
+            <div className="flex flex-wrap gap-3 items-center">
+              {/* Status filter dropdown */}
+              <Dropdown
+                dismissOnClick
+                renderTrigger={() => (
+                  <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs sm:text-sm px-3.5 py-2 rounded-full shadow-sm hover:bg-slate-50 transition">
+                    <Filter className="w-4 h-4 text-emerald-500" />
+                    <span className="font-medium">
+                      Status:{" "}
+                      <span className="text-slate-900">{statusFilter}</span>
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </button>
+                )}
               >
-                All
-              </DropdownItem>
-              {uniqueCategories.map((cat) => (
+                {["All", ...STATUS_ORDER].map((s) => (
+                  <DropdownItem
+                    key={s}
+                    onClick={() => {
+                      setStatusFilter(s as any);
+                      setPage(1);
+                    }}
+                  >
+                    {s}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
+
+              {/* Category filter dropdown */}
+              <Dropdown
+                dismissOnClick
+                renderTrigger={() => (
+                  <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs sm:text-sm px-3.5 py-2 rounded-full shadow-sm hover:bg-slate-50 transition">
+                    <Tag className="w-4 h-4 text-sky-500" />
+                    <span className="font-medium">
+                      Category:{" "}
+                      <span className="text-slate-900">
+                        {categoryFilter === "All" ? "All" : categoryFilter}
+                      </span>
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </button>
+                )}
+              >
                 <DropdownItem
-                  key={cat}
                   onClick={() => {
-                    setCategoryFilter(cat);
+                    setCategoryFilter("All");
                     setPage(1);
                   }}
                 >
-                  {cat}
+                  All
                 </DropdownItem>
-              ))}
-            </Dropdown>
+                {uniqueCategories.map((cat) => (
+                  <DropdownItem
+                    key={cat}
+                    onClick={() => {
+                      setCategoryFilter(cat);
+                      setPage(1);
+                    }}
+                  >
+                    {cat}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
 
-            {/* Sort dropdown */}
-            <Dropdown
-              dismissOnClick
-              renderTrigger={() => (
-                <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
-                  <BarChart2 className="w-4 h-4 text-slate-500" />
-                  <span className="font-medium">
-                    Sort:{" "}
-                    <span className="text-slate-900">{sortBy}</span>
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                </button>
-              )}
-            >
-              <DropdownItem onClick={() => setSortBy("Urgency")}>
-                Urgency (Status & Days Left)
-              </DropdownItem>
-              <DropdownItem onClick={() => setSortBy("Name")}>
-                Product Name (A–Z)
-              </DropdownItem>
-              <DropdownItem onClick={() => setSortBy("Category")}>
-                Category
-              </DropdownItem>
-              <DropdownItem onClick={() => setSortBy("Stock")}>
-                Stock (High → Low)
-              </DropdownItem>
-              <DropdownItem onClick={() => setSortBy("DaysLeft")}>
-                Days Left (Low → High)
-              </DropdownItem>
-            </Dropdown>
+              {/* Sort dropdown */}
+              <Dropdown
+                dismissOnClick
+                renderTrigger={() => (
+                  <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs sm:text-sm px-3.5 py-2 rounded-full shadow-sm hover:bg-slate-50 transition">
+                    <BarChart2 className="w-4 h-4 text-slate-500" />
+                    <span className="font-medium">
+                      Sort:{" "}
+                      <span className="text-slate-900">{sortBy}</span>
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </button>
+                )}
+              >
+                <DropdownItem onClick={() => setSortBy("Urgency")}>
+                  Urgency (Status & Days Left)
+                </DropdownItem>
+                <DropdownItem onClick={() => setSortBy("Name")}>
+                  Product Name (A–Z)
+                </DropdownItem>
+                <DropdownItem onClick={() => setSortBy("Category")}>
+                  Category
+                </DropdownItem>
+                <DropdownItem onClick={() => setSortBy("Stock")}>
+                  Stock (High → Low)
+                </DropdownItem>
+                <DropdownItem onClick={() => setSortBy("DaysLeft")}>
+                  Days Left (Low → High)
+                </DropdownItem>
+              </Dropdown>
 
-            {/* Refresh button */}
-            <button
-              type="button"
-              onClick={() => fetchProducts(true)}
-              className={`inline-flex items-center gap-1 ml-auto px-3 py-2 rounded-lg text-[11px] font-medium border ${
-                loadingRefresh
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-600"
-                  : "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600"
-              } transition shadow-sm`}
-            >
-              <RefreshCw
-                className={`w-3.5 h-3.5 ${
-                  loadingRefresh ? "animate-spin" : ""
-                }`}
-              />
-              {loadingRefresh ? "Refreshing…" : "Refresh"}
-            </button>
-          </div>
-        </section>
+              {/* Refresh capsule */}
+              <button
+                type="button"
+                onClick={() => fetchProducts(true)}
+                className={`inline-flex items-center gap-1 ml-auto px-3 py-2 rounded-full text-[11px] font-medium border ${
+                  loadingRefresh
+                    ? "border-emerald-300 bg-emerald-50 text-emerald-600"
+                    : "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600"
+                } transition shadow-sm`}
+              >
+                <RefreshCw
+                  className={`w-3.5 h-3.5 ${
+                    loadingRefresh ? "animate-spin" : ""
+                  }`}
+                />
+                {loadingRefresh ? "Refreshing…" : "Refresh"}
+              </button>
+            </div>
+          </section>
 
-        {/* STATUS & CATEGORY OVERVIEW */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
-          {/* Status Overview – bars */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <div className="flex items-center gap-2">
-                <Layers className="w-4 h-4 text-emerald-500" />
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                  Status Overview
-                </p>
+          {/* STATUS & CATEGORY OVERVIEW */}
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+            {/* Status Overview – bars */}
+            <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-emerald-500" />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Status Overview
+                  </p>
+                </div>
+                <span className="text-[11px] text-slate-500">
+                  {visibleCount} of {filteredAndSorted.length} filtered
+                </span>
               </div>
-              <span className="text-[11px] text-slate-500">
-                {visibleCount} of {filteredAndSorted.length} filtered
-              </span>
-            </div>
 
-            <div className="flex flex-col gap-2 mt-1">
-              {STATUS_ORDER.map((status) => {
-                const count = summary.counts[status];
-                const pct =
-                  summary.total > 0
-                    ? Math.round((count / summary.total) * 100)
-                    : 0;
+              <div className="flex flex-col gap-2 mt-1">
+                {STATUS_ORDER.map((status) => {
+                  const count = summary.counts[status];
+                  const pct =
+                    summary.total > 0
+                      ? Math.round((count / summary.total) * 100)
+                      : 0;
 
-                const barColor =
-                  status === "Expired"
-                    ? "bg-red-500"
-                    : status === "Near Expiry"
-                    ? "bg-orange-500"
-                    : status === "Warning"
-                    ? "bg-amber-500"
-                    : status === "Good"
-                    ? "bg-sky-500"
-                    : "bg-emerald-500";
+                  const barColor =
+                    status === "Expired"
+                      ? "bg-red-400"
+                      : status === "Near Expiry"
+                      ? "bg-orange-400"
+                      : status === "Warning"
+                      ? "bg-amber-400"
+                      : status === "Good"
+                      ? "bg-sky-400"
+                      : "bg-emerald-400";
 
-                const dotColor = barColor;
-
-                return (
-                  <div key={status} className="flex flex-col gap-1">
-                    <div className="flex items-center justify-between text-[11px] text-slate-600">
-                      <span className="flex items-center gap-1">
-                        <span
-                          className={`h-1.5 w-1.5 rounded-full ${dotColor}`}
-                        />
-                        <span className="font-medium">{status}</span>
-                      </span>
-                      <span className="text-slate-500">
-                        {count} item{count !== 1 ? "s" : ""} • {pct}%
-                      </span>
-                    </div>
-                    <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
-                      <div
-                        className={`h-1.5 rounded-full ${barColor}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Category Overview – rows */}
-          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <div className="flex items-center gap-2">
-                <Tag className="w-4 h-4 text-emerald-500" />
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                  Category Overview
-                </p>
-              </div>
-              <p className="text-[11px] text-slate-400">
-                Click a row to filter products by category
-              </p>
-            </div>
-
-            {categorySnapshots.length === 0 ? (
-              <p className="text-xs text-slate-400">
-                No categories found yet. Add products with categories to see the
-                breakdown here.
-              </p>
-            ) : (
-              <div className="flex flex-col divide-y divide-slate-100">
-                {categorySnapshots.map((catSnap) => {
-                  const isActive = categoryFilter === catSnap.category;
-                  const risky =
-                    catSnap.expired + catSnap.near + catSnap.warn > 0;
+                  const dotColor =
+                    status === "Expired"
+                      ? "bg-red-500"
+                      : status === "Near Expiry"
+                      ? "bg-orange-500"
+                      : status === "Warning"
+                      ? "bg-amber-500"
+                      : status === "Good"
+                      ? "bg-sky-500"
+                      : "bg-emerald-500";
 
                   return (
-                    <button
-                      key={catSnap.category}
-                      type="button"
-                      onClick={() => {
-                        setCategoryFilter(
-                          isActive ? "All" : catSnap.category
-                        );
-                        setPage(1);
-                      }}
-                      className={`flex w-full items-center justify-between gap-3 py-2.5 px-2 text-left transition rounded-lg ${
-                        isActive
-                          ? "bg-emerald-50 border border-emerald-200 shadow-xs"
-                          : "hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-slate-800">
-                            {catSnap.category}
-                          </span>
-                          <span className="text-[11px] text-slate-400">
-                            {catSnap.total} item
-                            {catSnap.total !== 1 ? "s" : ""}
-                          </span>
-                        </div>
-
-                        {risky && (
-                          <div className="flex flex-wrap gap-2 text-[11px]">
-                            {catSnap.expired > 0 && (
-                              <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
-                                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                                Expired: {catSnap.expired}
-                              </span>
-                            )}
-                            {catSnap.near > 0 && (
-                              <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
-                                <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-                                Near: {catSnap.near}
-                              </span>
-                            )}
-                            {catSnap.warn > 0 && (
-                              <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                                Warning: {catSnap.warn}
-                              </span>
-                            )}
-                          </div>
-                        )}
+                    <div key={status} className="flex flex-col gap-1">
+                      <div className="flex items-center justify-between text-[11px] text-slate-600">
+                        <span className="flex items-center gap-1">
+                          <span
+                            className={`h-1.5 w-1.5 rounded-full ${dotColor}`}
+                          />
+                          <span className="font-medium">{status}</span>
+                        </span>
+                        <span className="text-slate-500">
+                          {count} item{count !== 1 ? "s" : ""} • {pct}%
+                        </span>
                       </div>
-
-                      <span className="text-[11px] text-slate-400">
-                        {isActive ? "Clear" : "Filter"}
-                      </span>
-                    </button>
+                      <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                        <div
+                          className={`h-1.5 rounded-full ${barColor}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                    </div>
                   );
                 })}
               </div>
-            )}
-          </div>
-        </section>
-
-        {/* PRODUCT LIST (grouped by status) */}
-        <div className="flex flex-col gap-5 mt-2">
-          {loadingProducts ? (
-            <div className="text-center text-sm text-slate-500 py-8">
-              Loading products…
             </div>
-          ) : paginated.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 flex flex-col items-center justify-center gap-2">
-              <AlertTriangle className="w-8 h-8 text-slate-400" />
-              <p className="text-sm font-semibold text-slate-700">
-                No products found for the current filters.
-              </p>
-              <p className="text-xs text-slate-400">
-                Try clearing some filters or adjusting your search query.
-              </p>
-            </div>
-          ) : (
-            <>
-              {STATUS_ORDER.map((status) => {
-                const groupItems = paginated.filter(
-                  (item) => item.status === status
-                );
-                if (!groupItems.length) return null;
 
-                const headerColor =
-                  status === "Expired"
-                    ? "text-red-600"
-                    : status === "Near Expiry"
-                    ? "text-orange-600"
-                    : status === "Warning"
-                    ? "text-amber-600"
-                    : status === "Good"
-                    ? "text-sky-600"
-                    : "text-emerald-600";
+            {/* Category Overview – interactive rows */}
+            <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white/90 p-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-emerald-500" />
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                    Category Overview
+                  </p>
+                </div>
+                <p className="text-[11px] text-slate-400">
+                  Tap a category row to filter the product list
+                </p>
+              </div>
 
-                return (
-                  <section key={status} className="flex flex-col gap-3">
-                    <div className="flex items-center justify-between">
-                      <h2
-                        className={`text-sm font-semibold uppercase tracking-wide ${headerColor}`}
+              {categorySnapshots.length === 0 ? (
+                <p className="text-xs text-slate-400">
+                  No categories found yet. Add products with categories to see
+                  breakdown here.
+                </p>
+              ) : (
+                <div className="flex flex-col divide-y divide-slate-100">
+                  {categorySnapshots.map((catSnap) => {
+                    const isActive = categoryFilter === catSnap.category;
+                    const risky =
+                      catSnap.expired + catSnap.near + catSnap.warn > 0;
+
+                    return (
+                      <button
+                        key={catSnap.category}
+                        type="button"
+                        onClick={() => {
+                          setCategoryFilter(
+                            isActive ? "All" : catSnap.category
+                          );
+                          setPage(1);
+                        }}
+                        className={`flex w-full items-center justify-between gap-3 py-2.5 px-2 text-left transition rounded-xl ${
+                          isActive
+                            ? "bg-emerald-50/80 border border-emerald-200 shadow-sm"
+                            : "hover:bg-slate-50"
+                        }`}
                       >
-                        {status}
-                        <span className="text-xs text-slate-400 ml-1 normal-case font-normal">
-                          ({groupItems.length} item
-                          {groupItems.length > 1 ? "s" : ""})
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-slate-800">
+                              {catSnap.category}
+                            </span>
+                            <span className="text-[11px] text-slate-400">
+                              {catSnap.total} item
+                              {catSnap.total !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+
+                          {risky && (
+                            <div className="flex flex-wrap gap-2 text-[11px]">
+                              {catSnap.expired > 0 && (
+                                <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                                  Expired: {catSnap.expired}
+                                </span>
+                              )}
+                              {catSnap.near > 0 && (
+                                <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                                  Near: {catSnap.near}
+                                </span>
+                              )}
+                              {catSnap.warn > 0 && (
+                                <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                  Warning: {catSnap.warn}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <span className="text-[11px] text-slate-400">
+                          {isActive ? "Clear" : "Filter"}
                         </span>
-                      </h2>
-                    </div>
-
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-                      {groupItems.map((item) => (
-                        <ProductCard
-                          key={item.id}
-                          product={item}
-                          isUpdating={statusUpdatingId === item.productId}
-                          onClick={() => setSelectedProduct(item)}
-                          onChangeStatus={(action) =>
-                            handleChangeStatus(item.productId, action)
-                          }
-                        />
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
-
-              {/* LOAD MORE for 1000+ products */}
-              {canLoadMore && (
-                <div className="flex justify-center mt-1">
-                  <button
-                    type="button"
-                    onClick={() => setPage((p) => p + 1)}
-                    className="px-4 py-2 rounded-full text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 shadow-sm flex items-center gap-2"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Load more products (
-                    {filteredAndSorted.length - visibleCount} remaining)
-                  </button>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
-            </>
-          )}
-        </div>
+            </div>
+          </section>
 
-        {/* NOTE */}
-        <div className="mt-1 text-xs text-slate-500 flex items-start gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
-          <Info className="w-3.5 h-3.5 mt-0.5 text-emerald-500" />
-          <p>
-            Expiry status is based on{" "}
-            <span className="font-semibold text-slate-700">Expiry Date</span>{" "}
-            relative to today. Warning stocks (30–50 pcs) in{" "}
-            <span className="font-semibold text-slate-700">
-              Warning / Near Expiry
-            </span>{" "}
-            are also tracked for replenishment planning.
-          </p>
+          {/* PRODUCT LIST (grouped by status) */}
+          <div className="flex flex-col gap-6 mt-1">
+            {loadingProducts ? (
+              <div className="text-center text-sm text-slate-500 py-8">
+                Loading products…
+              </div>
+            ) : paginated.length === 0 ? (
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 flex flex-col items-center justify-center gap-2">
+                <AlertTriangle className="w-8 h-8 text-slate-400" />
+                <p className="text-sm font-semibold text-slate-700">
+                  No products found for the current filters.
+                </p>
+                <p className="text-xs text-slate-400">
+                  Try clearing some filters or adjusting your search query.
+                </p>
+              </div>
+            ) : (
+              <>
+                {STATUS_ORDER.map((status) => {
+                  const groupItems = paginated.filter(
+                    (item) => item.status === status
+                  );
+                  if (!groupItems.length) return null;
+
+                  const statusIcon =
+                    status === "Expired"
+                      ? "❌"
+                      : status === "Near Expiry"
+                      ? "⏳"
+                      : status === "Warning"
+                      ? "⚠️"
+                      : status === "Good"
+                      ? "✅"
+                      : "🆕";
+
+                  const headerColor =
+                    status === "Expired"
+                      ? "text-red-600"
+                      : status === "Near Expiry"
+                      ? "text-orange-600"
+                      : status === "Warning"
+                      ? "text-amber-600"
+                      : status === "Good"
+                      ? "text-sky-600"
+                      : "text-emerald-600";
+
+                  return (
+                    <section key={status} className="flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{statusIcon}</span>
+                          <h2
+                            className={`text-sm font-semibold uppercase tracking-wide ${headerColor}`}
+                          >
+                            {status}
+                            <span className="text-xs text-slate-400 ml-1 normal-case font-normal">
+                              ({groupItems.length} item
+                              {groupItems.length > 1 ? "s" : ""})
+                            </span>
+                          </h2>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+                        {groupItems.map((item) => (
+                          <ProductCard
+                            key={item.id}
+                            product={item}
+                            isUpdating={statusUpdatingId === item.productId}
+                            onClick={() => setSelectedProduct(item)}
+                            onChangeStatus={(action) =>
+                              handleChangeStatus(item.productId, action)
+                            }
+                          />
+                        ))}
+                      </div>
+                    </section>
+                  );
+                })}
+
+                {/* LOAD MORE for 1000+ products */}
+                {canLoadMore && (
+                  <div className="flex justify-center mt-2">
+                    <button
+                      type="button"
+                      onClick={() => setPage((p) => p + 1)}
+                      className="px-4 py-2 rounded-full text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 shadow-md flex items-center gap-2"
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      Load more products (
+                      {filteredAndSorted.length - visibleCount} remaining)
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          {/* NOTE */}
+          <div className="mt-2 text-xs text-slate-500 flex items-start gap-2 bg-slate-50/80 border border-slate-200 rounded-2xl px-3 py-2.5">
+            <Info className="w-3.5 h-3.5 mt-0.5 text-emerald-500" />
+            <p>
+              Expiry status is based on{" "}
+              <span className="font-semibold text-slate-700">Expiry Date</span>{" "}
+              relative to today. Warning stocks (30–50 pcs) in{" "}
+              <span className="font-semibold text-slate-700">
+                Warning / Near Expiry
+              </span>{" "}
+              are also tracked for replenishment planning.
+            </p>
+          </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* PRODUCT PROFILE DRAWER */}
       {selectedProduct && (
         <div className="fixed inset-0 z-40 flex">
           <div
-            className="flex-1 bg-slate-900/40"
+            className="flex-1 bg-slate-950/70 backdrop-blur-sm"
             onClick={() => setSelectedProduct(null)}
           />
           <motion.div
             initial={{ x: 320, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
-            transition={{ duration: 0.2 }}
-            className="w-full max-w-md bg-white text-slate-900 shadow-xl border-l border-slate-200 p-6 overflow-y-auto"
+            transition={{ duration: 0.25 }}
+            className="w-full max-w-md bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-slate-50 shadow-[0_25px_80px_rgba(15,23,42,0.9)] p-6 border-l border-emerald-500/40 overflow-y-auto relative"
           >
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h2 className="text-base font-semibold text-slate-900">
-                  Product Details
-                </h2>
-                <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-1">
-                  <Layers className="w-3 h-3 text-emerald-500" />
-                  {selectedProduct.category}
-                </p>
+            {/* Neon radial background */}
+            <div className="pointer-events-none absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(34,197,94,0.45),transparent_55%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.45),transparent_55%)]" />
+            <div className="relative z-10">
+              {/* Header + close */}
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-50">
+                    Product Details
+                  </h2>
+                  <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-1">
+                    <Layers className="w-3 h-3 text-emerald-400" />
+                    {selectedProduct.category}
+                  </p>
+                </div>
+                <button
+                  className="text-slate-400 hover:text-slate-200 text-sm px-2 py-1 rounded-full bg-slate-800/80 border border-slate-600/70"
+                  onClick={() => setSelectedProduct(null)}
+                >
+                  <X className="w-4 h-4" />
+                </button>
               </div>
-              <button
-                className="text-slate-400 hover:text-slate-700 text-sm px-2 py-1 rounded-full border border-slate-200 bg-slate-50"
-                onClick={() => setSelectedProduct(null)}
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
 
-            <DrawerContent product={selectedProduct} />
+              <DrawerContent product={selectedProduct} />
+            </div>
           </motion.div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -1041,11 +1142,15 @@ function ProductCard({
     stockInDate,
     expiryDate,
     daysLeft,
+    percentUsed,
     status,
     statusSoftClass,
     statusColorClass,
     backendStatus,
   } = product;
+
+  const percent =
+    percentUsed !== null ? clamp(percentUsed, 0, 1) * 100 : 0;
 
   const daysLeftLabel =
     daysLeft === null ? "N/A" : `${daysLeft} day${daysLeft === 1 ? "" : "s"}`;
@@ -1093,17 +1198,19 @@ function ProductCard({
   };
 
   return (
-    <button
+    <motion.button
+      whileHover={{ y: -3, scale: 1.02 }}
+      transition={{ duration: 0.15 }}
       onClick={onClick}
-      className={`relative flex flex-col items-stretch text-left rounded-xl border ${statusColorClass} bg-white shadow-sm hover:shadow-md hover:-translate-y-0.5 transition`}
+      className={`relative flex flex-col items-stretch text-left rounded-2xl border ${statusColorClass} bg-white shadow-sm hover:shadow-[0_18px_40px_rgba(15,23,42,0.18)] hover:bg-slate-50 cursor-pointer focus:outline-none focus:ring-2 focus:ring-emerald-400/70 transition`}
     >
-      {/* Left accent strip */}
+      {/* Left neon strip */}
       <div
-        className={`absolute left-0 top-0 h-full w-[3px] ${accentColor} rounded-l-xl`}
+        className={`absolute left-0 top-0 h-full w-[3px] ${accentColor} rounded-l-2xl`}
       />
 
       <div className="p-4">
-        {/* Header: name + status */}
+        {/* Status Badge + Name */}
         <div className="flex justify-between items-start gap-2">
           <div className="flex items-start gap-3">
             {/* Avatar-style initial */}
@@ -1130,6 +1237,22 @@ function ProductCard({
           </span>
         </div>
 
+        {/* Shelf-life bar */}
+        <div className="mt-3">
+          <div className="flex justify-between text-[11px] text-slate-500 mb-1">
+            <span>Shelf-life usage</span>
+            <span>
+              {percentUsed === null ? "N/A" : `${percent.toFixed(0)}%`}
+            </span>
+          </div>
+          <div className="w-full h-1.5 rounded-full bg-slate-100 overflow-hidden">
+            <div
+              className={`h-1.5 rounded-full ${accentColor}`}
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        </div>
+
         {/* Meta info */}
         <div className="mt-3 grid grid-cols-3 gap-2 text-[11px] text-slate-500">
           <div>
@@ -1153,12 +1276,14 @@ function ProductCard({
               Expiry
             </p>
             <p className="font-semibold text-slate-800">
-              {expiryDate ? dayjs(expiryDate).format("MMM D, YYYY") : "N/A"}
+              {expiryDate
+                ? dayjs(expiryDate).format("MMM D, YYYY")
+                : "N/A"}
             </p>
           </div>
         </div>
 
-        {/* Days left + stock warning */}
+        {/* Days left + stock warning label */}
         <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500">
           <span className="inline-flex items-center gap-1">
             <Clock className="w-3.5 h-3.5 text-slate-400" />
@@ -1232,7 +1357,7 @@ function ProductCard({
           </div>
         )}
       </div>
-    </button>
+    </motion.button>
   );
 }
 
@@ -1252,11 +1377,17 @@ function getInsightTags(p: EnrichedProduct): string[] {
   if (p.status === "Warning") {
     tags.push("Monitor closely");
   }
-  if (p.stock > 50 && (p.status === "Warning" || p.status === "Near Expiry")) {
+  if (
+    p.stock > 50 &&
+    (p.status === "Warning" || p.status === "Near Expiry")
+  ) {
     tags.push("High stock risk");
   }
   if (p.stock <= 5 && p.status !== "Expired") {
     tags.push("Low stock");
+  }
+  if (p.percentUsed !== null && p.percentUsed < 0.25) {
+    tags.push("Very fresh");
   }
 
   return tags;
@@ -1274,39 +1405,50 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
     stockInDate,
     expiryDate,
     daysLeft,
+    percentUsed,
     status,
-    backendStatus,
   } = product;
 
   const daysLeftLabel =
     daysLeft === null ? "N/A" : `${daysLeft} day${daysLeft === 1 ? "" : "s"}`;
 
+  const freshnessLabel = (() => {
+    if (percentUsed === null) return "Not computed";
+    const pct = clamp(percentUsed, 0, 1) * 100;
+
+    if (pct < 25) return "Very fresh";
+    if (pct < 50) return "Early shelf";
+    if (pct < 75) return "Mid shelf";
+    if (pct < 100) return "Late shelf";
+    return "Past expiry";
+  })();
+
   const statusBadgeClass =
     status === "Expired"
-      ? "bg-red-50 text-red-700 border-red-200"
+      ? "bg-red-100 text-red-700 border-red-300"
       : status === "Near Expiry"
-      ? "bg-orange-50 text-orange-700 border-orange-200"
+      ? "bg-orange-100 text-orange-700 border-orange-300"
       : status === "Warning"
-      ? "bg-amber-50 text-amber-700 border-amber-200"
+      ? "bg-amber-100 text-amber-700 border-amber-300"
       : status === "Good"
-      ? "bg-sky-50 text-sky-700 border-sky-200"
-      : "bg-emerald-50 text-emerald-700 border-emerald-200";
+      ? "bg-sky-100 text-sky-700 border-sky-300"
+      : "bg-emerald-100 text-emerald-700 border-emerald-300";
 
   return (
     <div className="flex flex-col gap-5">
       {/* HEADER BLOCK */}
-      <div className="border border-slate-200 rounded-xl p-4 bg-slate-50 flex items-start gap-3">
-        <div className="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold text-lg">
+      <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/80 flex items-start gap-3">
+        <div className="w-11 h-11 rounded-full bg-gradient-to-br from-emerald-300 to-teal-300 text-emerald-950 flex items-center justify-center font-bold text-xl shadow-lg shadow-emerald-500/40">
           {name.charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 flex flex-col gap-2">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-sm font-semibold text-slate-900 line-clamp-2">
+              <p className="text-sm font-semibold text-slate-50 line-clamp-2">
                 {name}
               </p>
-              <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-1">
-                <Layers className="w-3 h-3 text-emerald-500" />
+              <p className="text-[11px] text-slate-400 flex items-center gap-1 mt-1">
+                <Layers className="w-3 h-3 text-emerald-400" />
                 {category}
               </p>
             </div>
@@ -1322,18 +1464,18 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
             </span>
           </div>
 
-          <div className="flex flex-wrap gap-3 text-[11px] text-slate-600">
+          <div className="flex flex-wrap gap-3 text-[11px] text-slate-300">
             <div className="flex items-center gap-1">
-              <Package className="w-4 h-4 text-emerald-500" />
+              <Package className="w-4 h-4 text-emerald-400" />
               <span>Stock:</span>
-              <span className="font-semibold text-slate-900">
+              <span className="font-semibold text-slate-50">
                 {stock}
               </span>
             </div>
             <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4 text-slate-500" />
+              <Clock className="w-4 h-4 text-slate-300" />
               <span>Days left:</span>
-              <span className="font-semibold text-slate-900">
+              <span className="font-semibold text-slate-50">
                 {daysLeftLabel}
               </span>
             </div>
@@ -1342,14 +1484,14 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
       </div>
 
       {/* KEY INFO CARD */}
-      <div className="border border-slate-200 rounded-xl p-4 bg-white">
-        <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-3 font-semibold">
-          Key Information
+      <div className="border border-slate-700/80 rounded-xl p-4 bg-slate-900/70">
+        <p className="text-[11px] uppercase tracking-wide text-slate-400 mb-2 font-semibold">
+          Key Info
         </p>
-        <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-600">
+        <div className="grid grid-cols-2 gap-3 text-[11px] text-slate-300">
           <div>
             <p className="text-slate-400">Stock-In Date</p>
-            <p className="font-semibold text-slate-900">
+            <p className="font-semibold text-slate-50">
               {stockInDate
                 ? dayjs(stockInDate).format("MMM D, YYYY")
                 : "N/A"}
@@ -1357,18 +1499,20 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
           </div>
           <div>
             <p className="text-slate-400">Expiry Date</p>
-            <p className="font-semibold text-slate-900">
-              {expiryDate ? dayjs(expiryDate).format("MMM D, YYYY") : "N/A"}
+            <p className="font-semibold text-slate-50">
+              {expiryDate
+                ? dayjs(expiryDate).format("MMM D, YYYY")
+                : "N/A"}
             </p>
           </div>
           <div>
             <p className="text-slate-400">Days Left</p>
-            <p className="font-semibold text-slate-900">{daysLeftLabel}</p>
+            <p className="font-semibold text-slate-50">{daysLeftLabel}</p>
           </div>
           <div>
-            <p className="text-slate-400">Inventory Status</p>
-            <p className="font-semibold text-slate-900">
-              {backendStatus || "Not set"}
+            <p className="text-slate-400">Freshness</p>
+            <p className="font-semibold text-slate-50">
+              {freshnessLabel}
             </p>
           </div>
         </div>
@@ -1395,34 +1539,38 @@ function SummaryCard({
   color: "emerald" | "rose" | "amber" | "indigo";
 }) {
   const colors: Record<"emerald" | "rose" | "amber" | "indigo", string> = {
-    emerald: "from-emerald-500 to-emerald-600",
-    rose: "from-rose-500 to-rose-600",
-    amber: "from-amber-500 to-amber-600",
-    indigo: "from-indigo-500 to-indigo-600",
+    emerald: "from-emerald-500 to-emerald-700",
+    rose: "from-rose-500 to-rose-700",
+    amber: "from-amber-500 to-amber-700",
+    indigo: "from-indigo-500 to-indigo-700",
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 8 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{
-        y: -4,
-        scale: 1.01,
+        y: -6,
+        scale: 1.03,
+        boxShadow: "0 22px 60px rgba(15,23,42,0.35)",
       }}
-      transition={{ duration: 0.2 }}
-      className={`relative p-4 rounded-xl text-white bg-gradient-to-br ${colors[color]} shadow-sm`}
+      transition={{ duration: 0.35 }}
+      className={`relative p-5 rounded-2xl border border-white/40 text-white bg-gradient-to-br ${colors[color]} shadow-xl overflow-hidden`}
     >
+      <div className="absolute inset-0 opacity-25 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.5),transparent_55%)]" />
       <div className="relative flex items-center gap-3">
-        <div className="p-2.5 bg-white/15 rounded-lg flex items-center justify-center">
+        <div className="p-3 bg-white/15 rounded-xl flex items-center justify-center">
           {icon}
         </div>
         <div>
-          <p className="text-[11px] uppercase tracking-[0.15em] text-white/80">
+          <p className="text-[0.7rem] uppercase tracking-[0.16em] text-white/80">
             {label}
           </p>
-          <p className="text-2xl font-bold leading-tight">{value}</p>
+          <p className="text-2xl md:text-3xl font-bold leading-tight">
+            {value}
+          </p>
           {accent && (
-            <p className="text-[11px] text-white/80 mt-1">{accent}</p>
+            <p className="text-[0.7rem] text-white/80 mt-1">{accent}</p>
           )}
         </div>
       </div>
