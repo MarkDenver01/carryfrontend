@@ -144,26 +144,31 @@ export default function Orders() {
 
         // Map backend enum/string status → UI OrderStatus
         let status: OrderStatus = "Pending";
-        switch (o.status) {
-          case "PENDING":
-            status = "Pending";
-            break;
-          case "CONFIRMED": // ⭐ treat as Processing
-          case "PROCESSING":
-            status = "Processing";
-            break;
-          case "IN_TRANSIT":
-            status = "In Transit";
-            break;
-          case "DELIVERED":
-            status = "Delivered";
-            break;
-          case "CANCELLED":
-            status = "Cancelled";
-            break;
-          default:
-            status = "Pending";
-        }
+       switch (o.status) {
+  case "PENDING":
+    status = "Pending";
+    break;
+
+  case "PROCESSING":
+    status = "Processing";
+    break;
+
+  case "CONFIRMED":       // ⭐ FIX: CONFIRMED is NOT "Processing"
+  case "IN_TRANSIT":      //    treat CONFIRMED as "In Transit"
+    status = "In Transit";
+    break;
+
+  case "DELIVERED":
+    status = "Delivered";
+    break;
+
+  case "CANCELLED":
+    status = "Cancelled";
+    break;
+
+  default:
+    status = "Pending";
+}
 
         return {
           id: o.orderId?.toString() ?? "",
