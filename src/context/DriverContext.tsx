@@ -181,18 +181,32 @@ export const DriverProvider = ({ children }: { children: ReactNode }) => {
       👉 FRONTEND LANG: +1 completedDeliveries, Available
       (ordersToday = total na na-assign today, hindi binabawas)
   ---------------------------------------------------- */
- const completeDelivery = async (riderId: string) => {
-  try {
-    // Let backend increment completedDeliveries
-    await api.put(`/user/public/api/riders/${riderId}/complete`);
+  const completeDelivery = async (riderId: string) => {
+    try {
+      // same backend endpoint pa rin
+      await api.put(`/user/public/api/riders/${riderId}/complete`);
 
-    // reload updated data
-    await loadRidersFromBackend();
-  } catch (err) {
-    console.error("❌ Complete delivery failed:", err);
-  }
-};
+      const nowIso = new Date().toISOString();
 
+      setRiders((prev) =>
+        prev.map((r) => {
+          if (r.id !== riderId) return r;
+
+          const updatedCompleted = (r.completedDeliveries ?? 0) + 1;
+
+          return {
+            ...r,
+            status: "Available",
+            completedDeliveries: updatedCompleted,
+            lastActive: nowIso,
+          };
+        })
+      );
+    } catch (err) {
+      console.error("❌ Complete delivery failed:", err);
+      throw err;
+    }
+  };
 
   /* ----------------------------------------------------
       FINAL RETURN CONTEXT
