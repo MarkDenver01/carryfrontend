@@ -11,7 +11,8 @@ import Swal from "sweetalert2";
 import { useNavigate } from "react-router-dom";
 
 // ⭐ GLOBAL DRIVERS CONTEXT
-import { useDrivers, type Rider } from "../../../context/DriverContext";
+import { useDrivers } from "../../../context/DriverContext";
+
 
 export default function AddDriverLayout() {
   const { addRider } = useDrivers();
@@ -95,43 +96,52 @@ export default function AddDriverLayout() {
     setPreview({ photo: "", frontId: "", backId: "" });
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!validate()) return;
+  if (!validate()) return;
 
-    const newDriver: Rider = {
-      id: "RDR-" + Math.floor(Math.random() * 900 + 100),
-      name: form.userName,
-      contact: form.mobileNumber,
-      status: "Available",
-      ordersToday: 0,
-      lastAssigned: "Not yet assigned",
-      rating: 0,
-      completedDeliveries: 0,
-      workload: 0,
-      lastActive: "Online now",
-      homeBase: form.address,
-    };
+  // 🔥 1. Build FormData for backend
+  const formData = new FormData();
+  formData.append("userName", form.userName);
+  formData.append("email", form.email);
+  formData.append("mobileNumber", form.mobileNumber);
+  formData.append("address", form.address);
+  formData.append("driversLicenseNumber", form.driversLicenseNumber);
 
-    // Add to global Context
-    addRider(newDriver);
+  formData.append("photoFile", form.photoFile as File);
+  formData.append("frontIdFile", form.frontIdFile as File);
+  formData.append("backIdFile", form.backIdFile as File);
 
-    // SweetAlert + redirect on OK click
-    Swal.fire({
+  try {
+    // 🔥 2. Send to backend through global context
+    await addRider(formData);
+
+    // 🔥 3. Success popup
+    await Swal.fire({
       title: "Driver Registered!",
       text: "Driver added successfully.",
       icon: "success",
       confirmButtonText: "OK",
       confirmButtonColor: "#059669",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        navigate("/dashboard/delivery/riders");
-      }
     });
 
+    // 🔥 Redirect
+    navigate("/dashboard/delivery/riders");
+
+    // Reset form
     handleReset();
-  };
+  } catch (err) {
+    console.error(err);
+    Swal.fire({
+      title: "Registration Failed",
+      text: "There was an error registering the driver.",
+      icon: "error",
+      confirmButtonColor: "#dc2626",
+    });
+  }
+};
+
 
   return (
     <div className="w-full min-h-screen bg-slate-50 flex justify-center px-4 py-8">
