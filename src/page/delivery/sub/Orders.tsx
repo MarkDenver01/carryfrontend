@@ -18,13 +18,13 @@ import { useDrivers } from "../../../context/DriverContext";
 import type { Rider } from "../../../context/DriverContext";
 import DriverTrackerMap from '../../../components/maps/LiveRouteMap';
 import { useDriverLocation } from "../../../hooks/useDriverLocation";
-import { assignRiderToOrder as assignRiderToOrderAPI } from "../../../libs/ApiGatewayDatasource";
 
 // ✅ IMPORT BACKEND API
 import {
   fetchAllOrders,
   cancelOrder,
   markDelivered,
+  markInTransit,
   markProcessing,
 } from "../../../libs/ApiGatewayDatasource";
 
@@ -144,31 +144,26 @@ export default function Orders() {
 
         // Map backend enum/string status → UI OrderStatus
         let status: OrderStatus = "Pending";
-       switch (o.status) {
-  case "PENDING":
-    status = "Pending";
-    break;
-
-  case "PROCESSING":
-    status = "Processing";
-    break;
-
-  case "CONFIRMED":       // ⭐ FIX: CONFIRMED is NOT "Processing"
-  case "IN_TRANSIT":      //    treat CONFIRMED as "In Transit"
-    status = "In Transit";
-    break;
-
-  case "DELIVERED":
-    status = "Delivered";
-    break;
-
-  case "CANCELLED":
-    status = "Cancelled";
-    break;
-
-  default:
-    status = "Pending";
-}
+        switch (o.status) {
+          case "PENDING":
+            status = "Pending";
+            break;
+          case "CONFIRMED": // ⭐ treat as Processing
+          case "PROCESSING":
+            status = "Processing";
+            break;
+          case "IN_TRANSIT":
+            status = "In Transit";
+            break;
+          case "DELIVERED":
+            status = "Delivered";
+            break;
+          case "CANCELLED":
+            status = "Cancelled";
+            break;
+          default:
+            status = "Pending";
+        }
 
         return {
           id: o.orderId?.toString() ?? "",
@@ -319,51 +314,71 @@ export default function Orders() {
 
   // 🔗 Assign Rider + update RiderContext + PERSIST IN_TRANSIT sa backend
   const assignRiderToOrder = async (rider: Rider) => {
-  if (!selectedOrder) return;
+    if (!selectedOrder) return;
 
-  try {
-    // 1️⃣ CALL BACKEND: save rider + set ON_DELIVERY
-    await assignRiderToOrderAPI(selectedOrder.id, rider.id);
+    try {
+      // ✅ 1) Persist IN_TRANSIT sa backend
+      await markInTransit(selectedOrder.id);
 
-    // 2️⃣ Update front-end lists
-    setOrders((prev) =>
-      prev.map((o) =>
-        o.id === selectedOrder.id
-          ? { ...o, riderId: rider.id, riderName: rider.name, status: "In Transit" }
-          : o
-      )
-    );
+      // ✅ 2) Update active orders list (frontend)
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === selectedOrder.id
+            ? {
+                ...o,
+                riderId: rider.id,
+                riderName: rider.name,
+                status: "In Transit",
+              }
+            : o
+        )
+      );
 
-    setAllOrders((prev) =>
-      prev.map((o) =>
-        o.id === selectedOrder.id
-          ? { ...o, riderId: rider.id, riderName: rider.name, status: "In Transit" }
-          : o
-      )
-    );
+      // ✅ 3) Update allOrders list (for summary cards & filters)
+      setAllOrders((prev) =>
+        prev.map((o) =>
+          o.id === selectedOrder.id
+            ? {
+                ...o,
+                riderId: rider.id,
+                riderName: rider.name,
+                status: "In Transit",
+              }
+            : o
+        )
+      );
 
-    // 3️⃣ Update modal
-    setSelectedOrder((prev) =>
-      prev ? { ...prev, riderId: rider.id, riderName: rider.name, status: "In Transit" } : prev
-    );
+      // ✅ 4) Update selectedOrder (UI detail modal)
+      setSelectedOrder((prev) =>
+        prev
+          ? {
+              ...prev,
+              riderId: rider.id,
+              riderName: rider.name,
+              status: "In Transit",
+            }
+          : prev
+      );
 
-    // 4️⃣ Rider Context
-    assignRider(rider.id);
+      // ✅ 5) Update RiderContext (ordersToday, workload, status, lastAssigned)
+      assignRider(rider.id);
 
-    setToast({
-      type: "success",
-      message: `Rider ${rider.name} assigned to order #${selectedOrder.id}.`,
-    });
-  } catch (error: any) {
-    console.error("❌ Assign rider failed:", error);
-    setToast({
-      type: "error",
-      message: error?.message || "Failed to assign rider",
-    });
-  } finally {
-    closeAssign();
-  }
-};
+      setToast({
+        type: "success",
+        message: `Rider ${rider.name} assigned to order #${selectedOrder.id} (now In Transit).`,
+      });
+    } catch (error: any) {
+      console.error("❌ Assign rider / mark in-transit failed:", error);
+      setToast({
+        type: "error",
+        message:
+          error?.message ||
+          "Failed to assign rider / set In Transit. Please try again.",
+      });
+    } finally {
+      closeAssign();
+    }
+  };
 
   const handleCancelOrder = async (orderId: string, reason: string) => {
     try {
