@@ -606,7 +606,7 @@ export default function ProductReport() {
             />
             <SummaryCard
               icon={<CheckCircle2 className="w-6 h-6" />}
-              label="Healthy / New"
+              label="New Stocks"
               value={(
                 summary.counts["Good"] + summary.counts["New Stocks"]
               ).toString()}
