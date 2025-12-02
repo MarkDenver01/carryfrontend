@@ -291,7 +291,6 @@ export default function ProductReport() {
         if (parsedExpiry.isValid()) {
           expiry = parsedExpiry.startOf("day");
           const diff = expiry.diff(today, "day");
-
           // clamp negative days to 0 para walang -4, -3, etc.
           daysLeft = diff < 0 ? 0 : diff;
         }
@@ -317,29 +316,31 @@ export default function ProductReport() {
       // 👉 Base classification by days left (0, 1–60, 61–100, 101+)
       let statusInfo = classifyByDaysLeft(daysLeft);
 
-      // ⚠️ WARNING STOCKS RULE
+      // ⚠️ WARNING STOCKS RULE (NEW CLEAN LOGIC)
+      // - EXPIRED stays red
+      // - NEAR EXPIRY can combine with warning stocks
+      // - GOOD (61–100 days) and NEW STOCKS keep their GREEN/BLUE colors,
+      //   we only add label "Warning Stocks" but DO NOT override color
       const isWarningStock = stock >= 1 && stock <= 60;
       const isNearExpiryWindow =
         daysLeft !== null && daysLeft >= 1 && daysLeft <= 60;
 
-      // Combined label: WARNING STOCKS + NEAR EXPIRY
       let combinedLabel: string | null = null;
 
-      if (
-        isWarningStock &&
-        isNearExpiryWindow &&
-        statusInfo.status !== "Expired"
+      if (statusInfo.status === "Expired") {
+        combinedLabel = null; // expired is always plain expired
+      } else if (statusInfo.status === "Near Expiry") {
+        if (isWarningStock && isNearExpiryWindow) {
+          statusInfo.colorClass = "border-yellow-400";
+          statusInfo.softClass = "bg-yellow-50 text-yellow-700";
+          combinedLabel = "Warning Stocks + Near Expiry";
+        }
+      } else if (
+        statusInfo.status === "Good" ||
+        statusInfo.status === "New Stocks"
       ) {
-        // keep expiry status (Near Expiry) for analytics,
-        // but visually emphasize yellow warning theme
-        statusInfo.colorClass = "border-yellow-400";
-        statusInfo.softClass = "bg-yellow-50 text-yellow-700";
-        combinedLabel = "Warning Stocks + Near Expiry";
-      } else if (isWarningStock && statusInfo.status !== "Expired") {
-        // warning stocks only (daysLeft > 60 or no expiry)
-        statusInfo.colorClass = "border-yellow-400";
-        statusInfo.softClass = "bg-yellow-50 text-yellow-700";
-        combinedLabel = "Warning Stocks";
+        // DO NOT override green/blue; label only
+        combinedLabel = isWarningStock ? "Warning Stocks" : null;
       }
 
       return {
@@ -399,7 +400,7 @@ export default function ProductReport() {
     // still treat Near Expiry + Expired as critical
     const expiringSoon = counts["Expired"] + counts["Near Expiry"];
 
-    // WARNING STOCKS = 1–60 stock
+    // WARNING STOCKS = 1–60 stock (informational)
     const warningStockCount = enrichedData.filter(
       (p) => p.stock >= 1 && p.stock <= 60
     ).length;
@@ -584,7 +585,7 @@ export default function ProductReport() {
       </div>
 
       {/* MAIN CARD (GOD MODE) */}
-      <div className="relative rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-[0_24px_70px_rgba(15,23,42,0.35)] px-5 py-6 flex flex-col gap-7 overflow-hidden">
+      <div className="relative rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-[0_24px_70px_rgba(15,23,42,0.35)] px-5 py-6 flex flex-col gap-7 overflow-visible">
         {/* soft inner glow */}
         <div className="pointer-events-none absolute inset-x-10 -top-16 h-32 bg-gradient-to-b from-emerald-200/30 via-transparent to-transparent blur-2xl opacity-70" />
 
@@ -648,7 +649,7 @@ export default function ProductReport() {
         </div>
 
         {/* FILTER BAR */}
-        <section className="relative z-10 rounded-2xl border border-slate-200/80 bg-slate-50/90 px-4 py-4 flex flex-col gap-4">
+        <section className="relative z-40 rounded-2xl border border-slate-200/80 bg-slate-50/90 px-4 py-4 flex flex-col gap-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
               <Filter className="w-3.5 h-3.5 text-emerald-500" />
@@ -695,99 +696,108 @@ export default function ProductReport() {
           {/* Dropdown row + Refresh */}
           <div className="flex flex-wrap gap-3 items-center">
             {/* Status filter dropdown */}
-            <Dropdown
-              dismissOnClick
-              renderTrigger={() => (
-                <button className="flex items-center gap-2 border border-slate-300 bg-white/90 text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
-                  <Filter className="w-4 h-4 text-emerald-500" />
-                  <span className="font-medium">
-                    Status:{" "}
-                    <span className="text-slate-900">{statusFilter}</span>
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                </button>
-              )}
-            >
-              {["All", ...STATUS_ORDER].map((s) => (
-                <DropdownItem
-                  key={s}
-                  onClick={() => {
-                    setStatusFilter(s as any);
-                    setPage(1);
-                  }}
-                >
-                  {s}
-                </DropdownItem>
-              ))}
-            </Dropdown>
+            <div className="relative z-40">
+              <Dropdown
+                dismissOnClick
+                className="z-50"
+                renderTrigger={() => (
+                  <button className="flex items-center gap-2 border border-slate-300 bg-white/90 text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
+                    <Filter className="w-4 h-4 text-emerald-500" />
+                    <span className="font-medium">
+                      Status:{" "}
+                      <span className="text-slate-900">{statusFilter}</span>
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </button>
+                )}
+              >
+                {["All", ...STATUS_ORDER].map((s) => (
+                  <DropdownItem
+                    key={s}
+                    onClick={() => {
+                      setStatusFilter(s as any);
+                      setPage(1);
+                    }}
+                  >
+                    {s}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
+            </div>
 
             {/* Category filter dropdown */}
-            <Dropdown
-              dismissOnClick
-              renderTrigger={() => (
-                <button className="flex items-center gap-2 border border-slate-300 bg-white/90 text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
-                  <Tag className="w-4 h-4 text-sky-500" />
-                  <span className="font-medium">
-                    Category:{" "}
-                    <span className="text-slate-900">
-                      {categoryFilter === "All" ? "All" : categoryFilter}
+            <div className="relative z-40">
+              <Dropdown
+                dismissOnClick
+                className="z-50"
+                renderTrigger={() => (
+                  <button className="flex items-center gap-2 border border-slate-300 bg-white/90 text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
+                    <Tag className="w-4 h-4 text-sky-500" />
+                    <span className="font-medium">
+                      Category:{" "}
+                      <span className="text-slate-900">
+                        {categoryFilter === "All" ? "All" : categoryFilter}
+                      </span>
                     </span>
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                </button>
-              )}
-            >
-              <DropdownItem
-                onClick={() => {
-                  setCategoryFilter("All");
-                  setPage(1);
-                }}
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </button>
+                )}
               >
-                All
-              </DropdownItem>
-              {uniqueCategories.map((cat) => (
                 <DropdownItem
-                  key={cat}
                   onClick={() => {
-                    setCategoryFilter(cat);
+                    setCategoryFilter("All");
                     setPage(1);
                   }}
                 >
-                  {cat}
+                  All
                 </DropdownItem>
-              ))}
-            </Dropdown>
+                {uniqueCategories.map((cat) => (
+                  <DropdownItem
+                    key={cat}
+                    onClick={() => {
+                      setCategoryFilter(cat);
+                      setPage(1);
+                    }}
+                  >
+                    {cat}
+                  </DropdownItem>
+                ))}
+              </Dropdown>
+            </div>
 
             {/* Sort dropdown */}
-            <Dropdown
-              dismissOnClick
-              renderTrigger={() => (
-                <button className="flex items-center gap-2 border border-slate-300 bg-white/90 text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
-                  <BarChart2 className="w-4 h-4 text-slate-500" />
-                  <span className="font-medium">
-                    Sort:{" "}
-                    <span className="text-slate-900">{sortBy}</span>
-                  </span>
-                  <ChevronDown className="w-4 h-4 text-slate-400" />
-                </button>
-              )}
-            >
-              <DropdownItem onClick={() => setSortBy("Urgency")}>
-                Urgency (Status & Days Left)
-              </DropdownItem>
-              <DropdownItem onClick={() => setSortBy("Name")}>
-                Product Name (A–Z)
-              </DropdownItem>
-              <DropdownItem onClick={() => setSortBy("Category")}>
-                Category
-              </DropdownItem>
-              <DropdownItem onClick={() => setSortBy("Stock")}>
-                Stock (High → Low)
-              </DropdownItem>
-              <DropdownItem onClick={() => setSortBy("DaysLeft")}>
-                Days Left (Low → High)
-              </DropdownItem>
-            </Dropdown>
+            <div className="relative z-40">
+              <Dropdown
+                dismissOnClick
+                className="z-50"
+                renderTrigger={() => (
+                  <button className="flex items-center gap-2 border border-slate-300 bg-white/90 text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
+                    <BarChart2 className="w-4 h-4 text-slate-500" />
+                    <span className="font-medium">
+                      Sort:{" "}
+                      <span className="text-slate-900">{sortBy}</span>
+                    </span>
+                    <ChevronDown className="w-4 h-4 text-slate-400" />
+                  </button>
+                )}
+              >
+                <DropdownItem onClick={() => setSortBy("Urgency")}>
+                  Urgency (Status & Days Left)
+                </DropdownItem>
+                <DropdownItem onClick={() => setSortBy("Name")}>
+                  Product Name (A–Z)
+                </DropdownItem>
+                <DropdownItem onClick={() => setSortBy("Category")}>
+                  Category
+                </DropdownItem>
+                <DropdownItem onClick={() => setSortBy("Stock")}>
+                  Stock (High → Low)
+                </DropdownItem>
+                <DropdownItem onClick={() => setSortBy("DaysLeft")}>
+                  Days Left (Low → High)
+                </DropdownItem>
+              </Dropdown>
+            </div>
 
             {/* Refresh button */}
             <button
@@ -964,9 +974,9 @@ export default function ProductReport() {
           <div className="flex items-center justify-between">
             <p className="text-xs text-slate-500">
               Showing{" "}
-                <span className="font-semibold text-slate-700">
-                  {visibleCount}
-                </span>{" "}
+              <span className="font-semibold text-slate-700">
+                {visibleCount}
+              </span>{" "}
               of{" "}
               <span className="font-semibold text-slate-700">
                 {filteredAndSorted.length}
