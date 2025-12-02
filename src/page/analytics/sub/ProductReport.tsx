@@ -321,27 +321,47 @@ export default function ProductReport() {
       // - NEAR EXPIRY can combine with warning stocks
       // - GOOD (61–100 days) and NEW STOCKS keep their GREEN/BLUE colors,
       //   we only add label "Warning Stocks" but DO NOT override color
-      const isWarningStock = stock >= 1 && stock <= 60;
-      const isNearExpiryWindow =
-        daysLeft !== null && daysLeft >= 1 && daysLeft <= 60;
+     // ⚠️ WARNING STOCKS RULE (NEW EXTENDED LOGIC)
+const isWarningStock = stock >= 1 && stock <= 60;
+const isNearExpiryWindow = daysLeft !== null && daysLeft >= 1 && daysLeft <= 60;
 
-      let combinedLabel: string | null = null;
+let combinedLabel: string | null = null;
 
-      if (statusInfo.status === "Expired") {
-        combinedLabel = null; // expired is always plain expired
-      } else if (statusInfo.status === "Near Expiry") {
-        if (isWarningStock && isNearExpiryWindow) {
-          statusInfo.colorClass = "border-yellow-400";
-          statusInfo.softClass = "bg-yellow-50 text-yellow-700";
-          combinedLabel = "Warning Stocks + Near Expiry";
-        }
-      } else if (
-        statusInfo.status === "Good" ||
-        statusInfo.status === "New Stocks"
-      ) {
-        // DO NOT override green/blue; label only
-        combinedLabel = isWarningStock ? "Warning Stocks" : null;
-      }
+// 🌋 EXPIRED (priority, no override)
+if (statusInfo.status === "Expired") {
+  combinedLabel = null;
+}
+// 🍊 NEAR EXPIRY WINDOW 1–60 DAYS
+else if (isNearExpiryWindow) {
+  if (isWarningStock) {
+    // 1–60 stocks + 1–60 days
+    // = WARNING + NEAR EXPIRY
+    statusInfo.colorClass = "border-yellow-400";
+    statusInfo.softClass = "bg-yellow-50 text-yellow-700";
+    combinedLabel = "Warning Stocks + Near Expiry";
+  } else {
+    combinedLabel = null;
+  }
+}
+// 🟢 GOOD (61–100 DAYS)
+else if (statusInfo.status === "Good") {
+  if (isWarningStock) {
+    // 1–60 stocks + 61–100 days
+    combinedLabel = "Warning Stocks + Medium Warning";
+  } else {
+    combinedLabel = null;
+  }
+}
+// 🔵 NEW STOCKS (101+ DAYS)
+else if (statusInfo.status === "New Stocks") {
+  if (isWarningStock) {
+    // 1–60 stocks + 101+ days
+    combinedLabel = "Warning Stocks + Good";
+  } else {
+    combinedLabel = null;
+  }
+}
+
 
       return {
         productId: p.productId,
