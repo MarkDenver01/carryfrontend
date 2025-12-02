@@ -52,12 +52,15 @@ interface EnrichedProduct {
   daysLeft: number | null;
   shelfLifeDays: number | null;
   elapsedDays: number | null;
-  percentUsed: number | null; // for potential analytics
+  percentUsed: number | null;
   status: ExpiryStatus;
   statusPriority: number;
   statusColorClass: string;
   statusSoftClass: string;
-  backendStatus: string; // normalized inventory status from backend
+  backendStatus: string;
+  isWarningStock: boolean;
+  isNearExpiryWindow: boolean;
+  combinedLabel: string | null; // e.g. "Warning Stocks + Near Expiry"
 }
 
 const STATUS_ORDER: ExpiryStatus[] = [
@@ -91,11 +94,10 @@ const normalizeStatus = (raw: string | null | undefined): string => {
 /**
  * Classify purely based on DAYS LEFT (expiry vs today)
  *
- * daysLeft <= 0  → Expired
- * 1–4            → Warning
- * 5–50           → Near Expiry
- * 51–90          → Good
- * > 90           → New Stocks
+ * 0           → Expired
+ * 1–60        → Near Expiry
+ * 61–100      → Good
+ * 101+        → New Stocks
  */
 const classifyByDaysLeft = (
   daysLeft: number | null
@@ -105,70 +107,67 @@ const classifyByDaysLeft = (
   colorClass: string;
   softClass: string;
 } => {
-  // No expiry date → treat as Good
+  // No expiry date → treat as Good (safe, green)
   if (daysLeft === null) {
     return {
       status: "Good",
-      priority: 3,
-      colorClass: "border-sky-200",
-      softClass: "bg-sky-50 text-sky-700",
+      priority: 2,
+      colorClass: "border-emerald-400",
+      softClass: "bg-emerald-50 text-emerald-700",
     };
   }
 
-  if (daysLeft <= 0) {
+  // 0 DAYS LEFT → EXPIRED (hard red)
+  if (daysLeft === 0) {
     return {
       status: "Expired",
       priority: 0,
-      colorClass: "border-red-300",
+      colorClass: "border-red-400",
       softClass: "bg-red-50 text-red-700",
     };
   }
 
-  if (daysLeft <= 4) {
-    return {
-      status: "Warning",
-      priority: 2,
-      colorClass: "border-amber-300",
-      softClass: "bg-amber-50 text-amber-700",
-    };
-  }
-
-  if (daysLeft <= 50) {
+  // 1–60 DAYS → NEAR EXPIRY (orange)
+  if (daysLeft >= 1 && daysLeft <= 60) {
     return {
       status: "Near Expiry",
       priority: 1,
-      colorClass: "border-orange-300",
+      colorClass: "border-orange-400",
       softClass: "bg-orange-50 text-orange-700",
     };
   }
 
-  if (daysLeft <= 90) {
+  // 61–100 DAYS → GOOD (green)
+  if (daysLeft >= 61 && daysLeft <= 100) {
     return {
       status: "Good",
-      priority: 3,
-      colorClass: "border-sky-200",
-      softClass: "bg-sky-50 text-sky-700",
+      priority: 2,
+      colorClass: "border-emerald-400",
+      softClass: "bg-emerald-50 text-emerald-700",
     };
   }
 
+  // 101+ DAYS → NEW STOCKS (blue)
   return {
     status: "New Stocks",
-    priority: 4,
-    colorClass: "border-emerald-300",
-    softClass: "bg-emerald-50 text-emerald-700",
+    priority: 3,
+    colorClass: "border-sky-400",
+    softClass: "bg-sky-50 text-sky-700",
   };
 };
 
-// 🌈 Soft row highlight per expiry status (hindi masakit sa mata)
+// 🌈 Soft row highlight per expiry status (hindi masakit sa mata) + godly hues
 const ROW_HIGHLIGHT: Record<ExpiryStatus, string> = {
   Expired:
-    "bg-red-50/70 hover:bg-red-50 border-l-4 border-red-300/80",
+    "bg-red-50/70 hover:bg-red-50 border-l-4 border-red-400/80",
   "Near Expiry":
-    "bg-orange-50/70 hover:bg-orange-50 border-l-4 border-orange-300/80",
+    "bg-orange-50/70 hover:bg-orange-50 border-l-4 border-orange-400/80",
   Warning:
-    "bg-yellow-50/70 hover:bg-yellow-50 border-l-4 border-yellow-300/80",
-  Good: "hover:bg-slate-50/70",
-  "New Stocks": "hover:bg-slate-50/70",
+    "bg-yellow-50/70 hover:bg-yellow-50 border-l-4 border-yellow-400/80",
+  Good:
+    "bg-emerald-50/40 hover:bg-emerald-50 border-l-4 border-emerald-300/80",
+  "New Stocks":
+    "bg-sky-50/40 hover:bg-sky-50 border-l-4 border-sky-300/80",
 };
 
 /* =========================
@@ -293,7 +292,7 @@ export default function ProductReport() {
           expiry = parsedExpiry.startOf("day");
           const diff = expiry.diff(today, "day");
 
-          // ✅ clamp negative days to 0 para walang -4, -3, etc.
+          // clamp negative days to 0 para walang -4, -3, etc.
           daysLeft = diff < 0 ? 0 : diff;
         }
       }
@@ -315,18 +314,32 @@ export default function ProductReport() {
         percentUsed = clamp(safeElapsed / shelfLifeDays, 0, 1);
       }
 
-      // 👉 Base classification by days left
+      // 👉 Base classification by days left (0, 1–60, 61–100, 101+)
       let statusInfo = classifyByDaysLeft(daysLeft);
 
-      // ✅ STOCK-BASED OVERRIDE:
-      //  - 30–50 stocks = Warning (as long as hindi Expired)
-      if (stock >= 30 && stock <= 50 && statusInfo.status !== "Expired") {
-        statusInfo = {
-          status: "Warning",
-          priority: 2,
-          colorClass: "border-amber-300",
-          softClass: "bg-amber-50 text-amber-700",
-        };
+      // ⚠️ WARNING STOCKS RULE
+      const isWarningStock = stock >= 1 && stock <= 60;
+      const isNearExpiryWindow =
+        daysLeft !== null && daysLeft >= 1 && daysLeft <= 60;
+
+      // Combined label: WARNING STOCKS + NEAR EXPIRY
+      let combinedLabel: string | null = null;
+
+      if (
+        isWarningStock &&
+        isNearExpiryWindow &&
+        statusInfo.status !== "Expired"
+      ) {
+        // keep expiry status (Near Expiry) for analytics,
+        // but visually emphasize yellow warning theme
+        statusInfo.colorClass = "border-yellow-400";
+        statusInfo.softClass = "bg-yellow-50 text-yellow-700";
+        combinedLabel = "Warning Stocks + Near Expiry";
+      } else if (isWarningStock && statusInfo.status !== "Expired") {
+        // warning stocks only (daysLeft > 60 or no expiry)
+        statusInfo.colorClass = "border-yellow-400";
+        statusInfo.softClass = "bg-yellow-50 text-yellow-700";
+        combinedLabel = "Warning Stocks";
       }
 
       return {
@@ -346,6 +359,9 @@ export default function ProductReport() {
         statusColorClass: statusInfo.colorClass,
         statusSoftClass: statusInfo.softClass,
         backendStatus,
+        isWarningStock,
+        isNearExpiryWindow,
+        combinedLabel,
       };
     });
   }, [products]);
@@ -379,13 +395,13 @@ export default function ProductReport() {
     });
 
     const total = enrichedData.length;
+
+    // still treat Near Expiry + Expired as critical
     const expiringSoon = counts["Expired"] + counts["Near Expiry"];
 
+    // WARNING STOCKS = 1–60 stock
     const warningStockCount = enrichedData.filter(
-      (p) =>
-        p.stock >= 30 &&
-        p.stock <= 50 &&
-        (p.status === "Warning" || p.status === "Near Expiry")
+      (p) => p.stock >= 1 && p.stock <= 60
     ).length;
 
     return {
@@ -511,25 +527,25 @@ export default function ProductReport() {
       className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden bg-slate-50 min-h-full"
       onMouseMove={handleMouseMove}
     >
-      {/* ---------- BACKDROP GRID + BLOB (like Orders page) ---------- */}
+      {/* ---------- BACKDROP GRID + GODLY BLOBS ---------- */}
       <div className="pointer-events-none absolute inset-0 -z-30">
-        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)] bg-[size:40px_40px]" />
+        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.14)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.14)_1px,transparent_1px)] bg-[size:40px_40px]" />
         <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" />
 
         <motion.div
-          className="absolute -top-16 -left-20 h-64 w-64 bg-emerald-500/30 blur-3xl"
+          className="absolute -top-16 -left-24 h-64 w-64 bg-emerald-500/28 blur-3xl"
           animate={{
-            x: [0, 18, 8, -6, 0],
-            y: [0, 8, 18, 4, 0],
+            x: [0, 20, 10, -8, 0],
+            y: [0, 10, 22, 8, 0],
             borderRadius: ["45%", "60%", "55%", "65%", "45%"],
           }}
           transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
-          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/26 blur-3xl"
+          className="absolute right-[-3rem] bottom-[-5rem] h-72 w-72 bg-sky-400/26 blur-3xl"
           animate={{
-            x: [0, -15, -25, -8, 0],
-            y: [0, -10, -16, -5, 0],
+            x: [0, -18, -26, -10, 0],
+            y: [0, -12, -20, -6, 0],
             borderRadius: ["50%", "65%", "55%", "70%", "50%"],
           }}
           transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
@@ -540,7 +556,7 @@ export default function ProductReport() {
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
-          background: `radial-gradient(520px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.25), transparent 70%)`,
+          background: `radial-gradient(520px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.28), transparent 70%)`,
         }}
       />
 
@@ -564,13 +580,16 @@ export default function ProductReport() {
           become losses.
         </p>
 
-        <div className="mt-3 h-[3px] w-32 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
+        <div className="mt-3 h-[3px] w-36 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full shadow-[0_0_18px_rgba(16,185,129,0.6)]" />
       </div>
 
-      {/* MAIN CARD */}
-      <div className="rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-md shadow-[0_18px_45px_rgba(15,23,42,0.12)] px-5 py-6 flex flex-col gap-7">
+      {/* MAIN CARD (GOD MODE) */}
+      <div className="relative rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-[0_24px_70px_rgba(15,23,42,0.35)] px-5 py-6 flex flex-col gap-7 overflow-hidden">
+        {/* soft inner glow */}
+        <div className="pointer-events-none absolute inset-x-10 -top-16 h-32 bg-gradient-to-b from-emerald-200/30 via-transparent to-transparent blur-2xl opacity-70" />
+
         {/* TABS + SUMMARY */}
-        <div className="flex flex-col gap-5">
+        <div className="flex flex-col gap-5 relative z-10">
           {/* Status Tabs */}
           <div className="flex flex-wrap gap-2">
             {(["All", ...STATUS_ORDER] as (ExpiryStatus | "All")[]).map(
@@ -584,7 +603,7 @@ export default function ProductReport() {
                   className={`px-4 py-1.5 rounded-full text-xs font-medium border transition whitespace-nowrap ${
                     statusFilter === tab
                       ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                      : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                      : "bg-white/80 border-slate-200 text-slate-700 hover:bg-slate-50"
                   }`}
                 >
                   {tab === "All" ? "All Statuses" : tab}
@@ -606,30 +625,30 @@ export default function ProductReport() {
               icon={<ShieldAlert className="w-6 h-6" />}
               label="Expiring / Expired"
               value={summary.expiringSoon.toString()}
-              accent="Items to prioritize for promo & clearance"
+              accent="Expiry-critical items for clearance"
               color="rose"
             />
             <SummaryCard
               icon={<AlertTriangle className="w-6 h-6" />}
-              label="Warning Stocks (30–50)"
+              label="Warning Stocks (1–60)"
               value={summary.warningStockCount.toString()}
               accent="Low but not yet out of stock"
               color="amber"
             />
             <SummaryCard
               icon={<CheckCircle2 className="w-6 h-6" />}
-              label="New Stocks"
+              label="Healthy Inventory"
               value={(
                 summary.counts["Good"] + summary.counts["New Stocks"]
               ).toString()}
-              accent="Safe inventory across all products"
+              accent="Safe stocks across all products"
               color="indigo"
             />
           </section>
         </div>
 
         {/* FILTER BAR */}
-        <section className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-4 flex flex-col gap-4">
+        <section className="relative z-10 rounded-2xl border border-slate-200/80 bg-slate-50/90 px-4 py-4 flex flex-col gap-4">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
               <Filter className="w-3.5 h-3.5 text-emerald-500" />
@@ -662,7 +681,7 @@ export default function ProductReport() {
               <input
                 type="text"
                 placeholder="Search by product or category..."
-                className="w-full h-10 border border-slate-300 rounded-lg px-4 pl-10 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
+                className="w-full h-10 border border-slate-300 rounded-lg px-4 pl-10 text-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -679,7 +698,7 @@ export default function ProductReport() {
             <Dropdown
               dismissOnClick
               renderTrigger={() => (
-                <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
+                <button className="flex items-center gap-2 border border-slate-300 bg-white/90 text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
                   <Filter className="w-4 h-4 text-emerald-500" />
                   <span className="font-medium">
                     Status:{" "}
@@ -706,7 +725,7 @@ export default function ProductReport() {
             <Dropdown
               dismissOnClick
               renderTrigger={() => (
-                <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
+                <button className="flex items-center gap-2 border border-slate-300 bg-white/90 text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
                   <Tag className="w-4 h-4 text-sky-500" />
                   <span className="font-medium">
                     Category:{" "}
@@ -743,7 +762,7 @@ export default function ProductReport() {
             <Dropdown
               dismissOnClick
               renderTrigger={() => (
-                <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
+                <button className="flex items-center gap-2 border border-slate-300 bg-white/90 text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
                   <BarChart2 className="w-4 h-4 text-slate-500" />
                   <span className="font-medium">
                     Sort:{" "}
@@ -791,9 +810,9 @@ export default function ProductReport() {
         </section>
 
         {/* STATUS & CATEGORY OVERVIEW */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start relative z-10">
           {/* Status Overview */}
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col gap-3">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 flex flex-col gap-3 shadow-sm">
             <div className="flex items-center justify-between gap-2 mb-1">
               <div className="flex items-center gap-2">
                 <Layers className="w-4 h-4 text-emerald-500" />
@@ -820,10 +839,10 @@ export default function ProductReport() {
                     : status === "Near Expiry"
                     ? "bg-orange-500"
                     : status === "Warning"
-                    ? "bg-amber-500"
+                    ? "bg-yellow-500"
                     : status === "Good"
-                    ? "bg-sky-500"
-                    : "bg-emerald-500";
+                    ? "bg-emerald-500"
+                    : "bg-sky-500";
 
                 const dotColor = barColor;
 
@@ -853,7 +872,7 @@ export default function ProductReport() {
           </div>
 
           {/* Category Overview */}
-          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 flex flex-col gap-3">
+          <div className="lg:col-span-2 rounded-2xl border border-slate-200 bg-white/95 p-4 flex flex-col gap-3 shadow-sm">
             <div className="flex items-center justify-between gap-2 mb-1">
               <div className="flex items-center gap-2">
                 <Tag className="w-4 h-4 text-emerald-500" />
@@ -920,8 +939,8 @@ export default function ProductReport() {
                               </span>
                             )}
                             {catSnap.warn > 0 && (
-                              <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
-                                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                              <span className="inline-flex items-center gap-1 text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded-full">
+                                <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
                                 Warning: {catSnap.warn}
                               </span>
                             )}
@@ -941,13 +960,13 @@ export default function ProductReport() {
         </section>
 
         {/* PRODUCT TABLE */}
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 relative z-10">
           <div className="flex items-center justify-between">
             <p className="text-xs text-slate-500">
               Showing{" "}
-              <span className="font-semibold text-slate-700">
-                {visibleCount}
-              </span>{" "}
+                <span className="font-semibold text-slate-700">
+                  {visibleCount}
+                </span>{" "}
               of{" "}
               <span className="font-semibold text-slate-700">
                 {filteredAndSorted.length}
@@ -961,7 +980,7 @@ export default function ProductReport() {
               Loading products…
             </div>
           ) : paginated.length === 0 ? (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 flex flex-col items-center justify-center gap-2">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6 flex flex-col items-center justify-center gap-2">
               <AlertTriangle className="w-8 h-8 text-slate-400" />
               <p className="text-sm font-semibold text-slate-700">
                 No products found for the current filters.
@@ -972,9 +991,9 @@ export default function ProductReport() {
             </div>
           ) : (
             <>
-              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white/95">
                 <table className="min-w-full divide-y divide-slate-200 text-[11px] sm:text-xs md:text-sm">
-                  <thead className="bg-slate-50">
+                  <thead className="bg-slate-50/90">
                     <tr>
                       <Th label="Product" />
                       <Th label="Category" />
@@ -996,17 +1015,16 @@ export default function ProductReport() {
                               item.daysLeft === 1 ? "" : "s"
                             }`;
 
-                      const isWarningStock =
-                        item.stock >= 30 && item.stock <= 50;
+                      const isWarningStock = item.isWarningStock; // 1–60 pcs
                       const isOutOfStock =
                         item.stock <= 0 ||
                         normalizeStatus(item.backendStatus) === "Out of Stock";
 
-                      // ✅ Promo dapat lang sa malapit mag-expire (1–90 days)
+                      // Promo dapat lang sa malapit mag-expire (1–100 days, since 101+ = new stocks)
                       const canPromo =
                         item.daysLeft !== null &&
                         item.daysLeft > 0 &&
-                        item.daysLeft <= 90;
+                        item.daysLeft <= 100;
 
                       const actions: {
                         label: string;
@@ -1044,8 +1062,7 @@ export default function ProductReport() {
                         <tr
                           key={item.id}
                           className={`
-                            cursor-pointer transition-colors
-                            ${ROW_HIGHLIGHT[item.status]}
+                            cursor-pointer transition-colors border ${ROW_HIGHLIGHT[item.status]} ${item.statusColorClass}
                           `}
                           onClick={() => setSelectedProduct(item)}
                         >
@@ -1060,8 +1077,8 @@ export default function ProductReport() {
                                   {item.name}
                                 </p>
                                 {isWarningStock && !isOutOfStock && (
-                                  <p className="mt-0.5 text-[11px] text-amber-600">
-                                    Warning stocks (30–50)
+                                  <p className="mt-0.5 text-[11px] text-yellow-700">
+                                    Warning stocks (1–60 pcs)
                                   </p>
                                 )}
                                 {isOutOfStock && (
@@ -1112,7 +1129,11 @@ export default function ProductReport() {
                               {item.status === "Warning" && "⚠️"}
                               {item.status === "Good" && "✅"}
                               {item.status === "New Stocks" && "🆕"}
-                              <span>{item.status}</span>
+                              <span>
+                                {item.combinedLabel
+                                  ? item.combinedLabel
+                                  : item.status}
+                              </span>
                             </span>
                           </td>
 
@@ -1181,16 +1202,29 @@ export default function ProductReport() {
         </div>
 
         {/* NOTE */}
-        <div className="mt-1 text-xs text-slate-500 flex items-start gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+        <div className="mt-1 text-xs text-slate-500 flex items-start gap-2 bg-slate-50/90 border border-slate-200 rounded-xl px-3 py-2.5 relative z-10">
           <Info className="w-3.5 h-3.5 mt-0.5 text-emerald-500" />
           <p>
             Expiry status is based on{" "}
             <span className="font-semibold text-slate-700">Expiry Date</span>{" "}
-            relative to today. Warning stocks (30–50 pcs) in{" "}
+            relative to today:
             <span className="font-semibold text-slate-700">
-              Warning / Near Expiry
+              {" "}
+              0 days = Expired, 1–60 days = Near Expiry, 61–100 days =
+              Good, 101+ days = New Stocks.
             </span>{" "}
-            are also monitored for replenishment and promo planning.
+            Products with{" "}
+            <span className="font-semibold text-slate-700">
+              1–60 stock
+            </span>{" "}
+            are treated as{" "}
+            <span className="font-semibold text-slate-700">
+              Warning Stocks
+            </span>
+            . If they are also 1–60 days left, they appear as{" "}
+            <span className="font-semibold text-emerald-700">
+              “Warning Stocks + Near Expiry”.
+            </span>
           </p>
         </div>
       </div>
@@ -1206,7 +1240,7 @@ export default function ProductReport() {
             initial={{ x: 320, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.2 }}
-            className="w-full max-w-md bg-white text-slate-900 shadow-xl border-l border-slate-200 p-6 overflow-y-auto"
+            className="w-full max-w-md bg-white/95 text-slate-900 shadow-2xl border-l border-slate-200 p-6 overflow-y-auto backdrop-blur-xl"
           >
             <div className="flex items-start justify-between mb-4">
               <div>
@@ -1269,6 +1303,7 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
     daysLeft,
     status,
     backendStatus,
+    combinedLabel,
   } = product;
 
   const daysLeftLabel =
@@ -1280,10 +1315,10 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
       : status === "Near Expiry"
       ? "bg-orange-50 text-orange-700 border-orange-200"
       : status === "Warning"
-      ? "bg-amber-50 text-amber-700 border-amber-200"
+      ? "bg-yellow-50 text-yellow-700 border-yellow-200"
       : status === "Good"
-      ? "bg-sky-50 text-sky-700 border-sky-200"
-      : "bg-emerald-50 text-emerald-700 border-emerald-200";
+      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+      : "bg-sky-50 text-sky-700 border-sky-200";
 
   return (
     <div className="flex flex-col gap-5">
@@ -1311,7 +1346,7 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
               {status === "Warning" && "⚠️"}
               {status === "Good" && "✅"}
               {status === "New Stocks" && "🆕"}
-              <span>{status}</span>
+              <span>{combinedLabel ? combinedLabel : status}</span>
             </span>
           </div>
 
@@ -1405,6 +1440,8 @@ function SummaryCard({
       transition={{ duration: 0.2 }}
       className={`relative p-4 rounded-xl text-white bg-gradient-to-br ${colors[color]} shadow-md overflow-hidden`}
     >
+      {/* inner glow */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.32),transparent_55%)] opacity-80" />
       <div className="relative flex items-center gap-3">
         <div className="p-2.5 bg-white/15 rounded-lg flex items-center justify-center">
           {icon}
