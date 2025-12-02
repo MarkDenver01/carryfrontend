@@ -228,30 +228,33 @@ export default function ProductReport() {
      BACKEND STATUS ACTIONS
   ========================= */
 
-  const handleChangeStatus = async (
-    productId: number,
-    action: "For Promo" | "Out of Stock"
-  ) => {
-    try {
-      setStatusUpdatingId(productId);
+  const handleChangeStatus = async (productId: number, action: "For Promo" | "Out of Stock") => {
+  try {
+    setStatusUpdatingId(productId);
 
-      const updated = await updateProductStatus(productId, {
-        productStatus: action,
-      });
+    // 🔥 Send ONLY inventory status — never touch stock count, expiry, etc.
+    const updated = await updateProductStatus(productId, {
+      productStatus: action,
+    });
 
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.productId === updated.productId
-            ? { ...p, productStatus: updated.productStatus }
-            : p
-        )
-      );
-    } catch (err) {
-      console.error("Failed to update product status", err);
-    } finally {
-      setStatusUpdatingId(null);
-    }
-  };
+    // 🔥 Update strictly productStatus only
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.productId === updated.productId
+          ? {
+              ...p,
+              productStatus: updated.productStatus,     // inventory status only
+            }
+          : p
+      )
+    );
+  } catch (err) {
+    console.error("❌ Failed to update product status:", err);
+  } finally {
+    setStatusUpdatingId(null);
+  }
+};
+
 
   /* =========================
      DATA ENRICH
@@ -1022,6 +1025,7 @@ export default function ProductReport() {
                             kind: "promo",
                           });
                         }
+
                         actions.push({
                           label: "Out of Stock",
                           action: "Out of Stock",
@@ -1034,6 +1038,7 @@ export default function ProductReport() {
                           kind: "danger",
                         });
                       }
+
 
                       const getButtonClasses = (kind: "promo" | "danger") =>
                         kind === "promo"
