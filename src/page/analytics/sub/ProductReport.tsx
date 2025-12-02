@@ -1140,45 +1140,81 @@ export default function ProductReport() {
                 </div>
 
                 {/* CATEGORY PAGINATION CONTROLS */}
-                {totalCategoryPages > 1 && (
-                  <div className="flex items-center justify-between mt-3 text-[11px] text-slate-500">
-                    <span>
-                      Page {categoryPage} of {totalCategoryPages}
-                    </span>
-                    <div className="flex gap-2">
-                      <button
-                        type="button"
-                        disabled={categoryPage === 1}
-                        onClick={() =>
-                          setCategoryPage((p) => Math.max(1, p - 1))
-                        }
-                        className={`px-3 py-1 rounded-full border text-[11px] ${
-                          categoryPage === 1
-                            ? "border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed"
-                            : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
-                        }`}
-                      >
-                        Previous
-                      </button>
-                      <button
-                        type="button"
-                        disabled={categoryPage === totalCategoryPages}
-                        onClick={() =>
-                          setCategoryPage((p) =>
-                            Math.min(totalCategoryPages, p + 1)
-                          )
-                        }
-                        className={`px-3 py-1 rounded-full border text-[11px] ${
-                          categoryPage === totalCategoryPages
-                            ? "border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed"
-                            : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
-                        }`}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                )}
+                {/* CATEGORY PAGINATION CONTROLS - BOXED STYLE */}
+{totalCategoryPages > 1 && (
+  <div className="flex items-center justify-between mt-4 px-2">
+    <p className="text-xs text-slate-500">
+      Showing{" "}
+      <span className="font-semibold text-emerald-600">
+        {(categoryPage - 1) * CATEGORY_PAGE_SIZE + 1}
+      </span>{" "}
+      to{" "}
+      <span className="font-semibold text-emerald-600">
+        {Math.min(categoryPage * CATEGORY_PAGE_SIZE, categorySnapshots.length)}
+      </span>{" "}
+      of{" "}
+      <span className="font-semibold text-slate-700">
+        {categorySnapshots.length}
+      </span>{" "}
+      categories
+    </p>
+
+    <div className="flex items-center gap-1">
+
+      {/* Previous */}
+      <button
+        onClick={() => setCategoryPage(categoryPage - 1)}
+        disabled={categoryPage === 1}
+        className={`
+          px-3 py-1.5 text-xs border rounded-lg transition
+          ${
+            categoryPage === 1
+              ? "text-slate-300 border-slate-200 bg-white"
+              : "text-slate-600 border-slate-300 bg-white hover:bg-slate-100 hover:shadow-sm"
+          }
+        `}
+      >
+        Previous
+      </button>
+
+      {/* Page Numbers */}
+      {Array.from({ length: totalCategoryPages }, (_, i) => i + 1).map((num) => (
+        <button
+          key={num}
+          onClick={() => setCategoryPage(num)}
+          className={`
+            px-3 py-1.5 text-xs border rounded-lg transition
+            ${
+              num === categoryPage
+                ? "bg-emerald-500 text-white border-emerald-600 shadow-sm"
+                : "text-slate-700 border-slate-300 bg-white hover:bg-slate-100 hover:shadow-sm"
+            }
+          `}
+        >
+          {num}
+        </button>
+      ))}
+
+      {/* Next */}
+      <button
+        onClick={() => setCategoryPage(categoryPage + 1)}
+        disabled={categoryPage === totalCategoryPages}
+        className={`
+          px-3 py-1.5 text-xs border rounded-lg transition
+          ${
+            categoryPage === totalCategoryPages
+              ? "text-slate-300 border-slate-200 bg-white"
+              : "text-slate-600 border-slate-300 bg-white hover:bg-slate-100 hover:shadow-sm"
+          }
+        `}
+      >
+        Next
+      </button>
+
+    </div>
+  </div>
+)}
+
               </>
             )}
           </div>
@@ -1415,48 +1451,80 @@ export default function ProductReport() {
               </div>
 
               {/* TABLE PAGINATION CONTROLS */}
-              {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-3 text-xs text-slate-600">
-                  <span>
-                    Page{" "}
-                    <span className="font-semibold text-slate-800">
-                      {page}
-                    </span>{" "}
-                    of{" "}
-                    <span className="font-semibold text-slate-800">
-                      {totalPages}
-                    </span>
-                  </span>
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      disabled={page === 1}
-                      onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      className={`px-3 py-1 rounded-full border ${
-                        page === 1
-                          ? "border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed"
-                          : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
-                      }`}
-                    >
-                      Previous
-                    </button>
-                    <button
-                      type="button"
-                      disabled={page === totalPages}
-                      onClick={() =>
-                        setPage((p) => Math.min(totalPages, p + 1))
-                      }
-                      className={`px-3 py-1 rounded-full border ${
-                        page === totalPages
-                          ? "border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed"
-                          : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
-                      }`}
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
+              {/* TABLE PAGINATION CONTROLS - BOXED NUMBERS */}
+{totalPages > 1 && (
+  <div className="flex items-center justify-between mt-4 px-2">
+    <p className="text-xs text-slate-500">
+      Showing{" "}
+      <span className="font-semibold text-emerald-600">
+        {(page - 1) * PAGE_SIZE + 1}
+      </span>{" "}
+      to{" "}
+      <span className="font-semibold text-emerald-600">
+        {Math.min(page * PAGE_SIZE, filteredAndSorted.length)}
+      </span>{" "}
+      of{" "}
+      <span className="font-semibold text-slate-700">
+        {filteredAndSorted.length}
+      </span>{" "}
+      entries
+    </p>
+
+    <div className="flex items-center gap-1">
+
+      {/* Previous */}
+      <button
+        onClick={() => setPage(page - 1)}
+        disabled={page === 1}
+        className={`
+          px-3 py-1.5 text-sm border rounded-md 
+          ${
+            page === 1
+              ? "text-slate-300 border-slate-200"
+              : "text-slate-600 border-slate-300 hover:bg-slate-100"
+          }
+        `}
+      >
+        Previous
+      </button>
+
+      {/* Page numbers */}
+      {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
+        <button
+          key={num}
+          onClick={() => setPage(num)}
+          className={`
+            px-3 py-1.5 text-sm border rounded-md transition 
+            ${
+              num === page
+                ? "bg-emerald-500 text-white border-emerald-600 shadow-sm"
+                : "text-slate-700 border-slate-300 hover:bg-slate-100"
+            }
+          `}
+        >
+          {num}
+        </button>
+      ))}
+
+      {/* Next */}
+      <button
+        onClick={() => setPage(page + 1)}
+        disabled={page === totalPages}
+        className={`
+          px-3 py-1.5 text-sm border rounded-md 
+          ${
+            page === totalPages
+              ? "text-slate-300 border-slate-200"
+              : "text-slate-600 border-slate-300 hover:bg-slate-100"
+          }
+        `}
+      >
+        Next
+      </button>
+    </div>
+  </div>
+)}
+
             </>
           )}
         </div>
