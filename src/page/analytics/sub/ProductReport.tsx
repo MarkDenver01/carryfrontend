@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Dropdown, DropdownItem } from "flowbite-react";
+import { Dropdown, DropdownItem, Pagination } from "flowbite-react";
 import dayjs from "dayjs";
 
 import {
@@ -57,10 +57,10 @@ interface EnrichedProduct {
   statusPriority: number;
   statusColorClass: string;
   statusSoftClass: string;
-  inventoryStatus: string; // normalized inventory status
+  inventoryStatus: string;
   isWarningStock: boolean;
   isNearExpiryWindow: boolean;
-  combinedLabel: string | null; // e.g. "Warning Stocks + Near Expiry", "Warning Stocks", "Invalid expiry date"
+  combinedLabel: string | null;
   hasInvalidExpiry: boolean;
 }
 
@@ -112,7 +112,6 @@ const classifyByDaysLeft = (
   colorClass: string;
   softClass: string;
 } => {
-  // No expiry date → treat as Good baseline (refined by stock rules)
   if (daysLeft === null) {
     return {
       status: "Good",
@@ -122,7 +121,6 @@ const classifyByDaysLeft = (
     };
   }
 
-  // 0 DAYS LEFT → EXPIRED
   if (daysLeft === 0) {
     return {
       status: "Expired",
@@ -132,7 +130,6 @@ const classifyByDaysLeft = (
     };
   }
 
-  // 1–60 DAYS → NEAR EXPIRY
   if (daysLeft >= 1 && daysLeft <= 60) {
     return {
       status: "Near Expiry",
@@ -142,7 +139,6 @@ const classifyByDaysLeft = (
     };
   }
 
-  // 61–100 DAYS → GOOD
   if (daysLeft >= 61 && daysLeft <= 100) {
     return {
       status: "Good",
@@ -152,7 +148,6 @@ const classifyByDaysLeft = (
     };
   }
 
-  // 101+ DAYS → NEW STOCKS
   return {
     status: "New Stocks",
     priority: 3,
@@ -303,7 +298,7 @@ export default function ProductReport() {
         if (parsedExpiry.isValid()) {
           expiry = parsedExpiry.startOf("day");
           const diff = expiry.diff(today, "day");
-          daysLeft = diff < 0 ? 0 : diff; // clamp negative → 0
+          daysLeft = diff < 0 ? 0 : diff;
         }
       }
 
@@ -352,15 +347,11 @@ export default function ProductReport() {
       // ==== INVENTORY STATUS (stock + backend) ====
       let inventoryStatus = rawInventoryStatus || "Available";
       if (stockZeroOrLess) {
-        // Out of Stock (inventory) if stock <= 0
         inventoryStatus = "Out of Stock";
       }
 
-      // ======================================
-      // INVALID EXPIRY DATE FIRST
-      // ======================================
+      // INVALID EXPIRY FIRST
       if (hasInvalidExpiry) {
-        // Mark as warning-type issue, show explicit label
         statusInfo = {
           status: "Warning",
           priority: 1,
@@ -368,13 +359,10 @@ export default function ProductReport() {
           softClass: "bg-yellow-50 text-yellow-700",
         };
         combinedLabel = "Invalid expiry date";
-        daysLeft = null; // hide wrong days value
+        daysLeft = null;
       } else if (!hasExpiry) {
-        // =====================================
         // NO EXPIRY DATE (stock-only)
-        // =====================================
         if (stockZeroOrLess) {
-          // Out of stock, no expiry
           statusInfo = {
             status: "Good",
             priority: 2,
@@ -383,7 +371,6 @@ export default function ProductReport() {
           };
           combinedLabel = "No expiry date";
         } else if (isWarningStockRange) {
-          // 1–60 stock, no expiry → Warning Stocks
           statusInfo = {
             status: "Warning",
             priority: 2,
@@ -392,7 +379,6 @@ export default function ProductReport() {
           };
           combinedLabel = "Warning Stocks";
         } else {
-          // 61+ stock, no expiry → Good
           statusInfo = {
             status: "Good",
             priority: 2,
@@ -402,9 +388,7 @@ export default function ProductReport() {
           combinedLabel = "No expiry date";
         }
       } else if (daysLeft === 0) {
-        // ============================
         // EXPIRED
-        // ============================
         statusInfo = {
           status: "Expired",
           priority: 0,
@@ -413,9 +397,7 @@ export default function ProductReport() {
         };
         combinedLabel = null;
       } else {
-        // ====================================
         // FULL COMBINED RULES
-        // ====================================
 
         // Warning Stocks + Near Expiry
         if (isWarningStockRange && isWarningDayRange) {
@@ -537,10 +519,8 @@ export default function ProductReport() {
 
     const total = enrichedData.length;
 
-    // Near Expiry + Expired = expiry-sensitive
     const expiringSoon = counts["Expired"] + counts["Near Expiry"];
 
-    // Warning stocks = 1–60 stock
     const warningStockCount = enrichedData.filter(
       (p) => p.stock >= 1 && p.stock <= 60
     ).length;
@@ -676,7 +656,6 @@ export default function ProductReport() {
 
   const visibleCount = paginated.length;
 
-  // Clamp page if data shrinks
   useEffect(() => {
     if (page > totalPages) {
       setPage(totalPages);
@@ -699,7 +678,6 @@ export default function ProductReport() {
       <div className="pointer-events-none.absolute inset-0 -z-30">
         <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.14)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.14)_1px,transparent_1px)] bg-[size:40px_40px]" />
         <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" />
-
         <motion.div
           className="absolute -top-16 -left-24 h-64 w-64 bg-emerald-500/28 blur-3xl"
           animate={{
@@ -753,7 +731,6 @@ export default function ProductReport() {
 
       {/* MAIN CARD */}
       <div className="relative rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-[0_24px_70px_rgba(15,23,42,0.35)] px-5 py-6 flex flex-col gap-7 overflow-visible">
-        {/* soft inner glow */}
         <div className="pointer-events-none absolute inset-x-10 -top-16 h-32 bg-gradient-to-b from-emerald-200/30 via-transparent to-transparent blur-2xl opacity-70" />
 
         {/* TABS + SUMMARY */}
@@ -975,7 +952,7 @@ export default function ProductReport() {
                 fetchProducts(true);
                 setPage(1);
               }}
-              className={`inline-flex items-center gap-1 ml-auto px-3 py-2 rounded-lg text-[11px] font-medium border ${
+              className={`inline-flex.items-center gap-1 ml-auto px-3 py-2 rounded-lg text-[11px] font-medium border ${
                 loadingRefresh
                   ? "border-emerald-300 bg-emerald-50 text-emerald-600"
                   : "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600"
@@ -1139,82 +1116,39 @@ export default function ProductReport() {
                   })}
                 </div>
 
-                {/* CATEGORY PAGINATION CONTROLS */}
-                {/* CATEGORY PAGINATION CONTROLS - BOXED STYLE */}
-{totalCategoryPages > 1 && (
-  <div className="flex items-center justify-between mt-4 px-2">
-    <p className="text-xs text-slate-500">
-      Showing{" "}
-      <span className="font-semibold text-emerald-600">
-        {(categoryPage - 1) * CATEGORY_PAGE_SIZE + 1}
-      </span>{" "}
-      to{" "}
-      <span className="font-semibold text-emerald-600">
-        {Math.min(categoryPage * CATEGORY_PAGE_SIZE, categorySnapshots.length)}
-      </span>{" "}
-      of{" "}
-      <span className="font-semibold text-slate-700">
-        {categorySnapshots.length}
-      </span>{" "}
-      categories
-    </p>
+                {/* CATEGORY PAGINATION (Flowbite) */}
+                {totalCategoryPages > 1 && (
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-4 text-xs md:text-sm text-slate-600">
+                    <span>
+                      Showing{" "}
+                      <span className="font-semibold text-emerald-700">
+                        {(categoryPage - 1) * CATEGORY_PAGE_SIZE + 1}
+                      </span>{" "}
+                      to{" "}
+                      <span className="font-semibold text-emerald-700">
+                        {Math.min(
+                          categoryPage * CATEGORY_PAGE_SIZE,
+                          categorySnapshots.length
+                        )}
+                      </span>{" "}
+                      of{" "}
+                      <span className="font-semibold text-emerald-700">
+                        {categorySnapshots.length}
+                      </span>{" "}
+                      categories
+                    </span>
 
-    <div className="flex items-center gap-1">
-
-      {/* Previous */}
-      <button
-        onClick={() => setCategoryPage(categoryPage - 1)}
-        disabled={categoryPage === 1}
-        className={`
-          px-3 py-1.5 text-xs border rounded-lg transition
-          ${
-            categoryPage === 1
-              ? "text-slate-300 border-slate-200 bg-white"
-              : "text-slate-600 border-slate-300 bg-white hover:bg-slate-100 hover:shadow-sm"
-          }
-        `}
-      >
-        Previous
-      </button>
-
-      {/* Page Numbers */}
-      {Array.from({ length: totalCategoryPages }, (_, i) => i + 1).map((num) => (
-        <button
-          key={num}
-          onClick={() => setCategoryPage(num)}
-          className={`
-            px-3 py-1.5 text-xs border rounded-lg transition
-            ${
-              num === categoryPage
-                ? "bg-emerald-500 text-white border-emerald-600 shadow-sm"
-                : "text-slate-700 border-slate-300 bg-white hover:bg-slate-100 hover:shadow-sm"
-            }
-          `}
-        >
-          {num}
-        </button>
-      ))}
-
-      {/* Next */}
-      <button
-        onClick={() => setCategoryPage(categoryPage + 1)}
-        disabled={categoryPage === totalCategoryPages}
-        className={`
-          px-3 py-1.5 text-xs border rounded-lg transition
-          ${
-            categoryPage === totalCategoryPages
-              ? "text-slate-300 border-slate-200 bg-white"
-              : "text-slate-600 border-slate-300 bg-white hover:bg-slate-100 hover:shadow-sm"
-          }
-        `}
-      >
-        Next
-      </button>
-
-    </div>
-  </div>
-)}
-
+                    <div className="flex overflow-x-auto sm:justify-center">
+                      <Pagination
+                        currentPage={categoryPage}
+                        totalPages={totalCategoryPages}
+                        onPageChange={setCategoryPage}
+                        showIcons
+                        className="shadow-sm"
+                      />
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -1322,9 +1256,7 @@ export default function ProductReport() {
                       return (
                         <tr
                           key={item.id}
-                          className={`
-                            cursor-pointer transition-colors border ${ROW_HIGHLIGHT[item.status]} ${item.statusColorClass}
-                          `}
+                          className={`cursor-pointer transition-colors border ${ROW_HIGHLIGHT[item.status]} ${item.statusColorClass}`}
                           onClick={() => setSelectedProduct(item)}
                         >
                           {/* Product */}
@@ -1450,81 +1382,36 @@ export default function ProductReport() {
                 </table>
               </div>
 
-              {/* TABLE PAGINATION CONTROLS */}
-              {/* TABLE PAGINATION CONTROLS - BOXED NUMBERS */}
-{totalPages > 1 && (
-  <div className="flex items-center justify-between mt-4 px-2">
-    <p className="text-xs text-slate-500">
-      Showing{" "}
-      <span className="font-semibold text-emerald-600">
-        {(page - 1) * PAGE_SIZE + 1}
-      </span>{" "}
-      to{" "}
-      <span className="font-semibold text-emerald-600">
-        {Math.min(page * PAGE_SIZE, filteredAndSorted.length)}
-      </span>{" "}
-      of{" "}
-      <span className="font-semibold text-slate-700">
-        {filteredAndSorted.length}
-      </span>{" "}
-      entries
-    </p>
+              {/* TABLE PAGINATION (Flowbite) */}
+              {totalPages > 1 && (
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-4 text-xs md:text-sm text-slate-600">
+                  <span>
+                    Showing{" "}
+                    <span className="font-semibold text-emerald-700">
+                      {(page - 1) * PAGE_SIZE + 1}
+                    </span>{" "}
+                    to{" "}
+                    <span className="font-semibold text-emerald-700">
+                      {Math.min(page * PAGE_SIZE, filteredAndSorted.length)}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-semibold text-emerald-700">
+                      {filteredAndSorted.length}
+                    </span>{" "}
+                    entries
+                  </span>
 
-    <div className="flex items-center gap-1">
-
-      {/* Previous */}
-      <button
-        onClick={() => setPage(page - 1)}
-        disabled={page === 1}
-        className={`
-          px-3 py-1.5 text-sm border rounded-md 
-          ${
-            page === 1
-              ? "text-slate-300 border-slate-200"
-              : "text-slate-600 border-slate-300 hover:bg-slate-100"
-          }
-        `}
-      >
-        Previous
-      </button>
-
-      {/* Page numbers */}
-      {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-        <button
-          key={num}
-          onClick={() => setPage(num)}
-          className={`
-            px-3 py-1.5 text-sm border rounded-md transition 
-            ${
-              num === page
-                ? "bg-emerald-500 text-white border-emerald-600 shadow-sm"
-                : "text-slate-700 border-slate-300 hover:bg-slate-100"
-            }
-          `}
-        >
-          {num}
-        </button>
-      ))}
-
-      {/* Next */}
-      <button
-        onClick={() => setPage(page + 1)}
-        disabled={page === totalPages}
-        className={`
-          px-3 py-1.5 text-sm border rounded-md 
-          ${
-            page === totalPages
-              ? "text-slate-300 border-slate-200"
-              : "text-slate-600 border-slate-300 hover:bg-slate-100"
-          }
-        `}
-      >
-        Next
-      </button>
-    </div>
-  </div>
-)}
-
+                  <div className="flex overflow-x-auto sm:justify-center">
+                    <Pagination
+                      currentPage={page}
+                      totalPages={totalPages}
+                      onPageChange={setPage}
+                      showIcons
+                      className="shadow-sm"
+                    />
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
@@ -1777,7 +1664,6 @@ function SummaryCard({
       transition={{ duration: 0.2 }}
       className={`relative p-4 rounded-xl text-white bg-gradient-to-br ${colors[color]} shadow-md overflow-hidden`}
     >
-      {/* inner glow */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.32),transparent_55%)] opacity-80" />
       <div className="relative flex items-center gap-3">
         <div className="p-2.5 bg-white/15 rounded-lg flex items-center justify-center">
