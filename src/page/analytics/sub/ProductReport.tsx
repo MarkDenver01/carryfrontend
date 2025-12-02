@@ -159,6 +159,18 @@ const classifyByDaysLeft = (
   };
 };
 
+// 🌈 Soft row highlight per expiry status (hindi masakit sa mata)
+const ROW_HIGHLIGHT: Record<ExpiryStatus, string> = {
+  Expired:
+    "bg-red-50/70 hover:bg-red-50 border-l-4 border-red-300/80",
+  "Near Expiry":
+    "bg-orange-50/70 hover:bg-orange-50 border-l-4 border-orange-300/80",
+  Warning:
+    "bg-yellow-50/70 hover:bg-yellow-50 border-l-4 border-yellow-300/80",
+  Good: "hover:bg-slate-50/70",
+  "New Stocks": "hover:bg-slate-50/70",
+};
+
 /* =========================
    MAIN COMPONENT
 ========================= */
@@ -1031,7 +1043,10 @@ export default function ProductReport() {
                       return (
                         <tr
                           key={item.id}
-                          className="hover:bg-slate-50/70 cursor-pointer transition-colors"
+                          className={`
+                            cursor-pointer transition-colors
+                            ${ROW_HIGHLIGHT[item.status]}
+                          `}
                           onClick={() => setSelectedProduct(item)}
                         >
                           {/* Product */}
