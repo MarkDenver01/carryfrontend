@@ -235,24 +235,19 @@ export default function ProductReport() {
     try {
       setStatusUpdatingId(productId);
 
-      // 🔥 Send ONLY inventory status — never touch stock count, expiry, etc.
       const updated = await updateProductStatus(productId, {
         productStatus: action,
       });
 
-      // 🔥 Update strictly productStatus only
       setProducts((prev) =>
         prev.map((p) =>
           p.productId === updated.productId
-            ? {
-                ...p,
-                productStatus: updated.productStatus, // inventory status only
-              }
+            ? { ...p, productStatus: updated.productStatus }
             : p
         )
       );
     } catch (err) {
-      console.error("❌ Failed to update product status:", err);
+      console.error("Failed to update product status", err);
     } finally {
       setStatusUpdatingId(null);
     }
@@ -325,7 +320,7 @@ export default function ProductReport() {
 
       // ✅ STOCK-BASED OVERRIDE:
       //  - 30–50 stocks = Warning (as long as hindi Expired)
-      if (stock >= 1 && stock <= 50 && statusInfo.status !== "Expired") {
+      if (stock >= 30 && stock <= 50 && statusInfo.status !== "Expired") {
         statusInfo = {
           status: "Warning",
           priority: 2,
@@ -513,7 +508,7 @@ export default function ProductReport() {
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="relative min-h-screen bg-slate-50/90 overflow-hidden"
+      className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden bg-slate-50 min-h-full"
       onMouseMove={handleMouseMove}
     >
       {/* ---------- BACKDROP GRID + BLOB (like Orders page) ---------- */}
@@ -545,666 +540,658 @@ export default function ProductReport() {
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
-          background: `radial-gradient(520px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)`,
+          background: `radial-gradient(520px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.25), transparent 70%)`,
         }}
       />
 
-      {/* MAIN CONTENT WRAPPER (para walang awkward blank space sa sides) */}
-      <div className="relative mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8 lg:py-10 flex flex-col gap-6">
-        {/* HEADER */}
-        <div className="flex flex-col gap-3">
-          <motion.h1
-            initial={{ opacity: 0, x: -18 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.4 }}
-            className="text-3xl md:text-[32px] font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-sky-500 bg-clip-text text-transparent"
-          >
-            Product Expiry Monitor
-          </motion.h1>
+      {/* HEADER */}
+      <div className="relative flex flex-col gap-3">
+        <motion.h1
+          initial={{ opacity: 0, x: -18 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.4 }}
+          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-sky-500 bg-clip-text text-transparent"
+        >
+          Product Expiry Monitor
+        </motion.h1>
 
-          <p className="text-gray-500 text-sm max-w-2xl">
-            Central view for{" "}
-            <span className="font-medium text-emerald-700">
-              live expiry & stock health
-            </span>
-            . Track expiring items, warning stocks, and promos before they
-            become losses.
-          </p>
+        <p className="text-gray-500 text-sm max-w-xl">
+          Central view for{" "}
+          <span className="font-medium text-emerald-700">
+            live expiry & stock health
+          </span>
+          . Track expiring items, warning stocks, and promos before they
+          become losses.
+        </p>
 
-          <div className="mt-1 h-[3px] w-32 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
-        </div>
+        <div className="mt-3 h-[3px] w-32 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
+      </div>
 
-        {/* MAIN CARD */}
-        <div className="rounded-2xl border border-slate-200 bg-white/95 backdrop-blur-md shadow-[0_16px_45px_rgba(15,23,42,0.10)] px-4 py-5 md:px-6 md:py-6 flex flex-col gap-6">
-          {/* TABS + SUMMARY */}
-          <div className="flex flex-col gap-4">
-            {/* Status Tabs */}
-            <div className="flex flex-wrap gap-2">
-              {(["All", ...STATUS_ORDER] as (ExpiryStatus | "All")[]).map(
-                (tab) => (
-                  <button
-                    key={tab}
-                    onClick={() => {
-                      setStatusFilter(tab);
-                      setPage(1);
-                    }}
-                    className={`px-4 py-1.5 rounded-full text-xs font-medium border transition whitespace-nowrap ${
-                      statusFilter === tab
-                        ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
-                        : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    {tab === "All" ? "All Statuses" : tab}
-                  </button>
-                )
-              )}
-            </div>
-
-            {/* SUMMARY CARDS */}
-            <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
-              <SummaryCard
-                icon={<Package className="w-5 h-5 md:w-6 md:h-6" />}
-                label="Total Products"
-                value={summary.total.toString()}
-                accent="Includes all statuses (even out of stock)"
-                color="emerald"
-              />
-              <SummaryCard
-                icon={<ShieldAlert className="w-5 h-5 md:w-6 md:h-6" />}
-                label="Expiring / Expired"
-                value={summary.expiringSoon.toString()}
-                accent="Items to prioritize for promo & clearance"
-                color="rose"
-              />
-              <SummaryCard
-                icon={<AlertTriangle className="w-5 h-5 md:w-6 md:h-6" />}
-                label="Warning Stocks (30–50)"
-                value={summary.warningStockCount.toString()}
-                accent="Low but not yet out of stock"
-                color="amber"
-              />
-              <SummaryCard
-                icon={<CheckCircle2 className="w-5 h-5 md:w-6 md:h-6" />}
-                label="New Stocks"
-                value={(
-                  summary.counts["Good"] + summary.counts["New Stocks"]
-                ).toString()}
-                accent="Safe inventory across all products"
-                color="indigo"
-              />
-            </section>
+      {/* MAIN CARD */}
+      <div className="rounded-2xl border border-slate-200 bg-white/90 backdrop-blur-md shadow-[0_18px_45px_rgba(15,23,42,0.12)] px-5 py-6 flex flex-col gap-7">
+        {/* TABS + SUMMARY */}
+        <div className="flex flex-col gap-5">
+          {/* Status Tabs */}
+          <div className="flex flex-wrap gap-2">
+            {(["All", ...STATUS_ORDER] as (ExpiryStatus | "All")[]).map(
+              (tab) => (
+                <button
+                  key={tab}
+                  onClick={() => {
+                    setStatusFilter(tab);
+                    setPage(1);
+                  }}
+                  className={`px-4 py-1.5 rounded-full text-xs font-medium border transition whitespace-nowrap ${
+                    statusFilter === tab
+                      ? "bg-emerald-600 text-white border-emerald-600 shadow-sm"
+                      : "bg-white border-slate-200 text-slate-700 hover:bg-slate-50"
+                  }`}
+                >
+                  {tab === "All" ? "All Statuses" : tab}
+                </button>
+              )
+            )}
           </div>
 
-          {/* FILTER BAR */}
-          <section className="rounded-xl border border-slate-200 bg-slate-50/90 px-3.5 py-4 md:px-4 flex flex-col gap-3.5">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                <Filter className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="font-semibold uppercase tracking-wide">
-                  Filters & Sorting
-                </span>
-                <span className="hidden md:inline text-slate-400">
-                  Showing{" "}
-                  <span className="font-semibold text-slate-700">
-                    {visibleCount}
-                  </span>{" "}
-                  of{" "}
-                  <span className="font-semibold text-slate-800">
-                    {filteredAndSorted.length}
-                  </span>{" "}
-                  monitored products
-                </span>
-                {lastUpdated && (
-                  <span className="hidden lg:inline text-[11px] text-slate-400 border-l pl-2 border-slate-200">
-                    Last updated{" "}
-                    <span className="font-medium text-slate-700">
-                      {lastUpdated}
-                    </span>
-                  </span>
-                )}
-              </div>
-
-              {/* Search */}
-              <div className="relative w-full md:max-w-xs">
-                <input
-                  type="text"
-                  placeholder="Search by product or category..."
-                  className="w-full h-10 border border-slate-300 rounded-lg px-4 pl-10 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
-                />
-                <Search className="absolute left-3 top-2.5 text-slate-400 w-4 h-4" />
-              </div>
-            </div>
-
-            {/* Dropdown row + Refresh */}
-            <div className="flex flex-wrap gap-2.5 items-center">
-              {/* Status filter dropdown */}
-              <Dropdown
-                dismissOnClick
-                renderTrigger={() => (
-                  <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
-                    <Filter className="w-4 h-4 text-emerald-500" />
-                    <span className="font-medium">
-                      Status:{" "}
-                      <span className="text-slate-900">{statusFilter}</span>
-                    </span>
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                  </button>
-                )}
-              >
-                {["All", ...STATUS_ORDER].map((s) => (
-                  <DropdownItem
-                    key={s}
-                    onClick={() => {
-                      setStatusFilter(s as any);
-                      setPage(1);
-                    }}
-                  >
-                    {s}
-                  </DropdownItem>
-                ))}
-              </Dropdown>
-
-              {/* Category filter dropdown */}
-              <Dropdown
-                dismissOnClick
-                renderTrigger={() => (
-                  <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
-                    <Tag className="w-4 h-4 text-sky-500" />
-                    <span className="font-medium">
-                      Category:{" "}
-                      <span className="text-slate-900">
-                        {categoryFilter === "All" ? "All" : categoryFilter}
-                      </span>
-                    </span>
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                  </button>
-                )}
-              >
-                <DropdownItem
-                  onClick={() => {
-                    setCategoryFilter("All");
-                    setPage(1);
-                  }}
-                >
-                  All
-                </DropdownItem>
-                {uniqueCategories.map((cat) => (
-                  <DropdownItem
-                    key={cat}
-                    onClick={() => {
-                      setCategoryFilter(cat);
-                      setPage(1);
-                    }}
-                  >
-                    {cat}
-                  </DropdownItem>
-                ))}
-              </Dropdown>
-
-              {/* Sort dropdown */}
-              <Dropdown
-                dismissOnClick
-                renderTrigger={() => (
-                  <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
-                    <BarChart2 className="w-4 h-4 text-slate-500" />
-                    <span className="font-medium">
-                      Sort:{" "}
-                      <span className="text-slate-900">{sortBy}</span>
-                    </span>
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                  </button>
-                )}
-              >
-                <DropdownItem onClick={() => setSortBy("Urgency")}>
-                  Urgency (Status & Days Left)
-                </DropdownItem>
-                <DropdownItem onClick={() => setSortBy("Name")}>
-                  Product Name (A–Z)
-                </DropdownItem>
-                <DropdownItem onClick={() => setSortBy("Category")}>
-                  Category
-                </DropdownItem>
-                <DropdownItem onClick={() => setSortBy("Stock")}>
-                  Stock (High → Low)
-                </DropdownItem>
-                <DropdownItem onClick={() => setSortBy("DaysLeft")}>
-                  Days Left (Low → High)
-                </DropdownItem>
-              </Dropdown>
-
-              {/* Refresh button */}
-              <button
-                type="button"
-                onClick={() => fetchProducts(true)}
-                className={`inline-flex items-center gap-1 ml-auto px-3 py-2 rounded-lg text-[11px] font-medium border ${
-                  loadingRefresh
-                    ? "border-emerald-300 bg-emerald-50 text-emerald-600"
-                    : "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600"
-                } transition shadow-sm`}
-              >
-                <RefreshCw
-                  className={`w-3.5 h-3.5 ${
-                    loadingRefresh ? "animate-spin" : ""
-                  }`}
-                />
-                {loadingRefresh ? "Refreshing…" : "Refresh"}
-              </button>
-            </div>
+          {/* SUMMARY CARDS */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-1">
+            <SummaryCard
+              icon={<Package className="w-6 h-6" />}
+              label="Total Products"
+              value={summary.total.toString()}
+              accent="Includes all statuses (even out of stock)"
+              color="emerald"
+            />
+            <SummaryCard
+              icon={<ShieldAlert className="w-6 h-6" />}
+              label="Expiring / Expired"
+              value={summary.expiringSoon.toString()}
+              accent="Items to prioritize for promo & clearance"
+              color="rose"
+            />
+            <SummaryCard
+              icon={<AlertTriangle className="w-6 h-6" />}
+              label="Warning Stocks (30–50)"
+              value={summary.warningStockCount.toString()}
+              accent="Low but not yet out of stock"
+              color="amber"
+            />
+            <SummaryCard
+              icon={<CheckCircle2 className="w-6 h-6" />}
+              label="New Stocks"
+              value={(
+                summary.counts["Good"] + summary.counts["New Stocks"]
+              ).toString()}
+              accent="Safe inventory across all products"
+              color="indigo"
+            />
           </section>
+        </div>
 
-          {/* STATUS & CATEGORY OVERVIEW */}
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-3.5 items-start">
-            {/* Status Overview */}
-            <div className="rounded-xl border border-slate-200 bg-white/95 shadow-sm p-4 flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <div className="flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-emerald-500" />
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                    Status Overview
-                  </p>
-                </div>
-                <span className="text-[11px] text-slate-500">
-                  {visibleCount} of {filteredAndSorted.length} monitored
-                </span>
-              </div>
-
-              <div className="flex flex-col gap-2 mt-1">
-                {STATUS_ORDER.map((status) => {
-                  const count = summary.counts[status];
-                  const pct =
-                    summary.total > 0
-                      ? Math.round((count / summary.total) * 100)
-                      : 0;
-
-                  const barColor =
-                    status === "Expired"
-                      ? "bg-red-500"
-                      : status === "Near Expiry"
-                      ? "bg-orange-500"
-                      : status === "Warning"
-                      ? "bg-amber-500"
-                      : status === "Good"
-                      ? "bg-sky-500"
-                      : "bg-emerald-500";
-
-                  const dotColor = barColor;
-
-                  return (
-                    <div key={status} className="flex flex-col gap-1">
-                      <div className="flex items-center justify-between text-[11px] text-slate-600">
-                        <span className="flex items-center gap-1">
-                          <span
-                            className={`h-1.5 w-1.5 rounded-full ${dotColor}`}
-                          />
-                          <span className="font-medium">{status}</span>
-                        </span>
-                        <span className="text-slate-500">
-                          {count} item{count !== 1 ? "s" : ""} • {pct}%
-                        </span>
-                      </div>
-                      <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
-                        <div
-                          className={`h-1.5 rounded-full ${barColor}`}
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Category Overview */}
-            <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white/95 shadow-sm p-4 flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <div className="flex items-center gap-2">
-                  <Tag className="w-4 h-4 text-emerald-500" />
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
-                    Category Overview
-                  </p>
-                </div>
-                <p className="text-[11px] text-slate-400">
-                  Click a row to filter products by category
-                </p>
-              </div>
-
-              {categorySnapshots.length === 0 ? (
-                <p className="text-xs text-slate-400">
-                  No categories found yet. Add products with categories to see
-                  the breakdown here.
-                </p>
-              ) : (
-                <div className="flex flex-col divide-y divide-slate-100">
-                  {categorySnapshots.map((catSnap) => {
-                    const isActive = categoryFilter === catSnap.category;
-                    const risky =
-                      catSnap.expired + catSnap.near + catSnap.warn > 0;
-
-                    return (
-                      <button
-                        key={catSnap.category}
-                        type="button"
-                        onClick={() => {
-                          setCategoryFilter(
-                            isActive ? "All" : catSnap.category
-                          );
-                          setPage(1);
-                        }}
-                        className={`flex w-full items-center justify-between gap-3 py-2.5 px-1.5 text-left transition rounded-lg ${
-                          isActive
-                            ? "bg-emerald-50/80 border border-emerald-200 shadow-xs"
-                            : "hover:bg-slate-50"
-                        }`}
-                      >
-                        <div className="flex flex-col gap-0.5">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-semibold text-slate-800">
-                              {catSnap.category}
-                            </span>
-                            <span className="text-[11px] text-slate-400">
-                              {catSnap.total} item
-                              {catSnap.total !== 1 ? "s" : ""}
-                            </span>
-                          </div>
-
-                          {risky && (
-                            <div className="flex flex-wrap gap-2 text-[11px]">
-                              {catSnap.expired > 0 && (
-                                <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                                  Expired: {catSnap.expired}
-                                </span>
-                              )}
-                              {catSnap.near > 0 && (
-                                <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-                                  Near: {catSnap.near}
-                                </span>
-                              )}
-                              {catSnap.warn > 0 && (
-                                <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-100">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
-                                  Warning: {catSnap.warn}
-                                </span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        <span className="text-[11px] text-slate-400">
-                          {isActive ? "Clear" : "Filter"}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </section>
-
-          {/* PRODUCT TABLE */}
-          <div className="flex flex-col gap-2.5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-slate-500">
+        {/* FILTER BAR */}
+        <section className="rounded-xl border border-slate-200 bg-slate-50/80 px-4 py-4 flex flex-col gap-4">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <Filter className="w-3.5 h-3.5 text-emerald-500" />
+              <span className="font-semibold uppercase tracking-wide">
+                Filters & Sorting
+              </span>
+              <span className="hidden md:inline text-slate-400">
                 Showing{" "}
                 <span className="font-semibold text-slate-700">
                   {visibleCount}
                 </span>{" "}
                 of{" "}
-                <span className="font-semibold text-slate-700">
+                <span className="font-semibold text-slate-800">
                   {filteredAndSorted.length}
                 </span>{" "}
-                products
+                monitored products
+              </span>
+              {lastUpdated && (
+                <span className="hidden lg:inline text-[11px] text-slate-400 border-l pl-2 border-slate-200">
+                  Last updated{" "}
+                  <span className="font-medium text-slate-700">
+                    {lastUpdated}
+                  </span>
+                </span>
+              )}
+            </div>
+
+            {/* Search */}
+            <div className="relative w-full md:max-w-xs">
+              <input
+                type="text"
+                placeholder="Search by product or category..."
+                className="w-full h-10 border border-slate-300 rounded-lg px-4 pl-10 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+              <Search className="absolute left-3 top-2.5 text-slate-400 w-4 h-4" />
+            </div>
+          </div>
+
+          {/* Dropdown row + Refresh */}
+          <div className="flex flex-wrap gap-3 items-center">
+            {/* Status filter dropdown */}
+            <Dropdown
+              dismissOnClick
+              renderTrigger={() => (
+                <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
+                  <Filter className="w-4 h-4 text-emerald-500" />
+                  <span className="font-medium">
+                    Status:{" "}
+                    <span className="text-slate-900">{statusFilter}</span>
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                </button>
+              )}
+            >
+              {["All", ...STATUS_ORDER].map((s) => (
+                <DropdownItem
+                  key={s}
+                  onClick={() => {
+                    setStatusFilter(s as any);
+                    setPage(1);
+                  }}
+                >
+                  {s}
+                </DropdownItem>
+              ))}
+            </Dropdown>
+
+            {/* Category filter dropdown */}
+            <Dropdown
+              dismissOnClick
+              renderTrigger={() => (
+                <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
+                  <Tag className="w-4 h-4 text-sky-500" />
+                  <span className="font-medium">
+                    Category:{" "}
+                    <span className="text-slate-900">
+                      {categoryFilter === "All" ? "All" : categoryFilter}
+                    </span>
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                </button>
+              )}
+            >
+              <DropdownItem
+                onClick={() => {
+                  setCategoryFilter("All");
+                  setPage(1);
+                }}
+              >
+                All
+              </DropdownItem>
+              {uniqueCategories.map((cat) => (
+                <DropdownItem
+                  key={cat}
+                  onClick={() => {
+                    setCategoryFilter(cat);
+                    setPage(1);
+                  }}
+                >
+                  {cat}
+                </DropdownItem>
+              ))}
+            </Dropdown>
+
+            {/* Sort dropdown */}
+            <Dropdown
+              dismissOnClick
+              renderTrigger={() => (
+                <button className="flex items-center gap-2 border border-slate-300 bg-white text-slate-800 text-xs px-3.5 py-2 rounded-lg shadow-sm hover:bg-slate-50 transition">
+                  <BarChart2 className="w-4 h-4 text-slate-500" />
+                  <span className="font-medium">
+                    Sort:{" "}
+                    <span className="text-slate-900">{sortBy}</span>
+                  </span>
+                  <ChevronDown className="w-4 h-4 text-slate-400" />
+                </button>
+              )}
+            >
+              <DropdownItem onClick={() => setSortBy("Urgency")}>
+                Urgency (Status & Days Left)
+              </DropdownItem>
+              <DropdownItem onClick={() => setSortBy("Name")}>
+                Product Name (A–Z)
+              </DropdownItem>
+              <DropdownItem onClick={() => setSortBy("Category")}>
+                Category
+              </DropdownItem>
+              <DropdownItem onClick={() => setSortBy("Stock")}>
+                Stock (High → Low)
+              </DropdownItem>
+              <DropdownItem onClick={() => setSortBy("DaysLeft")}>
+                Days Left (Low → High)
+              </DropdownItem>
+            </Dropdown>
+
+            {/* Refresh button */}
+            <button
+              type="button"
+              onClick={() => fetchProducts(true)}
+              className={`inline-flex items-center gap-1 ml-auto px-3 py-2 rounded-lg text-[11px] font-medium border ${
+                loadingRefresh
+                  ? "border-emerald-300 bg-emerald-50 text-emerald-600"
+                  : "border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600"
+              } transition shadow-sm`}
+            >
+              <RefreshCw
+                className={`w-3.5 h-3.5 ${
+                  loadingRefresh ? "animate-spin" : ""
+                }`}
+              />
+              {loadingRefresh ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
+        </section>
+
+        {/* STATUS & CATEGORY OVERVIEW */}
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
+          {/* Status Overview */}
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-2">
+                <Layers className="w-4 h-4 text-emerald-500" />
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                  Status Overview
+                </p>
+              </div>
+              <span className="text-[11px] text-slate-500">
+                {visibleCount} of {filteredAndSorted.length} monitored
+              </span>
+            </div>
+
+            <div className="flex flex-col gap-2 mt-1">
+              {STATUS_ORDER.map((status) => {
+                const count = summary.counts[status];
+                const pct =
+                  summary.total > 0
+                    ? Math.round((count / summary.total) * 100)
+                    : 0;
+
+                const barColor =
+                  status === "Expired"
+                    ? "bg-red-500"
+                    : status === "Near Expiry"
+                    ? "bg-orange-500"
+                    : status === "Warning"
+                    ? "bg-amber-500"
+                    : status === "Good"
+                    ? "bg-sky-500"
+                    : "bg-emerald-500";
+
+                const dotColor = barColor;
+
+                return (
+                  <div key={status} className="flex flex-col gap-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-600">
+                      <span className="flex items-center gap-1">
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${dotColor}`}
+                        />
+                        <span className="font-medium">{status}</span>
+                      </span>
+                      <span className="text-slate-500">
+                        {count} item{count !== 1 ? "s" : ""} • {pct}%
+                      </span>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                      <div
+                        className={`h-1.5 rounded-full ${barColor}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Category Overview */}
+          <div className="lg:col-span-2 rounded-xl border border-slate-200 bg-white p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <div className="flex items-center gap-2">
+                <Tag className="w-4 h-4 text-emerald-500" />
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-700">
+                  Category Overview
+                </p>
+              </div>
+              <p className="text-[11px] text-slate-400">
+                Click a row to filter products by category
               </p>
             </div>
 
-            {loadingProducts ? (
-              <div className="text-center text-sm text-slate-500 py-8">
-                Loading products…
-              </div>
-            ) : paginated.length === 0 ? (
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 flex flex-col items-center justify-center gap-2">
-                <AlertTriangle className="w-8 h-8 text-slate-400" />
-                <p className="text-sm font-semibold text-slate-700">
-                  No products found for the current filters.
-                </p>
-                <p className="text-xs text-slate-400">
-                  Try clearing some filters or adjusting your search query.
-                </p>
-              </div>
+            {categorySnapshots.length === 0 ? (
+              <p className="text-xs text-slate-400">
+                No categories found yet. Add products with categories to see the
+                breakdown here.
+              </p>
             ) : (
-              <>
-                <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-                  <table className="min-w-full divide-y divide-slate-200 text-[11px] sm:text-xs md:text-sm">
-                    <thead className="bg-slate-50/95">
-                      <tr>
-                        <Th label="Product" />
-                        <Th label="Category" />
-                        <Th label="Stock" className="text-right" />
-                        <Th label="Stock-In" />
-                        <Th label="Expiry" />
-                        <Th label="Days Left" className="text-right" />
-                        <Th label="Expiry Status" />
-                        <Th label="Inventory Status" />
-                        <Th label="Actions" className="text-right" />
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {paginated.map((item) => {
-                        const daysLeftLabel =
-                          item.daysLeft === null
-                            ? "N/A"
-                            : `${item.daysLeft} day${
-                                item.daysLeft === 1 ? "" : "s"
-                              }`;
+              <div className="flex flex-col divide-y divide-slate-100">
+                {categorySnapshots.map((catSnap) => {
+                  const isActive = categoryFilter === catSnap.category;
+                  const risky =
+                    catSnap.expired + catSnap.near + catSnap.warn > 0;
 
-                        const isWarningStock =
-                          item.stock >= 30 && item.stock <= 50;
-                        const isOutOfStock =
-                          item.stock <= 0 ||
-                          normalizeStatus(item.backendStatus) === "Out of Stock";
-
-                        // ✅ Promo dapat lang sa malapit mag-expire (1–90 days)
-                        const canPromo =
-                          item.daysLeft !== null &&
-                          item.daysLeft > 0 &&
-                          item.daysLeft <= 90;
-
-                        const actions: {
-                          label: string;
-                          action: "For Promo" | "Out of Stock";
-                          kind: "promo" | "danger";
-                        }[] = [];
-
-                        if (!isOutOfStock) {
-                          if (canPromo) {
-                            actions.push({
-                              label: "Promo",
-                              action: "For Promo",
-                              kind: "promo",
-                            });
-                          }
-
-                          actions.push({
-                            label: "Out of Stock",
-                            action: "Out of Stock",
-                            kind: "danger",
-                          });
-                        } else {
-                          actions.push({
-                            label: "Confirm OOS",
-                            action: "Out of Stock",
-                            kind: "danger",
-                          });
-                        }
-
-                        const getButtonClasses = (kind: "promo" | "danger") =>
-                          kind === "promo"
-                            ? "bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300"
-                            : "bg-red-50 hover:bg-red-100 text-red-700 border border-red-300";
-
-                        return (
-                          <tr
-                            key={item.id}
-                            className={`
-                              cursor-pointer transition-colors
-                              ${ROW_HIGHLIGHT[item.status]}
-                            `}
-                            onClick={() => setSelectedProduct(item)}
-                          >
-                            {/* Product */}
-                            <td className="px-4 py-3 align-top">
-                              <div className="flex items-start gap-3">
-                                <div className="hidden sm:flex w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 items-center justify-center text-xs font-semibold">
-                                  {item.name.charAt(0).toUpperCase()}
-                                </div>
-                                <div className="flex flex-col gap-0.5">
-                                  <p className="text-[12px] sm:text-[13px] font-semibold text-slate-900 line-clamp-2">
-                                    {item.name}
-                                  </p>
-                                  {isWarningStock && !isOutOfStock && (
-                                    <p className="mt-0.5 text-[11px] text-amber-600">
-                                      Warning stocks (30–50)
-                                    </p>
-                                  )}
-                                  {isOutOfStock && (
-                                    <p className="mt-0.5 text-[11px] text-red-600">
-                                      Out of stock
-                                    </p>
-                                  )}
-                                </div>
-                              </div>
-                            </td>
-
-                            {/* Category */}
-                            <td className="px-4 py-3 align-top text-slate-600">
-                              {item.category}
-                            </td>
-
-                            {/* Stock */}
-                            <td className="px-4 py-3 align-top text-right font-semibold text-slate-800">
-                              {item.stock}
-                            </td>
-
-                            {/* Stock-In */}
-                            <td className="px-4 py-3 align-top text-slate-600 whitespace-nowrap">
-                              {item.stockInDate
-                                ? dayjs(item.stockInDate).format("MMM D, YYYY")
-                                : "N/A"}
-                            </td>
-
-                            {/* Expiry */}
-                            <td className="px-4 py-3 align-top text-slate-600 whitespace-nowrap">
-                              {item.expiryDate
-                                ? dayjs(item.expiryDate).format("MMM D, YYYY")
-                                : "N/A"}
-                            </td>
-
-                            {/* Days left */}
-                            <td className="px-4 py-3 align-top text-right text-slate-700 whitespace-nowrap">
-                              {daysLeftLabel}
-                            </td>
-
-                            {/* Expiry Status */}
-                            <td className="px-4 py-3 align-top">
-                              <span
-                                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-semibold ${item.statusSoftClass}`}
-                              >
-                                {item.status === "Expired" && "❌"}
-                                {item.status === "Near Expiry" && "⏳"}
-                                {item.status === "Warning" && "⚠️"}
-                                {item.status === "Good" && "✅"}
-                                {item.status === "New Stocks" && "🆕"}
-                                <span>{item.status}</span>
-                              </span>
-                            </td>
-
-                            {/* Inventory Status */}
-                            <td className="px-4 py-3 align-top">
-                              <span className="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-[10px] text-slate-600 border border-slate-200/70 whitespace-nowrap">
-                                {item.backendStatus || "Not set"}
-                              </span>
-                            </td>
-
-                            {/* Actions */}
-                            <td
-                              className="px-4 py-3 align-top text-right"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <div className="flex flex-wrap justify-end gap-2">
-                                {actions.map((btn) => (
-                                  <button
-                                    key={btn.label}
-                                    type="button"
-                                    disabled={
-                                      statusUpdatingId === item.productId
-                                    }
-                                    onClick={() =>
-                                      handleChangeStatus(
-                                        item.productId,
-                                        btn.action
-                                      )
-                                    }
-                                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition ${getButtonClasses(
-                                      btn.kind
-                                    )} ${
-                                      statusUpdatingId === item.productId
-                                        ? "opacity-70 cursor-wait"
-                                        : "hover:shadow-sm cursor-pointer"
-                                    }`}
-                                  >
-                                    {statusUpdatingId === item.productId && (
-                                      <RefreshCw className="w-3 h-3 animate-spin opacity-80" />
-                                    )}
-                                    <span>{btn.label}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-
-                {canLoadMore && (
-                  <div className="flex justify-center mt-3">
+                  return (
                     <button
+                      key={catSnap.category}
                       type="button"
-                      onClick={() => setPage((p) => p + 1)}
-                      className="px-4 py-2 rounded-full text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 shadow-sm flex items-center gap-2"
+                      onClick={() => {
+                        setCategoryFilter(
+                          isActive ? "All" : catSnap.category
+                        );
+                        setPage(1);
+                      }}
+                      className={`flex w-full items-center justify-between gap-3 py-2.5 px-2 text-left transition rounded-lg ${
+                        isActive
+                          ? "bg-emerald-50 border border-emerald-200 shadow-xs"
+                          : "hover:bg-slate-50"
+                      }`}
                     >
-                      <RefreshCw className="w-4 h-4" />
-                      Load more products (
-                      {filteredAndSorted.length - visibleCount} remaining)
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-semibold text-slate-800">
+                            {catSnap.category}
+                          </span>
+                          <span className="text-[11px] text-slate-400">
+                            {catSnap.total} item
+                            {catSnap.total !== 1 ? "s" : ""}
+                          </span>
+                        </div>
+
+                        {risky && (
+                          <div className="flex flex-wrap gap-2 text-[11px]">
+                            {catSnap.expired > 0 && (
+                              <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                                Expired: {catSnap.expired}
+                              </span>
+                            )}
+                            {catSnap.near > 0 && (
+                              <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
+                                <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                                Near: {catSnap.near}
+                              </span>
+                            )}
+                            {catSnap.warn > 0 && (
+                              <span className="inline-flex items-center gap-1 text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                                Warning: {catSnap.warn}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <span className="text-[11px] text-slate-400">
+                        {isActive ? "Clear" : "Filter"}
+                      </span>
                     </button>
-                  </div>
-                )}
-              </>
+                  );
+                })}
+              </div>
             )}
           </div>
+        </section>
 
-          {/* NOTE */}
-          <div className="mt-1 text-xs text-slate-500 flex items-start gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
-            <Info className="w-3.5 h-3.5 mt-0.5 text-emerald-500" />
-            <p>
-              Expiry status is based on{" "}
+        {/* PRODUCT TABLE */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-500">
+              Showing{" "}
               <span className="font-semibold text-slate-700">
-                Expiry Date
+                {visibleCount}
               </span>{" "}
-              relative to today. Warning stocks (30–50 pcs) in{" "}
+              of{" "}
               <span className="font-semibold text-slate-700">
-                Warning / Near Expiry
+                {filteredAndSorted.length}
               </span>{" "}
-              are also monitored for replenishment and promo planning.
+              products
             </p>
           </div>
+
+          {loadingProducts ? (
+            <div className="text-center text-sm text-slate-500 py-8">
+              Loading products…
+            </div>
+          ) : paginated.length === 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-6 flex flex-col items-center justify-center gap-2">
+              <AlertTriangle className="w-8 h-8 text-slate-400" />
+              <p className="text-sm font-semibold text-slate-700">
+                No products found for the current filters.
+              </p>
+              <p className="text-xs text-slate-400">
+                Try clearing some filters or adjusting your search query.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+                <table className="min-w-full divide-y divide-slate-200 text-[11px] sm:text-xs md:text-sm">
+                  <thead className="bg-slate-50">
+                    <tr>
+                      <Th label="Product" />
+                      <Th label="Category" />
+                      <Th label="Stock" className="text-right" />
+                      <Th label="Stock-In" />
+                      <Th label="Expiry" />
+                      <Th label="Days Left" className="text-right" />
+                      <Th label="Expiry Status" />
+                      <Th label="Inventory Status" />
+                      <Th label="Actions" className="text-right" />
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {paginated.map((item) => {
+                      const daysLeftLabel =
+                        item.daysLeft === null
+                          ? "N/A"
+                          : `${item.daysLeft} day${
+                              item.daysLeft === 1 ? "" : "s"
+                            }`;
+
+                      const isWarningStock =
+                        item.stock >= 30 && item.stock <= 50;
+                      const isOutOfStock =
+                        item.stock <= 0 ||
+                        normalizeStatus(item.backendStatus) === "Out of Stock";
+
+                      // ✅ Promo dapat lang sa malapit mag-expire (1–90 days)
+                      const canPromo =
+                        item.daysLeft !== null &&
+                        item.daysLeft > 0 &&
+                        item.daysLeft <= 90;
+
+                      const actions: {
+                        label: string;
+                        action: "For Promo" | "Out of Stock";
+                        kind: "promo" | "danger";
+                      }[] = [];
+
+                      if (!isOutOfStock) {
+                        if (canPromo) {
+                          actions.push({
+                            label: "Promo",
+                            action: "For Promo",
+                            kind: "promo",
+                          });
+                        }
+                        actions.push({
+                          label: "Out of Stock",
+                          action: "Out of Stock",
+                          kind: "danger",
+                        });
+                      } else {
+                        actions.push({
+                          label: "Confirm OOS",
+                          action: "Out of Stock",
+                          kind: "danger",
+                        });
+                      }
+
+                      const getButtonClasses = (kind: "promo" | "danger") =>
+                        kind === "promo"
+                          ? "bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-300"
+                          : "bg-red-50 hover:bg-red-100 text-red-700 border border-red-300";
+
+                      return (
+                        <tr
+                          key={item.id}
+                          className={`
+                            cursor-pointer transition-colors
+                            ${ROW_HIGHLIGHT[item.status]}
+                          `}
+                          onClick={() => setSelectedProduct(item)}
+                        >
+                          {/* Product */}
+                          <td className="px-4 py-3 align-top">
+                            <div className="flex items-start gap-3">
+                              <div className="hidden sm:flex w-8 h-8 rounded-full bg-emerald-50 border border-emerald-100 text-emerald-700 items-center justify-center text-xs font-semibold">
+                                {item.name.charAt(0).toUpperCase()}
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                <p className="text-[12px] sm:text-[13px] font-semibold text-slate-900 line-clamp-2">
+                                  {item.name}
+                                </p>
+                                {isWarningStock && !isOutOfStock && (
+                                  <p className="mt-0.5 text-[11px] text-amber-600">
+                                    Warning stocks (30–50)
+                                  </p>
+                                )}
+                                {isOutOfStock && (
+                                  <p className="mt-0.5 text-[11px] text-red-600">
+                                    Out of stock
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Category */}
+                          <td className="px-4 py-3 align-top text-slate-600">
+                            {item.category}
+                          </td>
+
+                          {/* Stock */}
+                          <td className="px-4 py-3 align-top text-right font-semibold text-slate-800">
+                            {item.stock}
+                          </td>
+
+                          {/* Stock-In */}
+                          <td className="px-4 py-3 align-top text-slate-600 whitespace-nowrap">
+                            {item.stockInDate
+                              ? dayjs(item.stockInDate).format("MMM D, YYYY")
+                              : "N/A"}
+                          </td>
+
+                          {/* Expiry */}
+                          <td className="px-4 py-3 align-top text-slate-600 whitespace-nowrap">
+                            {item.expiryDate
+                              ? dayjs(item.expiryDate).format("MMM D, YYYY")
+                              : "N/A"}
+                          </td>
+
+                          {/* Days left */}
+                          <td className="px-4 py-3 align-top text-right text-slate-700 whitespace-nowrap">
+                            {daysLeftLabel}
+                          </td>
+
+                          {/* Expiry Status */}
+                          <td className="px-4 py-3 align-top">
+                            <span
+                              className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-semibold ${item.statusSoftClass}`}
+                            >
+                              {item.status === "Expired" && "❌"}
+                              {item.status === "Near Expiry" && "⏳"}
+                              {item.status === "Warning" && "⚠️"}
+                              {item.status === "Good" && "✅"}
+                              {item.status === "New Stocks" && "🆕"}
+                              <span>{item.status}</span>
+                            </span>
+                          </td>
+
+                          {/* Inventory Status */}
+                          <td className="px-4 py-3 align-top">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full bg-slate-100 text-[10px] text-slate-600 border border-slate-200/70 whitespace-nowrap">
+                              {item.backendStatus || "Not set"}
+                            </span>
+                          </td>
+
+                          {/* Actions */}
+                          <td
+                            className="px-4 py-3 align-top text-right"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="flex flex-wrap justify-end gap-2">
+                              {actions.map((btn) => (
+                                <button
+                                  key={btn.label}
+                                  type="button"
+                                  disabled={statusUpdatingId === item.productId}
+                                  onClick={() =>
+                                    handleChangeStatus(
+                                      item.productId,
+                                      btn.action
+                                    )
+                                  }
+                                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-semibold transition ${getButtonClasses(
+                                    btn.kind
+                                  )} ${
+                                    statusUpdatingId === item.productId
+                                      ? "opacity-70 cursor-wait"
+                                      : "hover:shadow-sm cursor-pointer"
+                                  }`}
+                                >
+                                  {statusUpdatingId === item.productId && (
+                                    <RefreshCw className="w-3 h-3 animate-spin opacity-80" />
+                                  )}
+                                  <span>{btn.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {canLoadMore && (
+                <div className="flex justify-center mt-3">
+                  <button
+                    type="button"
+                    onClick={() => setPage((p) => p + 1)}
+                    className="px-4 py-2 rounded-full text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 shadow-sm flex items-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Load more products (
+                    {filteredAndSorted.length - visibleCount} remaining)
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        {/* NOTE */}
+        <div className="mt-1 text-xs text-slate-500 flex items-start gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5">
+          <Info className="w-3.5 h-3.5 mt-0.5 text-emerald-500" />
+          <p>
+            Expiry status is based on{" "}
+            <span className="font-semibold text-slate-700">Expiry Date</span>{" "}
+            relative to today. Warning stocks (30–50 pcs) in{" "}
+            <span className="font-semibold text-slate-700">
+              Warning / Near Expiry
+            </span>{" "}
+            are also monitored for replenishment and promo planning.
+          </p>
         </div>
       </div>
 
@@ -1332,10 +1319,12 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
             <div className="flex items-center gap-1">
               <Package className="w-4 h-4 text-emerald-500" />
               <span>Stock:</span>
-              <span className="font-semibold text-slate-900">{stock}</span>
+              <span className="font-semibold text-slate-900">
+                {stock}
+              </span>
             </div>
             <div className="flex items-center gap-1">
-              <Clock className="w-4 h-4 text-emerald-500" />
+              <Clock className="w-4 h-4 text-slate-500" />
               <span>Days left:</span>
               <span className="font-semibold text-slate-900">
                 {daysLeftLabel}
