@@ -57,10 +57,11 @@ interface EnrichedProduct {
   statusPriority: number;
   statusColorClass: string;
   statusSoftClass: string;
-  inventoryStatus: string; // normalized inventory status (Available, For Promo, Out of Stock, Not Available)
+  inventoryStatus: string; // normalized inventory status
   isWarningStock: boolean;
   isNearExpiryWindow: boolean;
-  combinedLabel: string | null; // e.g. "Warning Stocks + Near Expiry" or "Warning Stocks"
+  combinedLabel: string | null; // e.g. "Warning Stocks + Near Expiry", "Warning Stocks", "Invalid expiry date"
+  hasInvalidExpiry: boolean;
 }
 
 const STATUS_ORDER: ExpiryStatus[] = [
@@ -76,7 +77,7 @@ const PAGE_SIZE = 120;
 const clamp = (val: number, min: number, max: number) =>
   Math.min(max, Math.max(min, val));
 
-// 🔧 Normalize backend strings to consistent FE standard
+// 🔧 Normalize backend strings to consistent FE standard (inventory status)
 const normalizeStatus = (raw: string | null | undefined): string => {
   if (!raw) return "Available";
 
@@ -98,7 +99,7 @@ const normalizeStatus = (raw: string | null | undefined): string => {
  * 1–60        → Near Expiry
  * 61–100      → Good
  * 101+        → New Stocks
- * null        → Good (no expiry date)
+ * null        → Good (no expiry date, refined later by stock rules)
  */
 const classifyByDaysLeft = (
   daysLeft: number | null
@@ -108,7 +109,7 @@ const classifyByDaysLeft = (
   colorClass: string;
   softClass: string;
 } => {
-  // No expiry date → treat as Good by default (will be refined by stock rules)
+  // No expiry date → treat as Good baseline (refined by stock rules)
   if (daysLeft === null) {
     return {
       status: "Good",
@@ -118,7 +119,7 @@ const classifyByDaysLeft = (
     };
   }
 
-  // 0 DAYS LEFT → EXPIRED (hard red)
+  // 0 DAYS LEFT → EXPIRED
   if (daysLeft === 0) {
     return {
       status: "Expired",
@@ -128,7 +129,7 @@ const classifyByDaysLeft = (
     };
   }
 
-  // 1–60 DAYS → NEAR EXPIRY (orange)
+  // 1–60 DAYS → NEAR EXPIRY
   if (daysLeft >= 1 && daysLeft <= 60) {
     return {
       status: "Near Expiry",
@@ -138,7 +139,7 @@ const classifyByDaysLeft = (
     };
   }
 
-  // 61–100 DAYS → GOOD (green)
+  // 61–100 DAYS → GOOD
   if (daysLeft >= 61 && daysLeft <= 100) {
     return {
       status: "Good",
@@ -148,7 +149,7 @@ const classifyByDaysLeft = (
     };
   }
 
-  // 101+ DAYS → NEW STOCKS (blue)
+  // 101+ DAYS → NEW STOCKS
   return {
     status: "New Stocks",
     priority: 3,
@@ -157,7 +158,7 @@ const classifyByDaysLeft = (
   };
 };
 
-// 🌈 Soft row highlight per expiry status (hindi masakit sa mata) + godly hues
+// 🌈 Soft row highlight per expiry status (hindi masakit sa mata)
 const ROW_HIGHLIGHT: Record<ExpiryStatus, string> = {
   Expired: "bg-red-50/70 hover:bg-red-50 border-l-4 border-red-400/80",
   "Near Expiry":
@@ -194,7 +195,7 @@ export default function ProductReport() {
     null
   );
 
-  // 🔥 For background spotlight effect (like Orders page)
+  // 🔥 For background spotlight effect
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -256,7 +257,7 @@ export default function ProductReport() {
   };
 
   /* =========================
-     DATA ENRICH + RULE ENGINE
+     DATA ENRICH + 14-RULE ENGINE
   ========================== */
 
   const enrichedData: EnrichedProduct[] = useMemo(() => {
@@ -286,6 +287,7 @@ export default function ProductReport() {
       let expiry: dayjs.Dayjs | null = null;
       let stockIn: dayjs.Dayjs | null = null;
 
+      // Parse expiry
       if (expiryDateStr) {
         let parsedExpiry = dayjs(expiryDateStr);
         if (!parsedExpiry.isValid()) {
@@ -294,11 +296,11 @@ export default function ProductReport() {
         if (parsedExpiry.isValid()) {
           expiry = parsedExpiry.startOf("day");
           const diff = expiry.diff(today, "day");
-          // clamp negative days to 0 para walang -4, -3, etc.
-          daysLeft = diff < 0 ? 0 : diff;
+          daysLeft = diff < 0 ? 0 : diff; // clamp negative → 0
         }
       }
 
+      // Parse stock-in
       if (stockInDateStr) {
         let parsedStockIn = dayjs(stockInDateStr);
         if (!parsedStockIn.isValid()) {
@@ -309,6 +311,7 @@ export default function ProductReport() {
         }
       }
 
+      // Shelf life & progress
       if (stockIn && expiry && expiry.isAfter(stockIn)) {
         shelfLifeDays = expiry.diff(stockIn, "day");
         elapsedDays = today.diff(stockIn, "day");
@@ -316,34 +319,21 @@ export default function ProductReport() {
         percentUsed = clamp(safeElapsed / shelfLifeDays, 0, 1);
       }
 
-      // 👉 BASE classification by days left
+      // Detect invalid expiry (expiry earlier than stock-in)
+      const hasInvalidExpiry =
+        !!expiry && !!stockIn && expiry.isBefore(stockIn);
+
+      // Base classification by days
       let statusInfo = classifyByDaysLeft(daysLeft);
 
-      // ===== STOCK + EXPIRY RULE ENGINE =====
-      //
-      // HARD RULES:
-      //  0 DAYS LEFT                     → EXPIRED
-      //  0 STOCKS AND 1–100+ DAYS LEFT  → OUT OF STOCK (inventory)
-      //  1–100+ STOCKS AND 0 DAYS LEFT  → EXPIRED
-      //
-      // COMBINATIONS:
-      //  1–60 STOCKS AND 1–60 DAYS      → Warning Stocks + Near Expiry
-      //  1–60 STOCKS AND >60 DAYS       → Warning Stocks (only)
-      //  61–100 STOCKS AND 61–100 DAYS  → Good
-      //  100+ STOCKS AND 100+ DAYS      → New Stocks
-      //
-      // NO EXPIRY DATE:
-      //  0 STOCK                        → Out of Stock
-      //  1–60 STOCK                     → Warning Stocks
-      //  61+ STOCK                      → Good
-
-      const hasExpiry = daysLeft !== null;
+      // ==== STOCK FLAGS ====
       const stockZeroOrLess = stock <= 0;
-
       const isWarningStockRange = stock >= 1 && stock <= 60;
       const isGoodStockRange = stock >= 61 && stock <= 100;
       const isHighStockRange = stock >= 101;
 
+      // ==== DAYS FLAGS ====
+      const hasExpiry = daysLeft !== null;
       const isWarningDayRange =
         daysLeft !== null && daysLeft >= 1 && daysLeft <= 60;
       const isGoodDayRange =
@@ -352,27 +342,32 @@ export default function ProductReport() {
 
       let combinedLabel: string | null = null;
 
-      // INVENTORY STATUS (derived from stock + backend)
+      // ==== INVENTORY STATUS (stock + backend) ====
       let inventoryStatus = rawInventoryStatus || "Available";
       if (stockZeroOrLess) {
-        // 0 STOCKS AND 1–100+ DAYS LEFT = OUT OF STOCK (inventory side)
+        // Rule 5: Out of Stock (inventory) if stock <= 0
         inventoryStatus = "Out of Stock";
       }
 
-      // ⚓ HARD EXPIRY RULES
-      if (daysLeft === 0) {
-        // 1–100+ STOCKS AND 0 DAYS LEFT = EXPIRED
+      // ======================================
+      // 🔺 RULE 14: INVALID EXPIRY DATE FIRST
+      // ======================================
+      if (hasInvalidExpiry) {
+        // Mark as warning-type issue, show explicit label
         statusInfo = {
-          status: "Expired",
-          priority: 0,
-          colorClass: "border-red-400",
-          softClass: "bg-red-50 text-red-700",
+          status: "Warning",
+          priority: 1,
+          colorClass: "border-yellow-400",
+          softClass: "bg-yellow-50 text-yellow-700",
         };
-        combinedLabel = null;
+        combinedLabel = "Invalid expiry date";
+        daysLeft = null; // hide wrong days value
       } else if (!hasExpiry) {
-        // NO EXPIRY DATE: stock-only logic
+        // =====================================
+        // 🔹 RULE 13: NO EXPIRY DATE (stock-only)
+        // =====================================
         if (stockZeroOrLess) {
-          // out of stock inventory; expiry status can stay Good but mark as no-expiry
+          // Out of stock, no expiry
           statusInfo = {
             status: "Good",
             priority: 2,
@@ -381,6 +376,7 @@ export default function ProductReport() {
           };
           combinedLabel = "No expiry date";
         } else if (isWarningStockRange) {
+          // Rule: 1–60 stock, no expiry → Warning Stocks
           statusInfo = {
             status: "Warning",
             priority: 2,
@@ -389,18 +385,32 @@ export default function ProductReport() {
           };
           combinedLabel = "Warning Stocks";
         } else {
+          // 61+ stock, no expiry → Good
           statusInfo = {
             status: "Good",
             priority: 2,
             colorClass: "border-emerald-400",
             softClass: "bg-emerald-50 text-emerald-700",
           };
-          combinedLabel = null;
+          combinedLabel = "No expiry date";
         }
+      } else if (daysLeft === 0) {
+        // ============================
+        // 🔴 RULE 1: EXPIRED
+        // ============================
+        statusInfo = {
+          status: "Expired",
+          priority: 0,
+          colorClass: "border-red-400",
+          softClass: "bg-red-50 text-red-700",
+        };
+        combinedLabel = null;
       } else {
-        // HAS EXPIRY & DAYS LEFT > 0: full combination rules
+        // ====================================
+        // FULL COMBINED RULES (2–12)
+        // ====================================
 
-        // RULE 1: 1–60 STOCKS AND 1–60 DAYS = WARNING STOCKS + NEAR EXPIRY
+        // Rule 8: 1–60 stock AND 1–60 days → Warning + Near Expiry
         if (isWarningStockRange && isWarningDayRange) {
           statusInfo = {
             status: "Near Expiry",
@@ -410,8 +420,9 @@ export default function ProductReport() {
           };
           combinedLabel = "Warning Stocks + Near Expiry";
         }
-        // RULE 2: Warning stocks only (1–60 pcs, days outside 1–60)
+        // Rule 9: Warning stock only (1–60 stock, days > 60)
         else if (isWarningStockRange && !isWarningDayRange) {
+          // 1–60 stock AND NOT (1–60 days)
           statusInfo = {
             status: "Warning",
             priority: statusInfo.priority,
@@ -420,7 +431,7 @@ export default function ProductReport() {
           };
           combinedLabel = "Warning Stocks";
         }
-        // RULE 3: Near expiry only (days 1–60, stock not low)
+        // Rule 10: Near Expiry only (61+ stock AND 1–60 days)
         else if (!isWarningStockRange && isWarningDayRange) {
           statusInfo = {
             status: "Near Expiry",
@@ -430,7 +441,7 @@ export default function ProductReport() {
           };
           combinedLabel = null;
         }
-        // RULE 4: 61–100 STOCKS AND 61–100 DAYS = GOOD
+        // Rule 11: 61–100 stock AND 61–100 days → Good
         else if (isGoodStockRange && isGoodDayRange) {
           statusInfo = {
             status: "Good",
@@ -440,7 +451,7 @@ export default function ProductReport() {
           };
           combinedLabel = null;
         }
-        // RULE 5: 100+ STOCKS AND 100+ DAYS = NEW STOCKS
+        // Rule 12: 100+ stock AND 100+ days → New Stocks
         else if (isHighStockRange && isHighDayRange) {
           statusInfo = {
             status: "New Stocks",
@@ -450,7 +461,7 @@ export default function ProductReport() {
           };
           combinedLabel = null;
         }
-        // RULE 6: 100+ STOCKS AND 61–100 DAYS = still GOOD (high stock but not super far)
+        // Extra: 100+ stock AND 61–100 days → Good (not “New Stocks” yet)
         else if (isHighStockRange && isGoodDayRange) {
           statusInfo = {
             status: "Good",
@@ -460,7 +471,7 @@ export default function ProductReport() {
           };
           combinedLabel = null;
         }
-        // else → fallback to base classifyByDaysLeft result
+        // Else → fallback to pure days-based classification
       }
 
       const isWarningStock = isWarningStockRange;
@@ -486,6 +497,7 @@ export default function ProductReport() {
         isWarningStock,
         isNearExpiryWindow,
         combinedLabel,
+        hasInvalidExpiry,
       };
     });
   }, [products]);
@@ -504,7 +516,6 @@ export default function ProductReport() {
      SUMMARY & CATEGORY
   ========================= */
 
-  // ✅ SUMMARY CARDS: use ALL products (enrichedData), including Out of Stock, etc.
   const summary = useMemo(() => {
     const counts: Record<ExpiryStatus, number> = {
       "New Stocks": 0,
@@ -520,10 +531,10 @@ export default function ProductReport() {
 
     const total = enrichedData.length;
 
-    // still treat Near Expiry + Expired as critical
+    // Near Expiry + Expired = expiry-sensitive
     const expiringSoon = counts["Expired"] + counts["Near Expiry"];
 
-    // WARNING STOCKS = 1–60 stock (informational)
+    // Warning stocks = 1–60 stock
     const warningStockCount = enrichedData.filter(
       (p) => p.stock >= 1 && p.stock <= 60
     ).length;
@@ -651,7 +662,7 @@ export default function ProductReport() {
       className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden bg-slate-50 min-h-full"
       onMouseMove={handleMouseMove}
     >
-      {/* ---------- BACKDROP GRID + GODLY BLOBS ---------- */}
+      {/* ---------- BACKDROP GRID + BLOBS ---------- */}
       <div className="pointer-events-none absolute inset-0 -z-30">
         <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.14)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.14)_1px,transparent_1px)] bg-[size:40px_40px]" />
         <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" />
@@ -698,7 +709,7 @@ export default function ProductReport() {
         <p className="text-gray-500 text-sm max-w-xl">
           Central view for{" "}
           <span className="font-medium text-emerald-700">
-            live expiry & stock health
+            live expiry & stock status
           </span>
           . Track expiring items, warning stocks, and promos before they
           become losses.
@@ -707,7 +718,7 @@ export default function ProductReport() {
         <div className="mt-3 h-[3px] w-36 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full shadow-[0_0_18px_rgba(16,185,129,0.6)]" />
       </div>
 
-      {/* MAIN CARD (GOD MODE) */}
+      {/* MAIN CARD */}
       <div className="relative rounded-3xl border border-slate-200/80 bg-white/90 backdrop-blur-xl shadow-[0_24px_70px_rgba(15,23,42,0.35)] px-5 py-6 flex flex-col gap-7 overflow-visible">
         {/* soft inner glow */}
         <div className="pointer-events-none absolute inset-x-10 -top-16 h-32 bg-gradient-to-b from-emerald-200/30 via-transparent to-transparent blur-2xl opacity-70" />
@@ -749,7 +760,7 @@ export default function ProductReport() {
               icon={<ShieldAlert className="w-6 h-6" />}
               label="Expiring / Expired"
               value={summary.expiringSoon.toString()}
-              accent="Expiry-critical items for clearance"
+              accent="Expiry-sensitive items for clearance"
               color="rose"
             />
             <SummaryCard
@@ -761,11 +772,11 @@ export default function ProductReport() {
             />
             <SummaryCard
               icon={<CheckCircle2 className="w-6 h-6" />}
-              label="Healthy Inventory"
+              label="Good & New Stocks"
               value={(
                 summary.counts["Good"] + summary.counts["New Stocks"]
               ).toString()}
-              accent="Safe stocks across all products"
+              accent="Products tagged Good or New Stocks"
               color="indigo"
             />
           </section>
@@ -805,7 +816,7 @@ export default function ProductReport() {
               <input
                 type="text"
                 placeholder="Search by product or category..."
-                className="w-full h-10 border border-slate-300 rounded-lg px-4 pl-10 text-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
+                className="w-full h-10 border border-slate-300 rounded-lg px-4 pl-10 text-sm bg-white/90 focus:outline-none.focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -1013,9 +1024,6 @@ export default function ProductReport() {
                   Category Overview
                 </p>
               </div>
-              <p className="text-[11px] text-slate-400">
-                Click a row to filter products by category
-              </p>
             </div>
 
             {categorySnapshots.length === 0 ? (
@@ -1148,13 +1156,12 @@ export default function ProductReport() {
                               item.daysLeft === 1 ? "" : "s"
                             }`;
 
-                      const isWarningStock = item.isWarningStock; // 1–60 pcs
+                      const isWarningStock = item.isWarningStock;
                       const isOutOfStock =
                         item.stock <= 0 ||
                         normalizeStatus(item.inventoryStatus) ===
                           "Out of Stock";
 
-                      // Promo dapat lang sa malapit mag-expire (1–100 days, since 101+ = new stocks)
                       const canPromo =
                         item.daysLeft !== null &&
                         item.daysLeft > 0 &&
@@ -1213,6 +1220,11 @@ export default function ProductReport() {
                                 {isWarningStock && !isOutOfStock && (
                                   <p className="mt-0.5 text-[11px] text-yellow-700">
                                     Warning stocks (1–60 pcs)
+                                  </p>
+                                )}
+                                {item.hasInvalidExpiry && (
+                                  <p className="mt-0.5 text-[11px] text-yellow-700">
+                                    Invalid expiry date (check product setup)
                                   </p>
                                 )}
                                 {isOutOfStock && (
@@ -1344,21 +1356,24 @@ export default function ProductReport() {
               0 days left = Expired;
             </span>{" "}
             <span className="font-semibold text-slate-700">
+              1–60 days = Near Expiry; 61–100 days = Good; 101+ days = New
+              Stocks;
+            </span>{" "}
+            <span className="font-semibold text-slate-700">
               1–60 stock &amp; 1–60 days = “Warning Stocks + Near Expiry”;
             </span>{" "}
             <span className="font-semibold text-slate-700">
               1–60 stock &amp; 61+ days = “Warning Stocks”;
             </span>{" "}
             <span className="font-semibold text-slate-700">
-              61–100 stock &amp; 61–100 days = Good;
+              0 stock &amp; 1–100+ days = Out of Stock (inventory);
             </span>{" "}
             <span className="font-semibold text-slate-700">
-              100+ stock &amp; 100+ days = New Stocks;
+              no expiry date = stock-based status;
             </span>{" "}
             <span className="font-semibold text-slate-700">
-              0 stocks &amp; 1–100+ days = Out of Stock (inventory);
+              invalid expiry date = Warning with special label.
             </span>{" "}
-            other combinations fall back to days-based expiry classification.
           </p>
         </div>
       </div>
@@ -1438,6 +1453,7 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
     status,
     inventoryStatus,
     combinedLabel,
+    hasInvalidExpiry,
   } = product;
 
   const daysLeftLabel =
@@ -1499,6 +1515,11 @@ function DrawerContent({ product }: { product: EnrichedProduct }) {
                 {daysLeftLabel}
               </span>
             </div>
+            {hasInvalidExpiry && (
+              <span className="inline-flex items-center gap-1 text-[11px] text-yellow-700">
+                ⚠️ Invalid expiry / stock-in date
+              </span>
+            )}
           </div>
         </div>
       </div>
@@ -1576,7 +1597,7 @@ function SummaryCard({
     >
       {/* inner glow */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.32),transparent_55%)] opacity-80" />
-      <div className="relative flex items-center gap-3">
+      <div className="relative flex.items-center gap-3">
         <div className="p-2.5 bg-white/15 rounded-lg flex items-center justify-center">
           {icon}
         </div>
