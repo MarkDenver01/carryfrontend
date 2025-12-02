@@ -72,7 +72,10 @@ const STATUS_ORDER: ExpiryStatus[] = [
   "New Stocks",
 ];
 
-const PAGE_SIZE = 120;
+// ✅ 15 ITEMS PER PAGE FOR PRODUCT TABLE
+const PAGE_SIZE = 15;
+// ✅ 6 CATEGORIES PER PAGE FOR CATEGORY OVERVIEW
+const CATEGORY_PAGE_SIZE = 6;
 
 const clamp = (val: number, min: number, max: number) =>
   Math.min(max, Math.max(min, val));
@@ -158,7 +161,7 @@ const classifyByDaysLeft = (
   };
 };
 
-// 🌈 Soft row highlight per expiry status (hindi masakit sa mata)
+// 🌈 Soft row highlight per expiry status
 const ROW_HIGHLIGHT: Record<ExpiryStatus, string> = {
   Expired: "bg-red-50/70 hover:bg-red-50 border-l-4 border-red-400/80",
   "Near Expiry":
@@ -190,7 +193,11 @@ export default function ProductReport() {
   const [selectedProduct, setSelectedProduct] =
     useState<EnrichedProduct | null>(null);
 
+  // ✅ TABLE PAGINATION
   const [page, setPage] = useState(1);
+  // ✅ CATEGORY OVERVIEW PAGINATION
+  const [categoryPage, setCategoryPage] = useState(1);
+
   const [statusUpdatingId, setStatusUpdatingId] = useState<number | null>(
     null
   );
@@ -257,7 +264,7 @@ export default function ProductReport() {
   };
 
   /* =========================
-     DATA ENRICH + 14-RULE ENGINE
+     DATA ENRICH + RULE ENGINE
   ========================== */
 
   const enrichedData: EnrichedProduct[] = useMemo(() => {
@@ -345,12 +352,12 @@ export default function ProductReport() {
       // ==== INVENTORY STATUS (stock + backend) ====
       let inventoryStatus = rawInventoryStatus || "Available";
       if (stockZeroOrLess) {
-        // Rule 5: Out of Stock (inventory) if stock <= 0
+        // Out of Stock (inventory) if stock <= 0
         inventoryStatus = "Out of Stock";
       }
 
       // ======================================
-      // 🔺 RULE 14: INVALID EXPIRY DATE FIRST
+      // INVALID EXPIRY DATE FIRST
       // ======================================
       if (hasInvalidExpiry) {
         // Mark as warning-type issue, show explicit label
@@ -364,7 +371,7 @@ export default function ProductReport() {
         daysLeft = null; // hide wrong days value
       } else if (!hasExpiry) {
         // =====================================
-        // 🔹 RULE 13: NO EXPIRY DATE (stock-only)
+        // NO EXPIRY DATE (stock-only)
         // =====================================
         if (stockZeroOrLess) {
           // Out of stock, no expiry
@@ -376,7 +383,7 @@ export default function ProductReport() {
           };
           combinedLabel = "No expiry date";
         } else if (isWarningStockRange) {
-          // Rule: 1–60 stock, no expiry → Warning Stocks
+          // 1–60 stock, no expiry → Warning Stocks
           statusInfo = {
             status: "Warning",
             priority: 2,
@@ -396,7 +403,7 @@ export default function ProductReport() {
         }
       } else if (daysLeft === 0) {
         // ============================
-        // 🔴 RULE 1: EXPIRED
+        // EXPIRED
         // ============================
         statusInfo = {
           status: "Expired",
@@ -407,10 +414,10 @@ export default function ProductReport() {
         combinedLabel = null;
       } else {
         // ====================================
-        // FULL COMBINED RULES (2–12)
+        // FULL COMBINED RULES
         // ====================================
 
-        // Rule 8: 1–60 stock AND 1–60 days → Warning + Near Expiry
+        // Warning Stocks + Near Expiry
         if (isWarningStockRange && isWarningDayRange) {
           statusInfo = {
             status: "Near Expiry",
@@ -420,9 +427,8 @@ export default function ProductReport() {
           };
           combinedLabel = "Warning Stocks + Near Expiry";
         }
-        // Rule 9: Warning stock only (1–60 stock, days > 60)
+        // Warning Stocks only
         else if (isWarningStockRange && !isWarningDayRange) {
-          // 1–60 stock AND NOT (1–60 days)
           statusInfo = {
             status: "Warning",
             priority: statusInfo.priority,
@@ -431,7 +437,7 @@ export default function ProductReport() {
           };
           combinedLabel = "Warning Stocks";
         }
-        // Rule 10: Near Expiry only (61+ stock AND 1–60 days)
+        // Near Expiry only (stock 61+)
         else if (!isWarningStockRange && isWarningDayRange) {
           statusInfo = {
             status: "Near Expiry",
@@ -441,7 +447,7 @@ export default function ProductReport() {
           };
           combinedLabel = null;
         }
-        // Rule 11: 61–100 stock AND 61–100 days → Good
+        // 61–100 stock AND 61–100 days → Good
         else if (isGoodStockRange && isGoodDayRange) {
           statusInfo = {
             status: "Good",
@@ -451,7 +457,7 @@ export default function ProductReport() {
           };
           combinedLabel = null;
         }
-        // Rule 12: 100+ stock AND 100+ days → New Stocks
+        // 100+ stock AND 100+ days → New Stocks
         else if (isHighStockRange && isHighDayRange) {
           statusInfo = {
             status: "New Stocks",
@@ -461,7 +467,7 @@ export default function ProductReport() {
           };
           combinedLabel = null;
         }
-        // Extra: 100+ stock AND 61–100 days → Good (not “New Stocks” yet)
+        // Extra: 100+ stock AND 61–100 days → Good
         else if (isHighStockRange && isGoodDayRange) {
           statusInfo = {
             status: "Good",
@@ -581,8 +587,24 @@ export default function ProductReport() {
     [monitoredData, uniqueCategories]
   );
 
+  // ✅ CATEGORY PAGINATION: slice into pages of 6
+  const totalCategoryPages = Math.max(
+    1,
+    Math.ceil(categorySnapshots.length / CATEGORY_PAGE_SIZE)
+  );
+
+  const visibleCategorySnapshots = useMemo(() => {
+    const start = (categoryPage - 1) * CATEGORY_PAGE_SIZE;
+    return categorySnapshots.slice(start, start + CATEGORY_PAGE_SIZE);
+  }, [categorySnapshots, categoryPage]);
+
+  // Reset category page if data changes
+  useEffect(() => {
+    setCategoryPage(1);
+  }, [categorySnapshots.length]);
+
   /* =========================
-     FILTER + SORT
+     FILTER + SORT + TABLE PAGINATION
   ========================= */
 
   const filteredAndSorted = useMemo(() => {
@@ -642,13 +664,24 @@ export default function ProductReport() {
     return data;
   }, [monitoredData, statusFilter, categoryFilter, sortBy, search]);
 
-  const paginated = useMemo(
-    () => filteredAndSorted.slice(0, page * PAGE_SIZE),
-    [filteredAndSorted, page]
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredAndSorted.length / PAGE_SIZE)
   );
 
+  const paginated = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredAndSorted.slice(start, start + PAGE_SIZE);
+  }, [filteredAndSorted, page]);
+
   const visibleCount = paginated.length;
-  const canLoadMore = visibleCount < filteredAndSorted.length;
+
+  // Clamp page if data shrinks
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [totalPages, page]);
 
   /* =========================
      RENDER
@@ -663,7 +696,7 @@ export default function ProductReport() {
       onMouseMove={handleMouseMove}
     >
       {/* ---------- BACKDROP GRID + BLOBS ---------- */}
-      <div className="pointer-events-none absolute inset-0 -z-30">
+      <div className="pointer-events-none.absolute inset-0 -z-30">
         <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.14)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.14)_1px,transparent_1px)] bg-[size:40px_40px]" />
         <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" />
 
@@ -760,14 +793,14 @@ export default function ProductReport() {
               icon={<ShieldAlert className="w-6 h-6" />}
               label="Expiring / Expired"
               value={summary.expiringSoon.toString()}
-              accent="Expiry-sensitive items for clearance"
+              accent="Products nearing expiry and expired"
               color="rose"
             />
             <SummaryCard
               icon={<AlertTriangle className="w-6 h-6" />}
               label="Warning Stocks (1–60)"
               value={summary.warningStockCount.toString()}
-              accent="Low but not yet out of stock"
+              accent="Low stocks, but not yet out of stock"
               color="amber"
             />
             <SummaryCard
@@ -776,7 +809,7 @@ export default function ProductReport() {
               value={(
                 summary.counts["Good"] + summary.counts["New Stocks"]
               ).toString()}
-              accent="Products tagged Good or New Stocks"
+              accent="Stable inventory levels"
               color="indigo"
             />
           </section>
@@ -816,7 +849,7 @@ export default function ProductReport() {
               <input
                 type="text"
                 placeholder="Search by product or category..."
-                className="w-full h-10 border border-slate-300 rounded-lg px-4 pl-10 text-sm bg-white/90 focus:outline-none.focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
+                className="w-full h-10 border border-slate-300 rounded-lg px-4 pl-10 text-sm bg-white/90 focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-emerald-400"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -881,6 +914,7 @@ export default function ProductReport() {
                   onClick={() => {
                     setCategoryFilter("All");
                     setPage(1);
+                    setCategoryPage(1);
                   }}
                 >
                   All
@@ -891,6 +925,7 @@ export default function ProductReport() {
                     onClick={() => {
                       setCategoryFilter(cat);
                       setPage(1);
+                      setCategoryPage(1);
                     }}
                   >
                     {cat}
@@ -936,7 +971,10 @@ export default function ProductReport() {
             {/* Refresh button */}
             <button
               type="button"
-              onClick={() => fetchProducts(true)}
+              onClick={() => {
+                fetchProducts(true);
+                setPage(1);
+              }}
               className={`inline-flex items-center gap-1 ml-auto px-3 py-2 rounded-lg text-[11px] font-medium border ${
                 loadingRefresh
                   ? "border-emerald-300 bg-emerald-50 text-emerald-600"
@@ -954,7 +992,7 @@ export default function ProductReport() {
         </section>
 
         {/* STATUS & CATEGORY OVERVIEW */}
-        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start relative z-10">
+        <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start.relative z-10">
           {/* Status Overview */}
           <div className="rounded-2xl border border-slate-200 bg-slate-50/90 p-4 flex flex-col gap-3 shadow-sm">
             <div className="flex items-center justify-between gap-2 mb-1">
@@ -1032,70 +1070,116 @@ export default function ProductReport() {
                 breakdown here.
               </p>
             ) : (
-              <div className="flex flex-col divide-y divide-slate-100">
-                {categorySnapshots.map((catSnap) => {
-                  const isActive = categoryFilter === catSnap.category;
-                  const risky =
-                    catSnap.expired + catSnap.near + catSnap.warn > 0;
+              <>
+                <div className="flex flex-col divide-y divide-slate-100">
+                  {visibleCategorySnapshots.map((catSnap) => {
+                    const isActive = categoryFilter === catSnap.category;
+                    const risky =
+                      catSnap.expired + catSnap.near + catSnap.warn > 0;
 
-                  return (
-                    <button
-                      key={catSnap.category}
-                      type="button"
-                      onClick={() => {
-                        setCategoryFilter(
-                          isActive ? "All" : catSnap.category
-                        );
-                        setPage(1);
-                      }}
-                      className={`flex w-full items-center justify-between gap-3 py-2.5 px-2 text-left transition rounded-lg ${
-                        isActive
-                          ? "bg-emerald-50 border border-emerald-200 shadow-xs"
-                          : "hover:bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex flex-col gap-0.5">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-semibold text-slate-800">
-                            {catSnap.category}
-                          </span>
-                          <span className="text-[11px] text-slate-400">
-                            {catSnap.total} item
-                            {catSnap.total !== 1 ? "s" : ""}
-                          </span>
+                    return (
+                      <button
+                        key={catSnap.category}
+                        type="button"
+                        onClick={() => {
+                          const willClear =
+                            categoryFilter === catSnap.category;
+                          setCategoryFilter(
+                            willClear ? "All" : catSnap.category
+                          );
+                          setPage(1);
+                          setCategoryPage(1);
+                        }}
+                        className={`flex w-full items-center justify-between gap-3 py-2.5 px-2 text-left.transition rounded-lg ${
+                          isActive
+                            ? "bg-emerald-50 border border-emerald-200 shadow-xs"
+                            : "hover:bg-slate-50"
+                        }`}
+                      >
+                        <div className="flex flex-col gap-0.5">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-slate-800">
+                              {catSnap.category}
+                            </span>
+                            <span className="text-[11px] text-slate-400">
+                              {catSnap.total} item
+                              {catSnap.total !== 1 ? "s" : ""}
+                            </span>
+                          </div>
+
+                          {risky && (
+                            <div className="flex flex-wrap gap-2 text-[11px]">
+                              {catSnap.expired > 0 && (
+                                <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
+                                  Expired: {catSnap.expired}
+                                </span>
+                              )}
+                              {catSnap.near > 0 && (
+                                <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                                  Near: {catSnap.near}
+                                </span>
+                              )}
+                              {catSnap.warn > 0 && (
+                                <span className="inline-flex items-center gap-1 text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded-full">
+                                  <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
+                                  Warning: {catSnap.warn}
+                                </span>
+                              )}
+                            </div>
+                          )}
                         </div>
 
-                        {risky && (
-                          <div className="flex flex-wrap gap-2 text-[11px]">
-                            {catSnap.expired > 0 && (
-                              <span className="inline-flex items-center gap-1 text-red-600 bg-red-50 px-2 py-0.5 rounded-full">
-                                <span className="h-1.5 w-1.5 rounded-full bg-red-500" />
-                                Expired: {catSnap.expired}
-                              </span>
-                            )}
-                            {catSnap.near > 0 && (
-                              <span className="inline-flex items-center gap-1 text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
-                                <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
-                                Near: {catSnap.near}
-                              </span>
-                            )}
-                            {catSnap.warn > 0 && (
-                              <span className="inline-flex items-center gap-1 text-yellow-700 bg-yellow-50 px-2 py-0.5 rounded-full">
-                                <span className="h-1.5 w-1.5 rounded-full bg-yellow-400" />
-                                Warning: {catSnap.warn}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                        <span className="text-[11px] text-slate-400">
+                          {isActive ? "Clear" : "Filter"}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
 
-                      <span className="text-[11px] text-slate-400">
-                        {isActive ? "Clear" : "Filter"}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                {/* CATEGORY PAGINATION CONTROLS */}
+                {totalCategoryPages > 1 && (
+                  <div className="flex items-center justify-between mt-3 text-[11px] text-slate-500">
+                    <span>
+                      Page {categoryPage} of {totalCategoryPages}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        disabled={categoryPage === 1}
+                        onClick={() =>
+                          setCategoryPage((p) => Math.max(1, p - 1))
+                        }
+                        className={`px-3 py-1 rounded-full border text-[11px] ${
+                          categoryPage === 1
+                            ? "border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed"
+                            : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
+                        }`}
+                      >
+                        Previous
+                      </button>
+                      <button
+                        type="button"
+                        disabled={categoryPage === totalCategoryPages}
+                        onClick={() =>
+                          setCategoryPage((p) =>
+                            Math.min(totalCategoryPages, p + 1)
+                          )
+                        }
+                        className={`px-3 py-1 rounded-full border text-[11px] ${
+                          categoryPage === totalCategoryPages
+                            ? "border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed"
+                            : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
+                        }`}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
           </div>
         </section>
@@ -1266,7 +1350,7 @@ export default function ProductReport() {
                           </td>
 
                           {/* Expiry Status */}
-                          <td className="px-4 py-3 align-top">
+                          <td className="px-4 py-3.align-top">
                             <span
                               className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-semibold ${item.statusSoftClass}`}
                             >
@@ -1330,17 +1414,47 @@ export default function ProductReport() {
                 </table>
               </div>
 
-              {canLoadMore && (
-                <div className="flex justify-center mt-3">
-                  <button
-                    type="button"
-                    onClick={() => setPage((p) => p + 1)}
-                    className="px-4 py-2 rounded-full text-xs font-semibold bg-slate-900 text-white hover:bg-slate-800 shadow-sm flex items-center gap-2"
-                  >
-                    <RefreshCw className="w-4 h-4" />
-                    Load more products (
-                    {filteredAndSorted.length - visibleCount} remaining)
-                  </button>
+              {/* TABLE PAGINATION CONTROLS */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-3 text-xs text-slate-600">
+                  <span>
+                    Page{" "}
+                    <span className="font-semibold text-slate-800">
+                      {page}
+                    </span>{" "}
+                    of{" "}
+                    <span className="font-semibold text-slate-800">
+                      {totalPages}
+                    </span>
+                  </span>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      disabled={page === 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className={`px-3 py-1 rounded-full border ${
+                        page === 1
+                          ? "border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed"
+                          : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
+                      }`}
+                    >
+                      Previous
+                    </button>
+                    <button
+                      type="button"
+                      disabled={page === totalPages}
+                      onClick={() =>
+                        setPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      className={`px-3 py-1 rounded-full border ${
+                        page === totalPages
+                          ? "border-slate-200 text-slate-300 bg-slate-50 cursor-not-allowed"
+                          : "border-slate-300 text-slate-700 bg-white hover:bg-slate-50"
+                      }`}
+                    >
+                      Next
+                    </button>
+                  </div>
                 </div>
               )}
             </>
@@ -1348,7 +1462,7 @@ export default function ProductReport() {
         </div>
 
         {/* NOTE */}
-        <div className="mt-1 text-xs text-slate-500 flex items-start gap-2 bg-slate-50/90 border border-slate-200 rounded-xl px-3 py-2.5 relative z-10">
+        <div className="mt-1 text-xs text-slate-500 flex items-start gap-2 bg-slate-50/90 border border-slate-200 rounded-xl px-3 py-2.5.relative z-10">
           <Info className="w-3.5 h-3.5 mt-0.5 text-emerald-500" />
           <p>
             Rules applied:{" "}
@@ -1597,7 +1711,7 @@ function SummaryCard({
     >
       {/* inner glow */}
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.32),transparent_55%)] opacity-80" />
-      <div className="relative flex.items-center gap-3">
+      <div className="relative flex items-center gap-3">
         <div className="p-2.5 bg-white/15 rounded-lg flex items-center justify-center">
           {icon}
         </div>
