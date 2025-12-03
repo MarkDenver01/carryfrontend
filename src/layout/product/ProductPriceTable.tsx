@@ -1,13 +1,13 @@
 import { useState, useMemo } from "react";
 import { Button, Pagination } from "flowbite-react";
-import { Pencil, XCircle, Search, Eye, Sparkles } from "lucide-react";
+import { Pencil, XCircle, Search, Sparkles, X, Tag, Layers, Package, Hash, BadgeDollarSign } from "lucide-react";
 import { motion } from "framer-motion";
 import Swal from "sweetalert2";
 
 import ProductPriceFormModal from "../../components/product/ProductPriceFormModal";
-import ViewRecommendedModal from "../../components/product/ViewRecommendedModal";
 import { usePricesContext } from "../../context/PricesContext";
 import type { ProductPrice } from "../../types/pricingTypes";
+import dayjs from "dayjs";
 
 export default function ProductPriceTable() {
   const { prices, removePrice } = usePricesContext();
@@ -18,15 +18,24 @@ export default function ProductPriceTable() {
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<ProductPrice | null>(null);
 
-  const [viewModal, setViewModal] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
-
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
-  /* ============================================
-     CATEGORY LIST + COUNT
-  ============================================ */
+  /* DETAIL PANEL STATE */
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedPrice, setSelectedPrice] = useState<ProductPrice | null>(null);
+
+  const openDetail = (price: ProductPrice) => {
+    setSelectedPrice(price);
+    setDetailOpen(true);
+  };
+
+  const closeDetail = () => {
+    setDetailOpen(false);
+    setSelectedPrice(null);
+  };
+
+  /* CATEGORY GENERATION */
   const categories = useMemo(() => {
     const set = new Set(prices.map((p) => p.categoryName).filter(Boolean));
     return ["All", ...Array.from(set)];
@@ -37,9 +46,7 @@ export default function ProductPriceTable() {
     categoryCount[p.categoryName] = (categoryCount[p.categoryName] || 0) + 1;
   });
 
-  /* ============================================
-     FILTERING
-  ============================================ */
+  /* FILTERED TABLE DATA */
   const filtered = useMemo(() => {
     return prices.filter((p) => {
       const matchSearch = p.productName
@@ -53,18 +60,14 @@ export default function ProductPriceTable() {
     });
   }, [prices, search, selectedCategory]);
 
-  /* ============================================
-     PAGINATION
-  ============================================ */
+  /* PAGINATION */
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
-  /* ============================================
-     ACTION HANDLERS
-  ============================================ */
+  /* ACTIONS */
   const handleAdd = () => {
     setEditTarget(null);
     setShowModal(true);
@@ -91,14 +94,6 @@ export default function ProductPriceTable() {
     }
   };
 
-  const handleViewRecommendations = (productId: number) => {
-    setSelectedProductId(productId);
-    setViewModal(true);
-  };
-
-  /* ============================================
-     JSX OUTPUT
-  ============================================ */
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -120,27 +115,23 @@ export default function ProductPriceTable() {
         <div className="mt-2 flex flex-wrap items-center gap-2 text-[0.8rem] text-slate-500">
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-700 font-semibold">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.9)]" />
-            Pricing Overview
+            Categorized Rates
           </span>
           <span className="flex items-center gap-1 text-slate-500">
             <Sparkles className="w-4 h-4 text-emerald-400" />
-            Categorized product rates
+            Click product for full details.
           </span>
         </div>
 
         <div className="mt-3 h-[3px] w-32 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* ✨ MAIN WRAPPER (Sidebar + Table) */}
+      {/* WRAPPER */}
       <div className="relative rounded-[24px] border border-emerald-200/80 bg-gradient-to-br from-white/96 via-slate-50/98 to-emerald-50/60 shadow-[0_18px_55px_rgba(15,23,42,0.22)] backdrop-blur-xl p-5 md:p-6 overflow-hidden flex gap-5">
         
-        {/* =====================
-            CATEGORY SIDEBAR
-        ===================== */}
+        {/* CATEGORY SIDEBAR */}
         <div className="w-60 shrink-0 rounded-2xl border border-emerald-200 bg-white/90 shadow-md p-4 h-fit max-h-[680px] overflow-y-auto sticky top-4">
-          <h3 className="text-sm font-semibold text-emerald-700 mb-3">
-            Categories
-          </h3>
+          <h3 className="text-sm font-semibold text-emerald-700 mb-3">Categories</h3>
 
           <div className="space-y-2">
             {categories.map((cat) => (
@@ -178,12 +169,10 @@ export default function ProductPriceTable() {
           </div>
         </div>
 
-        {/* =====================
-            RIGHT SIDE CONTENT
-        ===================== */}
+        {/* RIGHT SECTION */}
         <div className="flex-1 flex flex-col gap-5">
           
-          {/* SEARCH + ADD BUTTON */}
+          {/* SEARCH + BUTTON */}
           <div className="flex flex-wrap items-center gap-3 justify-between">
             <div className="relative w-full max-w-xs">
               <input
@@ -219,30 +208,14 @@ export default function ProductPriceTable() {
             <table className="min-w-[1400px] text-sm text-left text-gray-700">
               <thead className="bg-gradient-to-r from-emerald-600 via-emerald-500 to-green-600 text-white shadow-[0_4px_15px_rgba(16,185,129,0.4)]">
                 <tr>
-                  <th className="p-3 border border-emerald-300/40 font-semibold">
-                    Product Image
-                  </th>
-                  <th className="p-3 border border-emerald-300/40 font-semibold">
-                    Product Name
-                  </th>
-                  <th className="p-3 border border-emerald-300/40 font-semibold">
-                    Description
-                  </th>
-                  <th className="p-3 border border-emerald-300/40 font-semibold">
-                    Category
-                  </th>
-                  <th className="p-3 border border-emerald-300/40 font-semibold">
-                    Size
-                  </th>
-                  <th className="p-3 border border-emerald-300/40 font-semibold">
-                    Price (₱)
-                  </th>
-                  <th className="p-3 border border-emerald-300/40 font-semibold">
-                    Stocks
-                  </th>
-                  <th className="p-3 border border-emerald-300/40 font-semibold text-center">
-                    Actions
-                  </th>
+                  <th className="p-3 border border-emerald-300/40 font-semibold">Image</th>
+                  <th className="p-3 border border-emerald-300/40 font-semibold">Product Name</th>
+                  <th className="p-3 border border-emerald-300/40 font-semibold">Description</th>
+                  <th className="p-3 border border-emerald-300/40 font-semibold">Category</th>
+                  <th className="p-3 border border-emerald-300/40 font-semibold">Size</th>
+                  <th className="p-3 border border-emerald-300/40 font-semibold">Price (₱)</th>
+                  <th className="p-3 border border-emerald-300/40 font-semibold">Stocks</th>
+                  <th className="p-3 border border-emerald-300/40 font-semibold text-center">Actions</th>
                 </tr>
               </thead>
 
@@ -251,10 +224,9 @@ export default function ProductPriceTable() {
                   paginated.map((p) => (
                     <tr
                       key={p.priceId}
-                      className={`border-t border-gray-200/70 hover:bg-emerald-50 transition ${
-                        p.stocks <= 2
-                          ? "bg-red-50/70 hover:bg-red-100/80"
-                          : ""
+                      onClick={() => openDetail(p)}
+                      className={`border-t border-gray-200/70 cursor-pointer hover:bg-emerald-50 transition ${
+                        p.stocks <= 2 ? "bg-red-50/70 hover:bg-red-100/80" : ""
                       }`}
                     >
                       <td className="p-3 border border-gray-200/80">
@@ -299,29 +271,23 @@ export default function ProductPriceTable() {
                         </span>
                       </td>
 
-                      <td className="p-3 border border-gray-200/80 text-center">
+                      <td
+                        className="p-3 border border-gray-200/80 text-center"
+                        onClick={(e) => e.stopPropagation()}
+                      >
                         <div className="flex justify-center gap-2 flex-wrap">
                           <button
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-sm transition"
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-sm"
                             onClick={() => handleEdit(p)}
                           >
                             <Pencil className="w-4 h-4" /> Update
                           </button>
 
                           <button
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md shadow-sm transition"
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md shadow-sm"
                             onClick={() => handleDelete(p.priceId)}
                           >
                             <XCircle className="w-4 h-4" /> Delete
-                          </button>
-
-                          <button
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition"
-                            onClick={() =>
-                              handleViewRecommendations(p.productId)
-                            }
-                          >
-                            <Eye className="w-4 h-4" /> View Recs
                           </button>
                         </div>
                       </td>
@@ -371,17 +337,166 @@ export default function ProductPriceTable() {
         </div>
       </div>
 
-      {/* MODALS */}
+      {/* DETAIL SLIDE PANEL */}
+      {detailOpen && selectedPrice && (
+        <div className="fixed inset-0 z-[80] flex justify-end bg-slate-900/40 backdrop-blur-sm">
+          <motion.div
+            initial={{ x: 400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 400, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="h-full w-full max-w-md bg-white shadow-2xl border-l border-emerald-100 flex flex-col"
+          >
+            {/* HEADER */}
+            <div className="px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-emerald-500/10 via-white to-cyan-500/10 flex items-center justify-between">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                  Price Details
+                </p>
+                <p className="text-sm font-semibold text-slate-900 line-clamp-1">
+                  {selectedPrice.productName}
+                </p>
+              </div>
+
+              <button
+                onClick={closeDetail}
+                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* CONTENT */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+              
+              {/* IMAGE */}
+              <div className="flex justify-center">
+                <div className="relative">
+                  <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-emerald-300/60 via-cyan-300/50 to-transparent opacity-70 blur-[3px]" />
+                  <img
+                    src={selectedPrice.productImgUrl}
+                    className="relative w-40 h-40 rounded-2xl object-cover border border-emerald-100 shadow-lg"
+                  />
+                </div>
+              </div>
+
+              {/* NAME & DESCRIPTION */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <BadgeDollarSign className="w-4 h-4 text-emerald-600" />
+                  <p className="text-[13px] text-slate-600">
+                    <span className="font-semibold text-slate-900">{selectedPrice.productName}</span>
+                  </p>
+                </div>
+
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  {selectedPrice.productDescription}
+                </p>
+              </div>
+
+              {/* GRID INFO */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                
+                {/* CATEGORY */}
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <Tag className="w-3.5 h-3.5" />
+                    <span>Category</span>
+                  </div>
+                  <p className="text-[11px] mt-0.5 text-slate-800">{selectedPrice.categoryName}</p>
+                </div>
+
+                {/* STOCKS */}
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <Package className="w-3.5 h-3.5" />
+                    <span>Stocks</span>
+                  </div>
+                  <p className="text-[11px] mt-0.5 text-slate-800">{selectedPrice.stocks}</p>
+                </div>
+
+                {/* SIZE */}
+                <div className="rounded-xl border border-emerald-100 bg-blue-50/60 px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Size</span>
+                  </div>
+                  <p className="text-[11px] mt-0.5 text-slate-800">{selectedPrice.productSize}</p>
+                </div>
+
+                {/* CODE */}
+                <div className="rounded-xl border border-emerald-100 bg-white px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <Hash className="w-3.5 h-3.5" />
+                    <span>Code</span>
+                  </div>
+                  <p className="text-[11px] mt-0.5 text-slate-800 break-all">{selectedPrice.productCode}</p>
+                </div>
+
+                {/* PRICE */}
+                <div className="rounded-xl border border-emerald-100 bg-yellow-50 px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <BadgeDollarSign className="w-3.5 h-3.5" />
+                    <span>Price</span>
+                  </div>
+                  <p className="text-[11px] mt-0.5 font-bold text-emerald-800">
+                    ₱{selectedPrice.basePrice.toFixed(2)}
+                  </p>
+                </div>
+
+                {/* EFFECTIVE DATE */}
+                <div className="rounded-xl border border-emerald-100 bg-slate-50 px-3 py-2.5">
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Effective</span>
+                  </div>
+                  <p className="text-[11px] mt-0.5 text-slate-800">
+                    {dayjs(selectedPrice.effectiveDate).format("MMM DD, YYYY")}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* FOOTER */}
+            <div className="px-5 py-3 border-t border-slate-200 bg-white flex items-center justify-end gap-2">
+              <Button
+                size="xs"
+                color="gray"
+                onClick={closeDetail}
+                className="px-4 py-1.5 rounded-full"
+              >
+                Close
+              </Button>
+
+              <Button
+                size="xs"
+                onClick={() => {
+                  closeDetail();
+                  setEditTarget(selectedPrice);
+                  setShowModal(true);
+                }}
+                className="px-4 py-1.5 rounded-full bg-yellow-500 text-white hover:bg-yellow-600"
+              >
+                Edit
+              </Button>
+
+              <Button
+                size="xs"
+                onClick={() => handleDelete(selectedPrice!.priceId)}
+                className="px-4 py-1.5 rounded-full bg-red-600 text-white hover:bg-red-700"
+              >
+                Delete
+              </Button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* MODAL */}
       <ProductPriceFormModal
         show={showModal}
         onClose={() => setShowModal(false)}
         price={editTarget}
-      />
-
-      <ViewRecommendedModal
-        show={viewModal}
-        onClose={() => setViewModal(false)}
-        productId={selectedProductId}
       />
     </motion.div>
   );
