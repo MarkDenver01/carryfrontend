@@ -439,5 +439,32 @@ export async function markProductOutOfStock(productId: number | string) {
     throw error.response?.data || { message: "Failed to mark as Out of Stock" };
   }
 }
+export async function getCustomerAnalytics() {
+  try {
+    const res = await api.get("/admin/api/dashboard/customer-analytics");
+    return res.data;
+  } catch (error: any) {
+    console.error("❌ Error fetching customer analytics:", error);
+    throw error.response?.data || { message: "Failed to load customer analytics" };
+  }
+}
+export async function getReturningVsNew() {
+  try {
+    const res = await api.get("/admin/api/dashboard/customer-returning");
+    return res.data;
+  } catch (error: any) {
+    console.error("❌ Error fetching returning vs new:", error);
+    throw error.response?.data || { message: "Failed to load returning vs new" };
+  }
+}
+export async function getCustomerGrowth() {
+  try {
+    const res = await api.get("/admin/api/dashboard/customer-growth");
+    return res.data;
+  } catch (error: any) {
+    console.error("❌ Error fetching customer growth:", error);
+    throw error.response?.data || { message: "Failed to load customer growth" };
+  }
+}
 
 

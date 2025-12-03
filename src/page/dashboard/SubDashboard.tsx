@@ -26,32 +26,58 @@ import {
 import {
   fetchAllOrders,
   fetchAllRiders,
+  getCustomerAnalytics,
+  getReturningVsNew,
+  getCustomerGrowth,
 } from "../../libs/ApiGatewayDatasource";
+
+/* =========================
+   TYPES FROM BACKEND DTOs
+========================= */
+
+type CustomerAnalyticsDTO = {
+  newCustomers7Days: number;
+  newCustomersThisMonth: number;
+  newCustomersThisYear: number;
+  totalUniqueCustomers: number;
+};
+
+type ReturningVsNewDTO = {
+  newCustomers: number;
+  returningCustomers: number;
+  totalCustomers: number;
+};
+
+type CustomerGrowthPointDTO = {
+  month: string; // e.g. "Jan 2025"
+  registered: number;
+  active: number;
+};
 
 export default function SubDashboard() {
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
-  // ORDER/RIDER STATS
+  // ORDER / RIDER STATS
   const [totalOrders, setTotalOrders] = useState(0);
   const [pendingOrders, setPendingOrders] = useState(0);
   const [inTransitOrders, setInTransitOrders] = useState(0);
   const [activeDrivers, setActiveDrivers] = useState(0);
   const [loadingStats, setLoadingStats] = useState(false);
 
-  // CUSTOMER ANALYTICS (Frontend Computed)
+  // CUSTOMER ANALYTICS (BACKEND DATA)
   const [newCustomers7Days, setNewCustomers7Days] = useState(0);
   const [newCustomersThisMonth, setNewCustomersThisMonth] = useState(0);
   const [newCustomersThisYear, setNewCustomersThisYear] = useState(0);
   const [totalUniqueCustomers, setTotalUniqueCustomers] = useState(0);
 
-  // CUSTOMER RETURNING VS NEW (Fake Logic for now)
+  // RETURNING VS NEW (BACKEND DATA)
   const [newCustomers, setNewCustomers] = useState(0);
   const [returningCustomers, setReturningCustomers] = useState(0);
 
-  // CUSTOMER GROWTH GRAPH FAKE DATA
-  const [customerGrowth, setCustomerGrowth] = useState<any[]>([]);
+  // CUSTOMER GROWTH GRAPH (BACKEND DATA)
+  const [customerGrowth, setCustomerGrowth] = useState<CustomerGrowthPointDTO[]>([]);
 
   // CLOCK UI
   useEffect(() => {
@@ -95,7 +121,7 @@ export default function SubDashboard() {
   };
 
   // ======================================
-  // PURE FRONTEND COMPUTATION HELPERS
+  // HELPERS FOR ORDER / RIDER STATUS
   // ======================================
 
   const normalizeStatus = (status: any): string => {
@@ -108,35 +134,6 @@ export default function SubDashboard() {
     return String(status).trim().toUpperCase();
   };
 
-  const getOrderDate = (order: any): Date | null => {
-    const raw =
-      order.createdAt ??
-      order.orderDate ??
-      order.date ??
-      order.dateTime ??
-      order.created_at ??
-      order.order_date;
-
-    if (!raw) return null;
-    const d = new Date(raw);
-    return Number.isNaN(d.getTime()) ? null : d;
-  };
-
-  const getCustomerKey = (order: any): string | null => {
-    const key =
-      order.customerId ??
-      order.customer?.id ??
-      order.customer_id ??
-      order.customerEmail ??
-      order.customer_email ??
-      order.customerName ??
-      order.customer_name;
-
-    if (!key) return null;
-    return String(key);
-  };
-
-  // ORDER STAT COMPUTATION
   const computeOrderStats = (orders: any[]) => {
     let pending = 0;
     let inTransit = 0;
@@ -156,47 +153,8 @@ export default function SubDashboard() {
     };
   };
 
-  // CUSTOMER ANALYTICS COMPUTATION
-  const computeCustomerAnalytics = (orders: any[]) => {
-    const now = new Date();
-    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-
-    const sevenDaysAgo = new Date(startOfToday);
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-
-    const allCustomers = new Set<string>();
-    const customers7Days = new Set<string>();
-    const customersThisMonth = new Set<string>();
-    const customersThisYear = new Set<string>();
-
-    orders.forEach((order) => {
-      const customerKey = getCustomerKey(order);
-      if (!customerKey) return;
-
-      const orderDate = getOrderDate(order) ?? null;
-      allCustomers.add(customerKey);
-
-      if (!orderDate) return;
-
-      const d = new Date(orderDate.getFullYear(), orderDate.getMonth(), orderDate.getDate());
-
-      if (d >= sevenDaysAgo && d <= startOfToday) customers7Days.add(customerKey);
-      if (d >= startOfMonth && d <= startOfToday) customersThisMonth.add(customerKey);
-      if (d >= startOfYear && d <= startOfToday) customersThisYear.add(customerKey);
-    });
-
-    return {
-      totalUnique: allCustomers.size,
-      last7Days: customers7Days.size,
-      thisMonth: customersThisMonth.size,
-      thisYear: customersThisYear.size,
-    };
-  };
-
   // ======================================
-  // LOAD STATS + GENERATE FAKE ANALYTICS
+  // LOAD STATS FROM BACKEND
   // ======================================
 
   useEffect(() => {
@@ -204,23 +162,25 @@ export default function SubDashboard() {
       try {
         setLoadingStats(true);
 
-        const [orders, riders] = await Promise.all([
+        const [
+          orders,
+          riders,
+          analytics,
+          returningData,
+          growth,
+        ] = await Promise.all([
           fetchAllOrders(),
           fetchAllRiders(),
+          getCustomerAnalytics(),
+          getReturningVsNew(),
+          getCustomerGrowth(),
         ]);
 
-        // ORDER STATS
+        // ORDER STATS (frontend computed from orders list)
         const stats = computeOrderStats(orders);
         setTotalOrders(stats.totalOrders);
         setPendingOrders(stats.pending);
         setInTransitOrders(stats.inTransit);
-
-        // CUSTOMER ANALYTICS
-        const customerStats = computeCustomerAnalytics(orders);
-        setTotalUniqueCustomers(customerStats.totalUnique);
-        setNewCustomers7Days(customerStats.last7Days);
-        setNewCustomersThisMonth(customerStats.thisMonth);
-        setNewCustomersThisYear(customerStats.thisYear);
 
         // RIDER STATS
         const availableCount = riders.filter(
@@ -228,21 +188,20 @@ export default function SubDashboard() {
         ).length;
         setActiveDrivers(availableCount);
 
-        // FAKE RETURNING VS NEW
-        const fakeNew = Math.floor(customerStats.totalUnique * 0.8);
-        const fakeReturning = customerStats.totalUnique - fakeNew;
-        setNewCustomers(fakeNew);
-        setReturningCustomers(fakeReturning);
+        // CUSTOMER ANALYTICS (backend)
+        const a = analytics as CustomerAnalyticsDTO;
+        setNewCustomers7Days(a?.newCustomers7Days ?? 0);
+        setNewCustomersThisMonth(a?.newCustomersThisMonth ?? 0);
+        setNewCustomersThisYear(a?.newCustomersThisYear ?? 0);
+        setTotalUniqueCustomers(a?.totalUniqueCustomers ?? 0);
 
-        // FAKE CUSTOMER GROWTH GRAPH DATA
-        const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"];
-        const fakeGrowth = months.map((m) => ({
-          month: m,
-          registered: Math.floor(Math.random() * 100) + 10,
-          active: Math.floor(Math.random() * 80) + 5,
-        }));
-        setCustomerGrowth(fakeGrowth);
+        // RETURNING VS NEW (backend)
+        const rvn = returningData as ReturningVsNewDTO;
+        setNewCustomers(rvn?.newCustomers ?? 0);
+        setReturningCustomers(rvn?.returningCustomers ?? 0);
 
+        // CUSTOMER GROWTH GRAPH (backend)
+        setCustomerGrowth(Array.isArray(growth) ? growth : []);
       } catch (err) {
         console.error("❌ Failed to load sub admin stats:", err);
       } finally {
@@ -286,17 +245,45 @@ export default function SubDashboard() {
 
           {/* TOP METRICS — ORDER + RIDERS */}
           <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <SubStatCard gradient="from-emerald-600 to-green-700" iconBg="bg-emerald-100 text-emerald-600"
-              Icon={ShoppingCart} value={totalOrders} label="Total Orders" helper="All orders in the system" loading={loadingStats} />
+            <SubStatCard
+              gradient="from-emerald-600 to-green-700"
+              iconBg="bg-emerald-100 text-emerald-600"
+              Icon={ShoppingCart}
+              value={totalOrders}
+              label="Total Orders"
+              helper="All orders in the system"
+              loading={loadingStats}
+            />
 
-            <SubStatCard gradient="from-blue-700 to-blue-900" iconBg="bg-blue-100 text-blue-600"
-              Icon={Package} value={pendingOrders} label="Pending Orders" helper="Waiting for processing" loading={loadingStats} />
+            <SubStatCard
+              gradient="from-blue-700 to-blue-900"
+              iconBg="bg-blue-100 text-blue-600"
+              Icon={Package}
+              value={pendingOrders}
+              label="Pending Orders"
+              helper="Waiting for processing"
+              loading={loadingStats}
+            />
 
-            <SubStatCard gradient="from-amber-500 to-amber-700" iconBg="bg-amber-100 text-amber-700"
-              Icon={ClipboardCheck} value={inTransitOrders} label="In Transit" helper="Currently on the way" loading={loadingStats} />
+            <SubStatCard
+              gradient="from-amber-500 to-amber-700"
+              iconBg="bg-amber-100 text-amber-700"
+              Icon={ClipboardCheck}
+              value={inTransitOrders}
+              label="In Transit"
+              helper="Currently on the way"
+              loading={loadingStats}
+            />
 
-            <SubStatCard gradient="from-indigo-700 to-indigo-900" iconBg="bg-indigo-100 text-indigo-600"
-              Icon={Truck} value={activeDrivers} label="Active Drivers" helper="Available riders today" loading={loadingStats} />
+            <SubStatCard
+              gradient="from-indigo-700 to-indigo-900"
+              iconBg="bg-indigo-100 text-indigo-600"
+              Icon={Truck}
+              value={activeDrivers}
+              label="Active Drivers"
+              helper="Available riders today"
+              loading={loadingStats}
+            />
           </section>
 
           {/* CUSTOMER ANALYTICS */}
@@ -332,13 +319,17 @@ function BackgroundEffects({ cursorPos }: any) {
     <>
       {/* BG PATTERN */}
       <div className="pointer-events-none absolute inset-0 -z-30">
-        <div className="w-full h-full opacity-40 mix-blend-soft-light 
+        <div
+          className="w-full h-full opacity-40 mix-blend-soft-light 
                         bg-[linear-gradient(to_right,rgba(148,163,184,0.18)_1px,transparent_1px),
                         linear-gradient(to_bottom,rgba(148,163,184,0.18)_1px,transparent_1px)] 
-                        bg-[size:40px_40px]" />
-        <div className="absolute inset-0 opacity-[0.07] 
+                        bg-[size:40px_40px]"
+        />
+        <div
+          className="absolute inset-0 opacity-[0.07] 
                         bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,
-                        rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" />
+                        rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]"
+        />
       </div>
 
       {/* CURSOR LIGHT */}
@@ -389,9 +380,11 @@ function Header({ greeting, currentDate, currentTime }: any) {
       </motion.h1>
 
       <div className="mt-1 flex items-center gap-2">
-        <motion.span className="px-3 py-1 text-[0.7rem] font-semibold rounded-full 
+        <motion.span
+          className="px-3 py-1 text-[0.7rem] font-semibold rounded-full 
                                border border-emerald-300/70 bg-gradient-to-r 
-                               from-emerald-50 to-emerald-100 text-emerald-700">
+                               from-emerald-50 to-emerald-100 text-emerald-700"
+        >
           SUB ADMIN
         </motion.span>
 
@@ -401,10 +394,14 @@ function Header({ greeting, currentDate, currentTime }: any) {
       </div>
 
       <p className="text-gray-600 text-sm mt-1">{greeting()}, Anne 👋</p>
-      <p className="text-xs text-gray-500">📅 {currentDate} • ⏰ {currentTime}</p>
+      <p className="text-xs text-gray-500">
+        📅 {currentDate} • ⏰ {currentTime}
+      </p>
 
-      <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 
-                      via-emerald-500 to-transparent rounded-full" />
+      <div
+        className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 
+                      via-emerald-500 to-transparent rounded-full"
+      />
     </div>
   );
 }
@@ -428,7 +425,6 @@ function NotificationBanner() {
   );
 }
 
-
 /* ============================================================
    CUSTOMER ANALYTICS
 ============================================================ */
@@ -444,32 +440,47 @@ function CustomerAnalyticsSection(props: any) {
           <div>
             <p className="text-sm font-semibold text-slate-800">Customer Analytics</p>
             <p className="text-[0.7rem] text-slate-500">
-              Unique customers based on recent order activity.
+              Unique customers based on backend analytics.
             </p>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <MiniStatCard icon={<UserPlus size={16} />} label="New Customers (7 days)"
-          value={props.loadingStats ? "…" : props.newCustomers7Days} badge="Last 7 days" />
+        <MiniStatCard
+          icon={<UserPlus size={16} />}
+          label="New Customers (7 days)"
+          value={props.loadingStats ? "…" : props.newCustomers7Days}
+          badge="Last 7 days"
+        />
 
-        <MiniStatCard icon={<UserPlus size={16} />} label="New Customers (This Month)"
-          value={props.loadingStats ? "…" : props.newCustomersThisMonth} badge="This Month" />
+        <MiniStatCard
+          icon={<UserPlus size={16} />}
+          label="New Customers (This Month)"
+          value={props.loadingStats ? "…" : props.newCustomersThisMonth}
+          badge="This Month"
+        />
 
-        <MiniStatCard icon={<UserPlus size={16} />} label="New Customers (This Year)"
+        <MiniStatCard
+          icon={<UserPlus size={16} />}
+          label="New Customers (This Year)"
           value={props.loadingStats ? "…" : props.newCustomersThisYear}
-          badge={`${new Date().getFullYear()} YTD`} />
+          badge={`${new Date().getFullYear()} YTD`}
+        />
 
-        <MiniStatCard icon={<Users size={16} />} label="Total Unique Customers"
-          value={props.loadingStats ? "…" : props.totalUniqueCustomers} badge="All-time" />
+        <MiniStatCard
+          icon={<Users size={16} />}
+          label="Total Unique Customers"
+          value={props.loadingStats ? "…" : props.totalUniqueCustomers}
+          badge="All-time"
+        />
       </div>
     </section>
   );
 }
 
 /* ============================================================
-   RETURNING VS NEW SECTION (FAKE DATA)
+   RETURNING VS NEW SECTION
 ============================================================ */
 
 function ReturningVsNewSection({ newCustomers, returningCustomers }: any) {
@@ -480,33 +491,46 @@ function ReturningVsNewSection({ newCustomers, returningCustomers }: any) {
           <Users size={18} />
         </div>
         <div>
-          <p className="text-sm font-semibold text-slate-800">Returning vs New Customers</p>
-          <p className="text-[0.7rem] text-slate-500">Based on fake analytics data</p>
+          <p className="text-sm font-semibold text-slate-800">
+            Returning vs New Customers
+          </p>
+          <p className="text-[0.7rem] text-slate-500">
+            Based on backend order history.
+          </p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <MiniStatCard icon={<UserPlus size={16} />} label="New Customers"
-          value={newCustomers} badge="Fake Data" />
+        <MiniStatCard
+          icon={<UserPlus size={16} />}
+          label="New Customers"
+          value={newCustomers}
+          badge="Exactly 1 order"
+        />
 
-        <MiniStatCard icon={<Users size={16} />} label="Returning Customers"
-          value={returningCustomers} badge="Fake Data" />
+        <MiniStatCard
+          icon={<Users size={16} />}
+          label="Returning Customers"
+          value={returningCustomers}
+          badge="2+ orders"
+        />
       </div>
     </section>
   );
 }
 
-
 /* ============================================================
    CUSTOMER GROWTH GRAPH
 ============================================================ */
 
-function CustomerGrowthChart({ data }: any) {
+function CustomerGrowthChart({ data }: { data: CustomerGrowthPointDTO[] }) {
   return (
     <section className="mt-8">
-      <p className="text-sm font-semibold text-slate-800 mb-1">Customer Growth (Fake Data)</p>
+      <p className="text-sm font-semibold text-slate-800 mb-1">
+        Customer Growth (Monthly)
+      </p>
       <p className="text-[0.7rem] text-slate-500 mb-3">
-        Monthly registered vs active customers
+        Monthly registered vs active customers (backend data)
       </p>
 
       <div className="w-full bg-white border rounded-xl shadow p-4">
