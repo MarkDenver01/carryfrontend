@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { Button, Dropdown, DropdownItem, Pagination } from "flowbite-react";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Tag, Package, Layers, Clock, Hash, X, CheckCircle2 } from "lucide-react";
 import Swal from "sweetalert2";
 import { motion } from "framer-motion";
 
@@ -13,6 +13,7 @@ import ProductRecommendationsModal from "../../components/product/ProductRecomme
 import { fetchAllRules } from "../../libs/ApiGatewayDatasource";
 import type { Product } from "../../types/types";
 import type { RecommendationRuleDTO } from "../../libs/models/product/RecommendedRule";
+import dayjs from "dayjs";
 
 // strict sort fields
 type ProductSortField =
@@ -48,7 +49,6 @@ export default function ProductInventoryTable() {
    ============================ */
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  // Category → count mapping (for pills)
   const categoryCount: Record<string, number> = {};
   products.forEach((p) => {
     if (p.categoryName) {
@@ -189,7 +189,7 @@ export default function ProductInventoryTable() {
   };
 
   /** ============================
-   *   CURSOR SPOTLIGHT (like Orders)
+   *   CURSOR SPOTLIGHT
    ============================ */
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
@@ -199,6 +199,22 @@ export default function ProductInventoryTable() {
       x: e.clientX - rect.left,
       y: e.clientY - rect.top,
     });
+  };
+
+  /** ============================
+   *   PRODUCT DETAIL SLIDE PANEL (NEW)
+   ============================ */
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+
+  const openDetail = (product: Product) => {
+    setSelectedProduct(product);
+    setDetailOpen(true);
+  };
+
+  const closeDetail = () => {
+    setDetailOpen(false);
+    setSelectedProduct(null);
   };
 
   /** ============================
@@ -212,32 +228,12 @@ export default function ProductInventoryTable() {
       className="relative p-6 md:p-8 flex flex-col gap-8 overflow-hidden"
       onMouseMove={handleMouseMove}
     >
-      {/* ---------- BACKDROP GRID + BLOBS (same concept as Orders) ---------- */}
+      {/* ---------- BACKGROUND GRIDS ---------- */}
       <div className="pointer-events-none absolute inset-0 -z-30">
         <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)] bg-[size:40px_40px]" />
-        <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" />
-
-        <motion.div
-          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/30 blur-3xl"
-          animate={{
-            x: [0, 18, 8, -6, 0],
-            y: [0, 8, 18, 4, 0],
-            borderRadius: ["45%", "60%", "55%", "65%", "45%"],
-          }}
-          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/26 blur-3xl"
-          animate={{
-            x: [0, -15, -25, -8, 0],
-            y: [0, -10, -16, -5, 0],
-            borderRadius: ["50%", "65%", "55%", "70%", "50%"],
-          }}
-          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
-        />
       </div>
 
-      {/* ---------- CURSOR SPOTLIGHT (like Orders) ---------- */}
+      {/* ---------- CURSOR SPOTLIGHT ---------- */}
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
@@ -245,7 +241,7 @@ export default function ProductInventoryTable() {
         }}
       />
 
-      {/* ---------- HEADER (same concept as Orders) ---------- */}
+      {/* ---------- HEADER ---------- */}
       <div className="relative flex flex-col gap-3">
         <motion.h1
           initial={{ opacity: 0, x: -18 }}
@@ -261,13 +257,13 @@ export default function ProductInventoryTable() {
           <span className="font-medium text-emerald-700">
             all store and online products
           </span>
-          . Filter by category, availability, and quickly manage each item.
+          . Click any product to view full details.
         </p>
 
         <div className="mt-3 h-[3px] w-32 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* ---------- MAIN CONTENT (Sidebar + Filters + Table) ---------- */}
+      {/* ---------- MAIN CONTENT ---------- */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -275,7 +271,7 @@ export default function ProductInventoryTable() {
         className="relative rounded-[24px] border border-emerald-200/80 bg-gradient-to-br from-white/96 via-slate-50/98 to-emerald-50/60 shadow-[0_18px_55px_rgba(15,23,42,0.28)] backdrop-blur-xl p-5 md:p-6 overflow-hidden"
       >
         <div className="relative flex gap-5">
-          {/* ============ CATEGORY SIDEBAR ============ */}
+          {/* ---------- SIDEBAR ---------- */}
           <div className="w-60 shrink-0 rounded-2xl border border-emerald-200 bg-white/80 shadow-sm p-4 h-fit max-h-[680px] overflow-y-auto sticky top-4">
             <h3 className="text-sm font-semibold text-emerald-700 mb-3">
               Categories
@@ -291,10 +287,10 @@ export default function ProductInventoryTable() {
                     setCurrentPage(1);
                   }}
                   className={`
-                    w-full flex items-center justify-between gap-2 px-4 py-2 rounded-xl text-sm border transition-all
+                    w-full flex items-center justify-between px-4 py-2 rounded-xl text-sm border
                     ${
                       selectedCategory === cat
-                        ? "bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-300/30 border-emerald-500"
+                        ? "bg-emerald-600 text-white border-emerald-500 shadow-lg shadow-emerald-300/30"
                         : "bg-white hover:bg-emerald-50 text-gray-700 border-emerald-200"
                     }
                   `}
@@ -307,18 +303,16 @@ export default function ProductInventoryTable() {
                         : "bg-emerald-100 text-emerald-700"
                     }`}
                   >
-                    {cat === "All"
-                      ? products.length
-                      : categoryCount[cat] ?? 0}
+                    {cat === "All" ? products.length : categoryCount[cat] ?? 0}
                   </span>
                 </motion.button>
               ))}
             </div>
           </div>
 
-          {/* ============ RIGHT CONTENT ============ */}
+          {/* ---------- RIGHT SECTION ---------- */}
           <div className="flex-1 flex flex-col gap-5">
-            {/* FILTER TOOLBAR */}
+            {/* FILTERS */}
             <div className="rounded-xl bg-white/70 border border-emerald-200/50 shadow-sm px-4 py-3 flex flex-col gap-3 md:flex-row md:items-center">
               <div className="relative w-full md:max-w-xs">
                 <input
@@ -380,7 +374,7 @@ export default function ProductInventoryTable() {
               </div>
             </div>
 
-            {/* PRODUCT TABLE */}
+            {/* ---------- PRODUCT TABLE ---------- */}
             <motion.div
               key={selectedCategory}
               initial={{ opacity: 0, y: 6 }}
@@ -401,11 +395,13 @@ export default function ProductInventoryTable() {
                 handleDeleteProduct={handleDeleteProduct}
                 onViewRecommendations={(product) =>
                   handleViewRecommendations(product.id!)
+                  
                 }
+                onSelectProduct={openDetail}   
               />
             </motion.div>
 
-            {/* PAGINATION */}
+            {/* ---------- PAGINATION ---------- */}
             {totalPages > 1 && (
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-4 text-xs md:text-sm text-slate-600">
                 <span>
@@ -439,7 +435,149 @@ export default function ProductInventoryTable() {
         </div>
       </motion.div>
 
-      {/* MODALS */}
+      {/* 🌟🌟🌟 RIGHT-SIDE PRODUCT DETAIL SLIDE PANEL 🌟🌟🌟 */}
+      {detailOpen && selectedProduct && (
+        <div className="fixed inset-0 z-[80] flex justify-end bg-slate-900/40 backdrop-blur-sm">
+          <motion.div
+            initial={{ x: 400, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: 400, opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="h-full w-full max-w-md bg-white shadow-2xl border-l border-emerald-100 flex flex-col"
+          >
+            {/* HEADER */}
+            <div className="px-5 py-4 border-b border-slate-200 bg-gradient-to-r from-emerald-500/10 via-white to-cyan-500/10 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700">
+                  Product Details
+                </p>
+                <p className="text-sm font-semibold text-slate-900 line-clamp-1">
+                  {selectedProduct.name}
+                </p>
+              </div>
+              <button
+                onClick={closeDetail}
+                className="p-1.5 rounded-full hover:bg-slate-100 text-slate-500 hover:text-slate-800 transition"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* CONTENT */}
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+              {/* IMAGE */}
+              <div className="flex justify-center">
+                <div className="relative">
+                  <div className="absolute -inset-1 rounded-2xl bg-gradient-to-br from-emerald-300/60 via-cyan-300/50 to-transparent opacity-70 blur-[3px]" />
+                  <img
+                    src={selectedProduct.imageUrl || "/placeholder.png"}
+                    className="relative w-40 h-40 rounded-2xl object-cover border border-emerald-100 shadow-lg"
+                  />
+                </div>
+              </div>
+
+              {/* NAME & DESCRIPTION */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <p className="text-[13px] text-slate-600">
+                    <span className="font-semibold text-slate-900">
+                      {selectedProduct.name}
+                    </span>
+                  </p>
+                </div>
+
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  {selectedProduct.productDescription || (
+                    <span className="italic text-slate-400">No description</span>
+                  )}
+                </p>
+              </div>
+
+              {/* GRID INFORMATION */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                {/* CATEGORY */}
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <Tag className="w-3.5 h-3.5" />
+                    <span>Category</span>
+                  </div>
+                  <span className="text-[11px] text-slate-800 mt-0.5">
+                    {selectedProduct.categoryName || "Uncategorized"}
+                  </span>
+                </div>
+
+                {/* STOCK */}
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/40 px-3 py-2.5 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <Package className="w-3.5 h-3.5" />
+                    <span>Stocks</span>
+                  </div>
+                  <span className="text-[11px] text-slate-800 mt-0.5">
+                    {selectedProduct.stock}
+                  </span>
+                </div>
+
+                {/* EXPIRY */}
+                <div className="rounded-xl border border-emerald-100 bg-cyan-50/60 px-3 py-2.5 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Expiry</span>
+                  </div>
+                  <span className="text-[11px] text-slate-800 mt-0.5">
+                    {selectedProduct.expiryDate
+                      ? dayjs(selectedProduct.expiryDate).format("MMM DD, YYYY")
+                      : "—"}
+                  </span>
+                </div>
+
+                {/* STATUS */}
+                <div className="rounded-xl border border-emerald-100 bg-slate-50 px-3 py-2.5 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <Layers className="w-3.5 h-3.5" />
+                    <span>Status</span>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 text-[11px] mt-0.5">
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        selectedProduct.status === "Available"
+                          ? "bg-emerald-500"
+                          : "bg-slate-500"
+                      }`}
+                    />
+                    <span className="text-slate-800">
+                      {selectedProduct.status}
+                    </span>
+                  </span>
+                </div>
+
+                {/* CODE */}
+                <div className="rounded-xl border border-emerald-100 bg-white px-3 py-2.5 flex flex-col gap-1">
+                  <div className="flex items-center gap-1.5 text-emerald-700 font-semibold">
+                    <Hash className="w-3.5 h-3.5" />
+                    <span>Code</span>
+                  </div>
+                  <span className="text-[11px] text-slate-800 mt-0.5 break-all">
+                    {selectedProduct.code || "—"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* FOOTER */}
+            <div className="px-5 py-3 border-t border-slate-200 bg-white flex items-center justify-end">
+              <button
+                onClick={closeDetail}
+                className="text-xs font-medium text-slate-600 hover:text-slate-900 px-3 py-1.5 rounded-full hover:bg-slate-100 transition"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* ---------- EXISTING MODALS ---------- */}
       <ProductFormModal
         show={showModal}
         onClose={() => setShowModal(false)}
