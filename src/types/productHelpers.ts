@@ -13,7 +13,7 @@ export const formatDate = (d?: string | null) => {
   return parsed.toISOString().split("T")[0];
 };
 
-/** Maps a RecommendationRuleDTO → RecommendationRuleDTO (backend already normalized) */
+/** Maps a RecommendationRuleDTO → RecommendationRuleDTO */
 export const mapRecommendationDTO = (
   r: RecommendationRuleDTO
 ): RecommendationRuleDTO => ({
@@ -47,7 +47,6 @@ export const mapProductDTO = (p: ProductDTO): Product => ({
   categoryId: p.categoryId ?? null,
   categoryName: p.categoryName ?? null,
 
-  // Fix for ProductDTO without recommendations
   recommendations: p.recommendations
     ? p.recommendations.map(mapRecommendationDTO)
     : [],
@@ -56,16 +55,16 @@ export const mapProductDTO = (p: ProductDTO): Product => ({
 /** Clean up text fields */
 const clean = (val?: string | null) => val?.trim() ?? "";
 
-/** Format date for backend (append T00:00:00 if not included) */
+/** 
+ * Format date for backend (always safe string)
+ * Returns yyyy-MM-ddT00:00:00 
+ */
 const formatDateForBackend = (d?: string | null): string => {
   if (!d) return "";
   return d.includes("T") ? d : `${d}T00:00:00`;
 };
 
-/**
- * Converts Product → ProductRequest (JSON-friendly object)
- * Used for PUT / PATCH without file upload
- */
+/** Converts Product → ProductRequest */
 export const toProductRequest = (p: Product): ProductRequest => ({
   productCode: clean(p.code),
   productName: clean(p.name),
@@ -78,13 +77,14 @@ export const toProductRequest = (p: Product): ProductRequest => ({
   categoryId: p.categoryId ?? null,
 });
 
-/**
- * Converts Product + optional imageFile → FormData (for backend multipart/form-data)
- */
+/** Converts Product + optional imageFile → FormData */
 export const toProductFormData = (p: Product, imageFile?: File): FormData => {
   const formData = new FormData();
 
-  // JSON part
+  // If new image uploaded → backend replaces URL, so send ""
+  // If no new image → keep old URL
+  const finalImageUrl = imageFile || p.imageFile ? "" : p.imageUrl || "";
+
   const productJson = {
     productCode: clean(p.code),
     productName: clean(p.name),
@@ -92,20 +92,19 @@ export const toProductFormData = (p: Product, imageFile?: File): FormData => {
     stocks: Number(p.stock ?? 0),
     productSize: clean(p.size),
     productStatus: clean(p.status),
-    productImgUrl: p.imageUrl ?? "", // fallback if no file uploaded
+    productImgUrl: finalImageUrl, 
     expiryDate: p.expiryDate ? formatDateForBackend(p.expiryDate) : "",
     productInDate: p.inDate ? formatDateForBackend(p.inDate) : "",
-    categoryId: p.categoryId,
+    categoryId: p.categoryId ?? null,
   };
 
-  formData.append(
-    "product",
-    new Blob([JSON.stringify(productJson)], { type: "application/json" })
-  );
+  formData.append("product", JSON.stringify(productJson));
 
-  // File part (priority: imageFile argument > p.imageFile)
+  // Only upload file if selected
   const fileToUpload = imageFile ?? p.imageFile;
-  if (fileToUpload) formData.append("file", fileToUpload);
+  if (fileToUpload) {
+    formData.append("file", fileToUpload);
+  }
 
   return formData;
 };
