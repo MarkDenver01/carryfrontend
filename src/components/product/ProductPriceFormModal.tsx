@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import {
   Button,
   Modal,
@@ -9,6 +9,7 @@ import {
   TextInput,
 } from "flowbite-react";
 import Swal from "sweetalert2";
+
 import { usePricesContext } from "../../context/PricesContext";
 import { useProductsContext } from "../../context/ProductsContext";
 import type { ProductPrice } from "../../types/pricingTypes";
@@ -23,26 +24,72 @@ export default function ProductPriceFormModal({ show, onClose, price }: Props) {
   const { addPrice, updatePrice } = usePricesContext();
   const { products } = useProductsContext();
 
+  /* ===========================================
+     CATEGORY LIST (REAL VALUES ONLY, TYPE-SAFE)
+  ============================================ */
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+
+    products.forEach((p) => {
+      const cat = p.categoryName;
+      if (typeof cat === "string" && cat.trim() !== "") {
+        set.add(cat);
+      }
+    });
+
+    return Array.from(set); // string[]
+  }, [products]);
+
+  /* ===========================================
+     FORM STATE
+  ============================================ */
+  const [selectedCategory, setSelectedCategory] = useState("");
   const [formData, setFormData] = useState({
     productId: 0,
     basePrice: 0,
     effectiveDate: "",
   });
 
+  /* ===========================================
+     PREFILL DATA WHEN UPDATING
+  ============================================ */
   useEffect(() => {
     if (price) {
+      const prod = products.find((p) => p.id === price.productId);
+
+      setSelectedCategory(
+        typeof prod?.categoryName === "string" ? prod.categoryName : ""
+      );
+
       setFormData({
         productId: price.productId,
         basePrice: price.basePrice,
         effectiveDate: price.effectiveDate,
       });
     } else {
+      setSelectedCategory("");
       setFormData({ productId: 0, basePrice: 0, effectiveDate: "" });
     }
-  }, [price]);
+  }, [price, products]);
 
+  /* ===========================================
+     FILTER PRODUCTS BY SELECTED CATEGORY
+  ============================================ */
+  const filteredProducts = useMemo(() => {
+    if (!selectedCategory) return [];
+    return products.filter((p) => p.categoryName === selectedCategory);
+  }, [selectedCategory, products]);
+
+  /* ===========================================
+     FORM SUBMISSION
+  ============================================ */
   const handleSubmit = async () => {
-    if (!formData.productId || !formData.basePrice) {
+    if (
+      !selectedCategory ||
+      !formData.productId ||
+      !formData.basePrice ||
+      !formData.effectiveDate
+    ) {
       Swal.fire("Validation Error", "All fields are required.", "warning");
       return;
     }
@@ -66,7 +113,6 @@ export default function ProductPriceFormModal({ show, onClose, price }: Props) {
       <ModalHeader />
 
       <ModalBody>
-        {/* TITLE */}
         <h3
           className="
             text-xl font-extrabold text-center mb-6
@@ -78,16 +124,34 @@ export default function ProductPriceFormModal({ show, onClose, price }: Props) {
         </h3>
 
         <div className="space-y-5">
+          {/* CATEGORY DROPDOWN */}
+          <div className="space-y-1">
+            <Label className="font-semibold text-slate-700">Category</Label>
+            <div className="rounded-2xl border border-emerald-300/60 bg-white/90 px-3 py-2 shadow-sm">
+              <Select
+                value={selectedCategory}
+                onChange={(e) => {
+                  setSelectedCategory(e.target.value);
+                  // reset product pag nagpalit ng category
+                  setFormData({ ...formData, productId: 0 });
+                }}
+                className="focus:ring-emerald-500"
+              >
+                <option value="">Select Category</option>
 
-          {/* PRODUCT FIELD */}
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>
+                    {cat}
+                  </option>
+                ))}
+              </Select>
+            </div>
+          </div>
+
+          {/* PRODUCT DROPDOWN */}
           <div className="space-y-1">
             <Label className="font-semibold text-slate-700">Product</Label>
-            <div
-              className="
-                rounded-2xl border border-emerald-300/60 bg-white/90
-                backdrop-blur-sm px-3 py-2 shadow-sm
-              "
-            >
+            <div className="rounded-2xl border border-emerald-300/60 bg-white/90 px-3 py-2 shadow-sm">
               <Select
                 value={formData.productId || ""}
                 onChange={(e) =>
@@ -96,10 +160,12 @@ export default function ProductPriceFormModal({ show, onClose, price }: Props) {
                     productId: Number(e.target.value),
                   })
                 }
+                disabled={!selectedCategory}
                 className="focus:ring-emerald-500"
               >
                 <option value="">Select Product</option>
-                {products.map((p) => (
+
+                {filteredProducts.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name}
                   </option>
@@ -113,12 +179,7 @@ export default function ProductPriceFormModal({ show, onClose, price }: Props) {
             <Label className="font-semibold text-slate-700">
               Base Price (₱)
             </Label>
-            <div
-              className="
-                rounded-2xl border border-emerald-300/60 bg-white/90
-                backdrop-blur-sm px-3 py-2 shadow-sm
-              "
-            >
+            <div className="rounded-2xl border border-emerald-300/60 bg-white/90 px-3 py-2 shadow-sm">
               <TextInput
                 type="number"
                 value={formData.basePrice}
@@ -138,12 +199,7 @@ export default function ProductPriceFormModal({ show, onClose, price }: Props) {
             <Label className="font-semibold text-slate-700">
               Effective Date
             </Label>
-            <div
-              className="
-                rounded-2xl border border-cyan-300/60 bg-white/90
-                backdrop-blur-sm px-3 py-2 shadow-sm
-              "
-            >
+            <div className="rounded-2xl border border-cyan-300/60 bg-white/90 px-3 py-2 shadow-sm">
               <TextInput
                 type="date"
                 value={formData.effectiveDate}
@@ -163,10 +219,7 @@ export default function ProductPriceFormModal({ show, onClose, price }: Props) {
             <Button
               color="gray"
               onClick={onClose}
-              className="
-                rounded-full px-5 py-2 shadow-md hover:shadow-lg
-                border border-slate-300 transition
-              "
+              className="rounded-full px-5 py-2"
             >
               Cancel
             </Button>
@@ -176,8 +229,6 @@ export default function ProductPriceFormModal({ show, onClose, price }: Props) {
               className="
                 rounded-full px-5 py-2 font-semibold text-white
                 bg-gradient-to-r from-emerald-600 to-cyan-500
-                shadow-[0_8px_20px_rgba(0,200,180,0.45)]
-                hover:brightness-110 transition
               "
             >
               {price ? "Update" : "Add"}
