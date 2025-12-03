@@ -27,26 +27,41 @@ export function useNotifications() {
     },
   ]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
-
-  const markAllAsRead = () => {
-    setNotifications((prev) =>
-      prev.map((n) => ({
-        ...n,
-        read: true,
-      }))
-    );
+  // 🔥 ADD NOTIFICATION (pang test & real usage)
+  const addNotification = (payload: {
+    message: string;
+    icon: NotificationIcon;
+    color: string;
+  }) => {
+    setNotifications((prev) => [
+      {
+        id: globalId++,
+        message: payload.message,
+        icon: payload.icon,
+        color: payload.color,
+        createdAt: new Date(),
+        read: false,
+      },
+      ...prev, // newest first
+    ]);
   };
 
-  const markAsRead = (id: number) => {
+  // UNREAD COUNT
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  // MARK ALL READ
+  const markAllAsRead = () =>
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+
+  // MARK ONE READ
+  const markAsRead = (id: number) =>
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
-  };
 
-  const removeNotification = (id: number) => {
+  // REMOVE NOTIFICATION
+  const removeNotification = (id: number) =>
     setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
 
   return {
     notifications,
@@ -54,5 +69,6 @@ export function useNotifications() {
     markAllAsRead,
     markAsRead,
     removeNotification,
+    addNotification, // 🔥 IMPORTANTE
   };
 }
