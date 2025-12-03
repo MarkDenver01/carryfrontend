@@ -166,7 +166,7 @@ const Login: React.FC = () => {
     <div
       className="relative min-h-screen w-full flex items-center justify-center overflow-hidden"
       style={{
-        backgroundImage: `url('/assets/admin_bg.jpg')`,
+        backgroundImage: `url('/assets/admin_emerald.jpg')`,
         backgroundSize: "cover",
         backgroundPosition: "center",
       }}
