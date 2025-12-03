@@ -9,6 +9,8 @@ import {
   Truck,
   Users,
   UserPlus,
+  AlertTriangle,
+  CheckCircle2
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -31,6 +33,9 @@ import {
   getCustomerGrowth,
 } from "../../libs/ApiGatewayDatasource";
 
+// 🔔 IMPORT NOTIFICATION HOOK
+import { useNotifications } from "../../hooks/use_notification";
+
 /* =========================
    TYPES FROM BACKEND DTOs
 ========================= */
@@ -49,12 +54,16 @@ type ReturningVsNewDTO = {
 };
 
 type CustomerGrowthPointDTO = {
-  month: string; // e.g. "Jan 2025"
+  month: string; 
   registered: number;
   active: number;
 };
 
 export default function SubDashboard() {
+
+  // 🔔 INIT NOTIFICATION 
+  const { addNotification } = useNotifications();
+
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
@@ -120,10 +129,7 @@ export default function SubDashboard() {
     });
   };
 
-  // ======================================
-  // HELPERS FOR ORDER / RIDER STATUS
-  // ======================================
-
+  // HELPERS
   const normalizeStatus = (status: any): string => {
     if (!status) return "";
     return String(status).trim().toUpperCase().replace(/\s+/g, "_");
@@ -176,11 +182,29 @@ export default function SubDashboard() {
           getCustomerGrowth(),
         ]);
 
-        // ORDER STATS (frontend computed from orders list)
+        // ORDER STATS
         const stats = computeOrderStats(orders);
         setTotalOrders(stats.totalOrders);
         setPendingOrders(stats.pending);
         setInTransitOrders(stats.inTransit);
+
+        // 🔔 NOTIFICATION INSERT — pending orders
+        if (stats.pending > 0) {
+          addNotification({
+            message: `${stats.pending} pending order(s)`,
+            icon: AlertTriangle,
+            color: "text-amber-600",
+          });
+        }
+
+        // 🔔 NOTIFICATION INSERT — in transit
+        if (stats.inTransit > 0) {
+          addNotification({
+            message: `${stats.inTransit} order(s) in transit`,
+            icon: Truck,
+            color: "text-blue-600",
+          });
+        }
 
         // RIDER STATS
         const availableCount = riders.filter(
@@ -188,22 +212,54 @@ export default function SubDashboard() {
         ).length;
         setActiveDrivers(availableCount);
 
-        // CUSTOMER ANALYTICS (backend)
+        // 🔔 NOTIFICATION INSERT — drivers
+        addNotification({
+          message: `${availableCount} active driver(s) online`,
+          icon: Truck,
+          color: "text-indigo-600",
+        });
+
+        // CUSTOMER ANALYTICS
         const a = analytics as CustomerAnalyticsDTO;
         setNewCustomers7Days(a?.newCustomers7Days ?? 0);
         setNewCustomersThisMonth(a?.newCustomersThisMonth ?? 0);
         setNewCustomersThisYear(a?.newCustomersThisYear ?? 0);
         setTotalUniqueCustomers(a?.totalUniqueCustomers ?? 0);
 
-        // RETURNING VS NEW (backend)
+        // 🔔 NOTIFICATION INSERT — new customers
+        if (a?.newCustomers7Days > 0) {
+          addNotification({
+            message: `+${a.newCustomers7Days} new customers (7 days)`,
+            icon: Users,
+            color: "text-green-600",
+          });
+        }
+
+        // RETURNING VS NEW
         const rvn = returningData as ReturningVsNewDTO;
         setNewCustomers(rvn?.newCustomers ?? 0);
         setReturningCustomers(rvn?.returningCustomers ?? 0);
 
-        // CUSTOMER GROWTH GRAPH (backend)
+        // CUSTOMER GROWTH
         setCustomerGrowth(Array.isArray(growth) ? growth : []);
+
+        // 🔔 SUCCESS LOAD
+        addNotification({
+          message: "Dashboard stats updated",
+          icon: CheckCircle2,
+          color: "text-emerald-600",
+        });
+
       } catch (err) {
         console.error("❌ Failed to load sub admin stats:", err);
+
+        // 🔔 NOTIFICATION INSERT — error
+        addNotification({
+          message: "Failed to load dashboard stats",
+          icon: AlertTriangle,
+          color: "text-red-600",
+        });
+
       } finally {
         setLoadingStats(false);
       }
@@ -211,6 +267,7 @@ export default function SubDashboard() {
 
     loadStats();
   }, []);
+
 
   // ============================================================
   // UI — START
@@ -243,7 +300,7 @@ export default function SubDashboard() {
           {/* NOTIF BANNER */}
           <NotificationBanner />
 
-          {/* TOP METRICS — ORDER + RIDERS */}
+          {/* TOP METRICS */}
           <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <SubStatCard
               gradient="from-emerald-600 to-green-700"
@@ -317,7 +374,6 @@ export default function SubDashboard() {
 function BackgroundEffects({ cursorPos }: any) {
   return (
     <>
-      {/* BG PATTERN */}
       <div className="pointer-events-none absolute inset-0 -z-30">
         <div
           className="w-full h-full opacity-40 mix-blend-soft-light 
@@ -332,7 +388,6 @@ function BackgroundEffects({ cursorPos }: any) {
         />
       </div>
 
-      {/* CURSOR LIGHT */}
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
@@ -343,7 +398,6 @@ function BackgroundEffects({ cursorPos }: any) {
         transition={{ duration: 8, repeat: Infinity }}
       />
 
-      {/* FLOATING BLURS */}
       <motion.div
         className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/28 blur-3xl -z-30"
         animate={{
@@ -353,6 +407,7 @@ function BackgroundEffects({ cursorPos }: any) {
         }}
         transition={{ duration: 22, repeat: Infinity }}
       />
+
       <motion.div
         className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/24 blur-3xl -z-30"
         animate={{
@@ -425,10 +480,7 @@ function NotificationBanner() {
   );
 }
 
-/* ============================================================
-   CUSTOMER ANALYTICS
-============================================================ */
-
+// CUSTOMER ANALYTICS
 function CustomerAnalyticsSection(props: any) {
   return (
     <section className="mt-2">
@@ -479,10 +531,7 @@ function CustomerAnalyticsSection(props: any) {
   );
 }
 
-/* ============================================================
-   RETURNING VS NEW SECTION
-============================================================ */
-
+// RETURNING VS NEW
 function ReturningVsNewSection({ newCustomers, returningCustomers }: any) {
   return (
     <section className="mt-6">
@@ -519,10 +568,7 @@ function ReturningVsNewSection({ newCustomers, returningCustomers }: any) {
   );
 }
 
-/* ============================================================
-   CUSTOMER GROWTH GRAPH
-============================================================ */
-
+// CUSTOMER GROWTH GRAPH
 function CustomerGrowthChart({ data }: { data: CustomerGrowthPointDTO[] }) {
   return (
     <section className="mt-8">
@@ -566,10 +612,7 @@ function CustomerGrowthChart({ data }: { data: CustomerGrowthPointDTO[] }) {
   );
 }
 
-/* ============================================================
-   SUB STAT CARD
-============================================================ */
-
+// SUB STAT CARD
 type SubStatCardProps = {
   gradient: string;
   iconBg: string;
@@ -617,10 +660,7 @@ function SubStatCard({
   );
 }
 
-/* ============================================================
-   MINI STAT CARD
-============================================================ */
-
+// MINI STAT CARD
 function MiniStatCard({ icon, label, value, badge }: any) {
   return (
     <motion.div
