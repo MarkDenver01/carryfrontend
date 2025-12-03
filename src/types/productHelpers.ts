@@ -81,9 +81,9 @@ export const toProductRequest = (p: Product): ProductRequest => ({
 export const toProductFormData = (p: Product, imageFile?: File): FormData => {
   const formData = new FormData();
 
-  // If new image uploaded → backend replaces URL, so send ""
-  // If no new image → keep old URL
-  const finalImageUrl = imageFile || p.imageFile ? "" : p.imageUrl || "";
+  // FINAL FIX — if uploading a new file → send null so backend overwrites
+  const finalImageUrl =
+    imageFile || p.imageFile ? null : p.imageUrl || null;
 
   const productJson = {
     productCode: clean(p.code),
@@ -92,15 +92,18 @@ export const toProductFormData = (p: Product, imageFile?: File): FormData => {
     stocks: Number(p.stock ?? 0),
     productSize: clean(p.size),
     productStatus: clean(p.status),
-    productImgUrl: finalImageUrl, 
-    expiryDate: p.expiryDate ? formatDateForBackend(p.expiryDate) : "",
-    productInDate: p.inDate ? formatDateForBackend(p.inDate) : "",
+    productImgUrl: finalImageUrl,
+    expiryDate: p.expiryDate ? formatDateForBackend(p.expiryDate) : null,
+    productInDate: p.inDate ? formatDateForBackend(p.inDate) : null,
     categoryId: p.categoryId ?? null,
   };
 
-  formData.append("product", JSON.stringify(productJson));
+  // MUST USE BLOB
+  formData.append(
+    "product",
+    new Blob([JSON.stringify(productJson)], { type: "application/json" })
+  );
 
-  // Only upload file if selected
   const fileToUpload = imageFile ?? p.imageFile;
   if (fileToUpload) {
     formData.append("file", fileToUpload);

@@ -28,13 +28,7 @@ export default function ProductFormModal({
   onClose,
   product = null,
 }: ProductFormModalProps) {
-
-  const {
-    addProduct,
-    updateProduct,
-    reloadProducts,
-  } = useProductsContext();
-
+  const { addProduct, updateProduct, reloadProducts } = useProductsContext();
   const { categories } = useCategoryContext();
 
   const emptyProduct: Product = {
@@ -57,6 +51,7 @@ export default function ProductFormModal({
 
   const isEdit = !!product?.id;
 
+  // LOAD PRODUCT INTO FORM
   useEffect(() => {
     if (product) {
       setForm({ ...product });
@@ -70,7 +65,7 @@ export default function ProductFormModal({
   }, [product, show]);
 
   const handleChange = (field: keyof Product, value: any) => {
-    setForm(prev => ({
+    setForm((prev) => ({
       ...prev,
       [field]: field === "stock" ? Number(value) : value,
     }));
@@ -106,7 +101,6 @@ export default function ProductFormModal({
 
       await reloadProducts();
       onClose();
-
     } catch (err: any) {
       Swal.fire("Error", err?.message || "Failed to save product", "error");
     } finally {
@@ -119,14 +113,11 @@ export default function ProductFormModal({
       <ModalHeader />
 
       <ModalBody>
-        {/* TITLE */}
         <h3 className="text-xl font-extrabold mb-4 bg-gradient-to-r from-emerald-500 via-cyan-500 to-emerald-400 bg-clip-text text-transparent">
           {isEdit ? "Edit Product" : "Add New Product"}
         </h3>
 
-        {/* GLASS CONTAINER */}
         <div className="p-4 rounded-2xl bg-white/70 border border-emerald-200 shadow-xl backdrop-blur-xl space-y-5">
-
           {/* IMAGE UPLOAD */}
           <div className="space-y-1">
             <Label htmlFor="image" className="font-semibold text-slate-700">
@@ -154,20 +145,49 @@ export default function ProductFormModal({
 
           {/* TEXT INPUTS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {["code", "name", "description", "size"].map((field) => (
-              <div key={field}>
-                <Label className="font-semibold text-slate-700">
-                  {field.charAt(0).toUpperCase() + field.slice(1)}
-                </Label>
-                <TextInput
-                  className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500 focus:border-emerald-500"
-                  value={(form as any)[field] ?? ""}
-                  onChange={(e) =>
-                    handleChange(field as keyof Product, e.target.value)
-                  }
-                />
-              </div>
-            ))}
+            {/* CODE */}
+            <div>
+              <Label className="font-semibold text-slate-700">Code</Label>
+              <TextInput
+                className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500 focus:border-emerald-500"
+                value={form.code}
+                onChange={(e) => handleChange("code", e.target.value)}
+              />
+            </div>
+
+            {/* NAME */}
+            <div>
+              <Label className="font-semibold text-slate-700">Name</Label>
+              <TextInput
+                className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500 focus:border-emerald-500"
+                value={form.name}
+                onChange={(e) => handleChange("name", e.target.value)}
+              />
+            </div>
+
+            {/* DESCRIPTION */}
+            <div>
+              <Label className="font-semibold text-slate-700">
+                Description
+              </Label>
+              <TextInput
+                className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
+                value={form.productDescription}
+                onChange={(e) =>
+                  handleChange("productDescription", e.target.value)
+                }
+              />
+            </div>
+
+            {/* SIZE */}
+            <div>
+              <Label className="font-semibold text-slate-700">Size</Label>
+              <TextInput
+                className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
+                value={form.size}
+                onChange={(e) => handleChange("size", e.target.value)}
+              />
+            </div>
           </div>
 
           {/* CATEGORY */}
@@ -176,7 +196,7 @@ export default function ProductFormModal({
               Category
             </Label>
             <Select
-              className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500 focus:border-emerald-500"
+              className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
               value={form.categoryId ?? ""}
               onChange={(e) => handleChange("categoryId", Number(e.target.value))}
             >
@@ -196,7 +216,7 @@ export default function ProductFormModal({
               <TextInput
                 type="number"
                 className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
-                value={form.stock ?? 0}
+                value={form.stock}
                 onChange={(e) => handleChange("stock", e.target.value)}
               />
             </div>
@@ -217,7 +237,9 @@ export default function ProductFormModal({
           {/* DATE FIELDS */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <Label className="font-semibold text-slate-700">Expiry Date</Label>
+              <Label className="font-semibold text-slate-700">
+                Expiry Date
+              </Label>
               <TextInput
                 type="date"
                 className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
@@ -236,7 +258,6 @@ export default function ProductFormModal({
               />
             </div>
           </div>
-
         </div>
       </ModalBody>
 
