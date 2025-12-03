@@ -7,6 +7,8 @@ import {
   ClipboardCheck,
   Package,
   Truck,
+  Users,
+  UserPlus,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -25,6 +27,12 @@ export default function SubDashboard() {
   const [inTransitOrders, setInTransitOrders] = useState(0);
   const [activeDrivers, setActiveDrivers] = useState(0);
   const [loadingStats, setLoadingStats] = useState(false);
+
+  // CUSTOMER ANALYTICS
+  const [newCustomers7Days, setNewCustomers7Days] = useState(0);
+  const [newCustomersThisMonth, setNewCustomersThisMonth] = useState(0);
+  const [newCustomersThisYear, setNewCustomersThisYear] = useState(0);
+  const [totalUniqueCustomers, setTotalUniqueCustomers] = useState(0);
 
   // CLOCK
   useEffect(() => {
@@ -78,7 +86,36 @@ export default function SubDashboard() {
     return String(status).trim().toUpperCase();
   };
 
-  // COMPUTE SUMMARY STATS
+  // HELPERS: get order date + customer key (PURE FRONTEND)
+  const getOrderDate = (order: any): Date | null => {
+    const raw =
+      order.createdAt ??
+      order.orderDate ??
+      order.date ??
+      order.dateTime ??
+      order.created_at ??
+      order.order_date;
+
+    if (!raw) return null;
+    const d = new Date(raw);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+
+  const getCustomerKey = (order: any): string | null => {
+    const key =
+      order.customerId ??
+      order.customer?.id ??
+      order.customer_id ??
+      order.customerEmail ??
+      order.customer_email ??
+      order.customerName ??
+      order.customer_name;
+
+    if (!key) return null;
+    return String(key);
+  };
+
+  // COMPUTE ORDER STATS
   const computeOrderStats = (orders: any[]) => {
     let pending = 0;
     let inTransit = 0;
@@ -99,6 +136,64 @@ export default function SubDashboard() {
     };
   };
 
+  // COMPUTE CUSTOMER ANALYTICS (7D / MONTH / YEAR / TOTAL)
+  const computeCustomerAnalytics = (orders: any[]) => {
+    const now = new Date();
+    const startOfToday = new Date(
+      now.getFullYear(),
+      now.getMonth(),
+      now.getDate()
+    );
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfYear = new Date(now.getFullYear(), 0, 1);
+
+    const sevenDaysAgo = new Date(startOfToday);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); // last 7 calendar days (today + 6 back)
+
+    const allCustomers = new Set<string>();
+    const customers7Days = new Set<string>();
+    const customersThisMonth = new Set<string>();
+    const customersThisYear = new Set<string>();
+
+    orders.forEach((order) => {
+      const customerKey = getCustomerKey(order);
+      if (!customerKey) return;
+
+      const orderDate = getOrderDate(order);
+      if (!orderDate) {
+        // kahit walang date, bilangin pa rin sa total unique customers
+        allCustomers.add(customerKey);
+        return;
+      }
+
+      allCustomers.add(customerKey);
+
+      // Normalize date (ignore time part)
+      const d = new Date(
+        orderDate.getFullYear(),
+        orderDate.getMonth(),
+        orderDate.getDate()
+      );
+
+      if (d >= sevenDaysAgo && d <= startOfToday) {
+        customers7Days.add(customerKey);
+      }
+      if (d >= startOfMonth && d <= startOfToday) {
+        customersThisMonth.add(customerKey);
+      }
+      if (d >= startOfYear && d <= startOfToday) {
+        customersThisYear.add(customerKey);
+      }
+    });
+
+    return {
+      totalUnique: allCustomers.size,
+      last7Days: customers7Days.size,
+      thisMonth: customersThisMonth.size,
+      thisYear: customersThisYear.size,
+    };
+  };
+
   // LOAD ALL STATS (ORDERS + RIDERS)
   useEffect(() => {
     const loadStats = async () => {
@@ -110,12 +205,20 @@ export default function SubDashboard() {
           fetchAllRiders(),
         ]);
 
+        // ORDER STATS
         const stats = computeOrderStats(orders);
-
         setTotalOrders(stats.totalOrders);
         setPendingOrders(stats.pending);
         setInTransitOrders(stats.inTransit);
 
+        // CUSTOMER ANALYTICS (PURE FRONTEND BASED ON ORDERS)
+        const customerStats = computeCustomerAnalytics(orders);
+        setTotalUniqueCustomers(customerStats.totalUnique);
+        setNewCustomers7Days(customerStats.last7Days);
+        setNewCustomersThisMonth(customerStats.thisMonth);
+        setNewCustomersThisYear(customerStats.thisYear);
+
+        // RIDER STATS
         const availableCount = riders.filter(
           (r: any) => normalizeRiderStatus(r.status) === "AVAILABLE"
         ).length;
@@ -186,9 +289,7 @@ export default function SubDashboard() {
         </motion.h1>
 
         <div className="mt-1 flex items-center gap-2">
-          <motion.span
-            className="px-3 py-1 text-[0.7rem] font-semibold rounded-full border border-emerald-300/70 bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700"
-          >
+          <motion.span className="px-3 py-1 text-[0.7rem] font-semibold rounded-full border border-emerald-300/70 bg-gradient-to-r from-emerald-50 to-emerald-100 text-emerald-700">
             SUB ADMIN
           </motion.span>
 
@@ -213,7 +314,6 @@ export default function SubDashboard() {
         className="relative rounded-[26px] border border-emerald-500/30 bg-white/95 dark:bg-slate-950/90 shadow-[0_22px_70px_rgba(15,23,42,0.5)] overflow-hidden mt-1"
       >
         <div className="relative flex flex-col gap-6 p-5 md:p-6">
-
           {/* NOTIF BANNER */}
           <motion.div
             initial={{ opacity: 0, y: 6 }}
@@ -232,7 +332,7 @@ export default function SubDashboard() {
             </div>
           </motion.div>
 
-          {/* STAT CARDS */}
+          {/* STAT CARDS: ORDERS + RIDERS */}
           <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <SubStatCard
               gradient="from-emerald-600 to-green-700"
@@ -272,6 +372,54 @@ export default function SubDashboard() {
             />
           </section>
 
+          {/* CUSTOMER ANALYTICS SECTION */}
+          <section className="mt-2">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-xl flex items-center justify-center bg-emerald-100 text-emerald-600">
+                  <Users size={18} />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">
+                    Customer Analytics
+                  </p>
+                  <p className="text-[0.7rem] text-slate-500">
+                    Unique customers based on recent order activity.
+                  </p>
+                </div>
+              </div>
+              <span className="text-[0.68rem] px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
+                Auto-computed • No backend changes
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              <MiniStatCard
+                icon={<UserPlus size={16} />}
+                label="New Customers (7 days)"
+                value={loadingStats ? "…" : newCustomers7Days}
+                badge="Last 7 days"
+              />
+              <MiniStatCard
+                icon={<UserPlus size={16} />}
+                label="New Customers (This Month)"
+                value={loadingStats ? "…" : newCustomersThisMonth}
+                badge="Calendar month"
+              />
+              <MiniStatCard
+                icon={<UserPlus size={16} />}
+                label="New Customers (This Year)"
+                value={loadingStats ? "…" : newCustomersThisYear}
+                badge={`${new Date().getFullYear()} YTD`}
+              />
+              <MiniStatCard
+                icon={<Users size={16} />}
+                label="Total Unique Customers"
+                value={loadingStats ? "…" : totalUniqueCustomers}
+                badge="All-time"
+              />
+            </div>
+          </section>
         </div>
       </motion.div>
     </motion.div>
@@ -330,5 +478,45 @@ function SubStatCard({
         </div>
       </div>
     </motion.article>
+  );
+}
+
+/* ============================================================
+   MINI STAT CARD (CUSTOMER ANALYTICS)
+============================================================ */
+
+type MiniStatCardProps = {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  badge?: string;
+};
+
+function MiniStatCard({ icon, label, value, badge }: MiniStatCardProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      whileHover={{ y: -4, scale: 1.02 }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
+      className="flex flex-col gap-2 rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-emerald-50/40 p-3 shadow-sm"
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-emerald-700 text-xs font-semibold">
+          <span className="inline-flex items-center justify-center h-6 w-6 rounded-xl bg-emerald-100">
+            {icon}
+          </span>
+          <span className="truncate">{label}</span>
+        </div>
+        {badge && (
+          <span className="text-[0.65rem] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+            {badge}
+          </span>
+        )}
+      </div>
+      <p className="text-2xl font-extrabold text-slate-900 leading-tight">
+        {value}
+      </p>
+    </motion.div>
   );
 }
