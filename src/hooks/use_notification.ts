@@ -1,15 +1,58 @@
-import notificationsJson from "../data/notifications.json";
-import { PackageCheck, MessageCircle, ShieldCheck } from "lucide-react";
+// src/hooks/use_notification.ts
+import { useState } from "react";
+import { Bell } from "lucide-react";
 
-const iconMap: Record<string, React.ElementType> = {
-    PackageCheck,
-    MessageCircle,
-    ShieldCheck,
+export type NotificationIcon = typeof Bell;
+
+export type NotificationItem = {
+  id: number;
+  message: string;
+  icon: NotificationIcon;
+  color: string;
+  createdAt: Date;
+  read: boolean;
 };
 
-export const useNotifications = () => {
-    return notificationsJson.map((n) => ({
+let globalId = 1;
+
+export function useNotifications() {
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
+    {
+      id: globalId++,
+      message: "Sample new order received.",
+      icon: Bell,
+      color: "text-green-600",
+      createdAt: new Date(),
+      read: false,
+    },
+  ]);
+
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const markAllAsRead = () => {
+    setNotifications((prev) =>
+      prev.map((n) => ({
         ...n,
-        icon: iconMap[n.icon],
-    }));
-};
+        read: true,
+      }))
+    );
+  };
+
+  const markAsRead = (id: number) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+    );
+  };
+
+  const removeNotification = (id: number) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  return {
+    notifications,
+    unreadCount,
+    markAllAsRead,
+    markAsRead,
+    removeNotification,
+  };
+}
