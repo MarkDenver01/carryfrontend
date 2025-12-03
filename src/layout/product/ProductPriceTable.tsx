@@ -13,44 +13,68 @@ export default function ProductPriceTable() {
   const { prices, removePrice } = usePricesContext();
 
   const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+
   const [showModal, setShowModal] = useState(false);
   const [editTarget, setEditTarget] = useState<ProductPrice | null>(null);
 
   const [viewModal, setViewModal] = useState(false);
-  const [selectedProductId, setSelectedProductId] = useState<number | null>(
-    null
-  );
+  const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
 
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 8;
 
-  /** 🔍 SEARCH FILTER */
-  const filtered = useMemo(() => {
-    return prices.filter((p) =>
-      p.productName.toLowerCase().includes(search.toLowerCase())
-    );
-  }, [prices, search]);
+  /* ============================================
+     CATEGORY LIST + COUNT
+  ============================================ */
+  const categories = useMemo(() => {
+    const set = new Set(prices.map((p) => p.categoryName).filter(Boolean));
+    return ["All", ...Array.from(set)];
+  }, [prices]);
 
-  /** 📄 PAGINATION */
+  const categoryCount: Record<string, number> = {};
+  prices.forEach((p) => {
+    categoryCount[p.categoryName] = (categoryCount[p.categoryName] || 0) + 1;
+  });
+
+  /* ============================================
+     FILTERING
+  ============================================ */
+  const filtered = useMemo(() => {
+    return prices.filter((p) => {
+      const matchSearch = p.productName
+        .toLowerCase()
+        .includes(search.toLowerCase());
+
+      const matchCategory =
+        selectedCategory === "All" || p.categoryName === selectedCategory;
+
+      return matchSearch && matchCategory;
+    });
+  }, [prices, search, selectedCategory]);
+
+  /* ============================================
+     PAGINATION
+  ============================================ */
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice(
     (currentPage - 1) * pageSize,
     currentPage * pageSize
   );
 
-  /** ➕ ADD PRICE */
+  /* ============================================
+     ACTION HANDLERS
+  ============================================ */
   const handleAdd = () => {
     setEditTarget(null);
     setShowModal(true);
   };
 
-  /** ✏️ EDIT PRICE */
   const handleEdit = (price: ProductPrice) => {
     setEditTarget(price);
     setShowModal(true);
   };
 
-  /** ❌ DELETE PRICE */
   const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: "Delete Price?",
@@ -67,52 +91,27 @@ export default function ProductPriceTable() {
     }
   };
 
-  /** 👁️ VIEW RECOMMENDATIONS */
   const handleViewRecommendations = (productId: number) => {
     setSelectedProductId(productId);
     setViewModal(true);
   };
 
+  /* ============================================
+     JSX OUTPUT
+  ============================================ */
   return (
     <motion.div
-      initial={{ opacity: 0, y: 18 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: "easeOut" }}
+      transition={{ duration: 0.45 }}
       className="relative p-6 md:p-8 overflow-hidden"
     >
-      {/* ===== SUBTLE HUD BACKGROUND ===== */}
-      <div className="pointer-events-none absolute inset-0 -z-20">
-        {/* Soft grid */}
-        <div className="w-full h-full opacity-30 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.14)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.14)_1px,transparent_1px)] bg-[size:42px_42px]" />
-
-        {/* Vignette */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_65%)]" />
-
-        {/* Ambient blobs */}
-        <motion.div
-          className="absolute -top-24 -left-20 h-64 w-64 bg-emerald-400/20 blur-3xl"
-          animate={{
-            x: [0, 18, 8, -8, 0],
-            y: [0, 10, 20, 6, 0],
-          }}
-          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute -bottom-24 right-[-3rem] h-72 w-72 bg-cyan-400/18 blur-3xl"
-          animate={{
-            x: [0, -20, -30, -10, 0],
-            y: [0, -8, -18, -4, 0],
-          }}
-          transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
-
-      {/* ===== HEADER ===== */}
+      {/* HEADER */}
       <div className="mb-7 relative">
         <motion.h2
           initial={{ opacity: 0, x: -15 }}
           animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
+          transition={{ duration: 0.4 }}
           className="text-2xl md:text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-500 via-emerald-400 to-cyan-400 bg-clip-text text-transparent"
         >
           Product Pricing Management
@@ -125,55 +124,73 @@ export default function ProductPriceTable() {
           </span>
           <span className="flex items-center gap-1 text-slate-500">
             <Sparkles className="w-4 h-4 text-emerald-400" />
-            Manage product prices.
+            Categorized product rates
           </span>
         </div>
 
         <div className="mt-3 h-[3px] w-32 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* ===== MAIN CARD ===== */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-        className="relative rounded-[24px] border border-emerald-200/80 bg-gradient-to-br from-white/96 via-slate-50/98 to-emerald-50/60 shadow-[0_18px_55px_rgba(15,23,42,0.28)] backdrop-blur-xl p-5 md:p-6 overflow-hidden"
-      >
-        {/* Corner accents */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-3 left-3 h-4 w-4 border-t border-l border-emerald-200/80" />
-          <div className="absolute top-3 right-3 h-4 w-4 border-t border-r border-emerald-200/80" />
-          <div className="absolute bottom-3 left-3 h-4 w-4 border-b border-l border-emerald-200/80" />
-          <div className="absolute bottom-3 right-3 h-4 w-4 border-b border-r border-emerald-200/80" />
+      {/* ✨ MAIN WRAPPER (Sidebar + Table) */}
+      <div className="relative rounded-[24px] border border-emerald-200/80 bg-gradient-to-br from-white/96 via-slate-50/98 to-emerald-50/60 shadow-[0_18px_55px_rgba(15,23,42,0.22)] backdrop-blur-xl p-5 md:p-6 overflow-hidden flex gap-5">
+        
+        {/* =====================
+            CATEGORY SIDEBAR
+        ===================== */}
+        <div className="w-60 shrink-0 rounded-2xl border border-emerald-200 bg-white/90 shadow-md p-4 h-fit max-h-[680px] overflow-y-auto sticky top-4">
+          <h3 className="text-sm font-semibold text-emerald-700 mb-3">
+            Categories
+          </h3>
+
+          <div className="space-y-2">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => {
+                  setSelectedCategory(cat);
+                  setCurrentPage(1);
+                }}
+                className={`
+                  w-full flex items-center justify-between px-4 py-2 rounded-xl text-sm border transition
+                  ${
+                    selectedCategory === cat
+                      ? "bg-emerald-600 text-white border-emerald-500 shadow-lg"
+                      : "bg-white hover:bg-emerald-50 text-gray-700 border-emerald-200"
+                  }
+                `}
+              >
+                <span className="truncate">{cat}</span>
+
+                <span
+                  className={`
+                    text-[10px] px-2 py-0.5 rounded-full
+                    ${
+                      selectedCategory === cat
+                        ? "bg-white/20 text-white"
+                        : "bg-emerald-100 text-emerald-700"
+                    }
+                  `}
+                >
+                  {cat === "All" ? prices.length : categoryCount[cat] || 0}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
 
-        <div className="relative flex flex-col gap-5">
-          {/* TOP ROW: badge + button */}
-          <div className="flex justify-between items-center mb-2">
-            <div className="flex flex-col gap-1 text-xs text-slate-500">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100 font-semibold">
-                Live Pricing Channel
-              </span>
-              <span className="text-[0.7rem] text-slate-500">
-                Adjust base prices.
-              </span>
-            </div>
-            <Button
-              className="rounded-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-400 text-white font-semibold shadow-[0_10px_28px_rgba(45,212,191,0.55)] hover:brightness-110 border border-emerald-300/80"
-              onClick={handleAdd}
-            >
-              + Set Product Price
-            </Button>
-          </div>
-
-          {/* SEARCH BAR */}
-          <div className="flex flex-wrap items-center gap-3 mb-2">
+        {/* =====================
+            RIGHT SIDE CONTENT
+        ===================== */}
+        <div className="flex-1 flex flex-col gap-5">
+          
+          {/* SEARCH + ADD BUTTON */}
+          <div className="flex flex-wrap items-center gap-3 justify-between">
             <div className="relative w-full max-w-xs">
               <input
                 type="text"
                 placeholder="Search product..."
                 className="w-full border border-emerald-200 rounded-full px-4 py-2 pl-10 shadow-sm 
-                        focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white/95 text-sm text-slate-800 placeholder:text-slate-400"
+                focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-sm text-slate-800 placeholder:text-slate-400"
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -182,13 +199,20 @@ export default function ProductPriceTable() {
               />
               <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
             </div>
+
+            <Button
+              className="rounded-full bg-gradient-to-r from-emerald-600 via-emerald-500 to-cyan-400 text-white font-semibold shadow-[0_10px_28px_rgba(45,212,191,0.55)] hover:brightness-110 border border-emerald-300/80"
+              onClick={handleAdd}
+            >
+              + Set Product Price
+            </Button>
           </div>
 
-          {/* TABLE WRAPPER */}
+          {/* TABLE */}
           <motion.div
             initial={{ opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.35, ease: "easeOut" }}
+            transition={{ duration: 0.35 }}
             className="relative w-full overflow-x-auto pb-3 rounded-2xl border border-emerald-200/80 
                        bg-white/98 shadow-[0_14px_40px_rgba(15,23,42,0.18)]"
           >
@@ -202,7 +226,7 @@ export default function ProductPriceTable() {
                     Product Name
                   </th>
                   <th className="p-3 border border-emerald-300/40 font-semibold">
-                    Product Description
+                    Description
                   </th>
                   <th className="p-3 border border-emerald-300/40 font-semibold">
                     Category
@@ -229,7 +253,7 @@ export default function ProductPriceTable() {
                       key={p.priceId}
                       className={`border-t border-gray-200/70 hover:bg-emerald-50 transition ${
                         p.stocks <= 2
-                          ? "bg-red-50/80 hover:bg-red-100/90"
+                          ? "bg-red-50/70 hover:bg-red-100/80"
                           : ""
                       }`}
                     >
@@ -240,23 +264,29 @@ export default function ProductPriceTable() {
                           className="w-12 h-12 object-cover rounded-md border border-gray-200 shadow-sm"
                         />
                       </td>
+
                       <td className="p-3 border border-gray-200/80 font-semibold text-slate-800">
                         {p.productName}
                       </td>
-                      <td className="p-3 border border-gray-200/80 text-slate-700">
+
+                      <td className="p-3 border border-gray-200/80 text-slate-600">
                         {p.productDescription}
                       </td>
+
                       <td className="p-3 border border-gray-200/80">
                         <span className="px-2 py-0.5 text-xs rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
                           {p.categoryName}
                         </span>
                       </td>
+
                       <td className="p-3 border border-gray-200/80">
                         {p.productSize}
                       </td>
+
                       <td className="p-3 border border-gray-200/80 font-semibold text-emerald-700">
                         ₱{p.basePrice.toFixed(2)}
                       </td>
+
                       <td className="p-3 border border-gray-200/80 text-center">
                         <span
                           className={`px-2 py-0.5 text-xs font-semibold rounded-full border ${
@@ -268,27 +298,30 @@ export default function ProductPriceTable() {
                           {p.stocks}
                         </span>
                       </td>
+
                       <td className="p-3 border border-gray-200/80 text-center">
                         <div className="flex justify-center gap-2 flex-wrap">
                           <button
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-sm hover:shadow-md transition"
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-yellow-500 hover:bg-yellow-600 rounded-md shadow-sm transition"
                             onClick={() => handleEdit(p)}
                           >
                             <Pencil className="w-4 h-4" /> Update
                           </button>
+
                           <button
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md shadow-sm hover:shadow-md transition"
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-red-600 hover:bg-red-700 rounded-md shadow-sm transition"
                             onClick={() => handleDelete(p.priceId)}
                           >
                             <XCircle className="w-4 h-4" /> Delete
                           </button>
+
                           <button
-                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm hover:shadow-md transition"
+                            className="flex items-center gap-1 px-3 py-1.5 text-xs text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow-sm transition"
                             onClick={() =>
                               handleViewRecommendations(p.productId)
                             }
                           >
-                            <Eye className="w-4 h-4" /> View Recommendations
+                            <Eye className="w-4 h-4" /> View Recs
                           </button>
                         </div>
                       </td>
@@ -300,7 +333,7 @@ export default function ProductPriceTable() {
                       colSpan={8}
                       className="text-center text-gray-500 py-4 border border-gray-200/80"
                     >
-                      No product price records found.
+                      No product price entries found.
                     </td>
                   </tr>
                 )}
@@ -327,19 +360,16 @@ export default function ProductPriceTable() {
                 entries
               </span>
 
-              <div className="flex overflow-x-auto sm:justify-center">
-                <Pagination
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onPageChange={setCurrentPage}
-                  showIcons
-                  className="shadow-sm"
-                />
-              </div>
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                showIcons
+              />
             </div>
           )}
         </div>
-      </motion.div>
+      </div>
 
       {/* MODALS */}
       <ProductPriceFormModal
