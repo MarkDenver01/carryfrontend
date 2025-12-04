@@ -11,11 +11,12 @@ import { motion } from "framer-motion";
 
 // ⭐ IMPORT DASHBOARD STATS APIs
 import {
-  getTotalSales,
-  getTotalOrders,
-  getTotalCustomers,
-  getAvailableRidersDashboard,
+  getTotalSalesAdmin,
+  getTotalOrdersAdmin,
+  getTotalCustomersAdmin,
+  getAvailableRidersAdmin,
 } from "../../libs/ApiGatewayDatasource";
+
 
 // ============================
 //        TYPES
@@ -76,10 +77,10 @@ function useDashboardStats() {
         setError(null);
 
         const [sales, orders, customers, riders] = await Promise.all([
-          getTotalSales(),
-          getTotalOrders(),
-          getTotalCustomers(),
-          getAvailableRidersDashboard(),
+          getTotalSalesAdmin(),
+          getTotalOrdersAdmin(),
+          getTotalCustomersAdmin(),
+          getAvailableRidersAdmin(),
         ]);
 
         if (cancelled) return;
