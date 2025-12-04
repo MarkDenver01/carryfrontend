@@ -467,4 +467,24 @@ export async function getCustomerGrowth() {
   }
 }
 
+export async function getTotalOrdersDashboard() {
+  const res = await api.get("/admin/api/dashboard/total-orders");
+  return res.data;
+}
+
+export async function getTotalSalesDashboard() {
+  const res = await api.get("/admin/api/dashboard/total-sales");
+  return res.data;
+}
+
+export async function getTotalCustomersDashboard() {
+  const res = await api.get("/admin/api/dashboard/total-customers");
+  return res.data;
+}
+
+export async function getAvailableRidersDashboard() {
+  const res = await api.get("/admin/api/dashboard/available-riders");
+  return res.data;
+}
+
 

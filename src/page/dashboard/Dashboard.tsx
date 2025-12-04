@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ShoppingCart,
   Percent,
@@ -9,14 +9,16 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-// ⭐ IMPORT DASHBOARD STATS APIs
+// ⭐ IMPORT DASHBOARD STATS APIs (existing mo, hindi ko ginalaw)
 import {
   getTotalSales,
   getTotalOrders,
   getTotalCustomers,
 } from "../../libs/ApiGatewayDatasource";
 
-// TYPES
+// ============================
+//        TYPES
+// ============================
 type StatConfig = {
   id: string;
   title: string;
@@ -27,20 +29,108 @@ type StatConfig = {
   icon: React.ReactNode;
 };
 
-const Dashboard: React.FC = () => {
-  const [secondsSinceUpdate, setSecondsSinceUpdate] = useState(0);
-  const [currentTime, setCurrentTime] = useState("");
-  const [isDarkMode, setIsDarkMode] = useState(
-    typeof window !== "undefined" && localStorage.getItem("darkMode") === "true"
-  );
+// ============================
+//   CUSTOM HOOK: COUNT UP
+// ============================
+function useCountUp(target: number, duration: number = 700): number {
+  const [value, setValue] = useState(0);
 
-  // ⭐ DASHBOARD STATS STATE
+  useEffect(() => {
+    let frame: number;
+    const start = performance.now();
+
+    const animate = (t: number) => {
+      const progress = Math.min((t - start) / duration, 1);
+      setValue(Math.round(progress * target));
+      if (progress < 1) {
+        frame = requestAnimationFrame(animate);
+      }
+    };
+
+    frame = requestAnimationFrame(animate);
+    return () => cancelAnimationFrame(frame);
+  }, [target, duration]);
+
+  return value;
+}
+
+// ============================
+//   CUSTOM HOOK: DASHBOARD STATS
+//   (hiwalay para malinis at reusable)
+// ============================
+function useDashboardStats() {
   const [totalSales, setTotalSales] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [totalCustomers, setTotalCustomers] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Apply dark mode
   useEffect(() => {
+    let cancelled = false;
+
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const [sales, orders, customers] = await Promise.all([
+          getTotalSales(),
+          getTotalOrders(),
+          getTotalCustomers(),
+        ]);
+
+        if (cancelled) return;
+
+        setTotalSales(Number(sales) || 0);
+        setTotalOrders(Number(orders) || 0);
+        setTotalCustomers(Number(customers) || 0);
+      } catch (err) {
+        console.error("Failed to load dashboard stats:", err);
+        if (!cancelled) {
+          setError("Failed to load stats");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchStats();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return {
+    totalSales,
+    totalOrders,
+    totalCustomers,
+    loading,
+    error,
+  };
+}
+
+// ============================
+//        MAIN DASHBOARD
+// ============================
+const Dashboard: React.FC = () => {
+  const [secondsSinceUpdate, setSecondsSinceUpdate] = useState(0);
+  const [currentTime, setCurrentTime] = useState("");
+
+  // SSR-safe dark mode init
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return localStorage.getItem("darkMode") === "true";
+  });
+
+  // ⭐ DASHBOARD STATS (hook)
+  const { totalSales, totalOrders, totalCustomers,} =
+    useDashboardStats();
+
+  // Apply dark mode to <html>
+  useEffect(() => {
+    if (typeof document === "undefined") return;
     localStorage.setItem("darkMode", isDarkMode.toString());
     document.documentElement.classList.toggle("dark", isDarkMode);
   }, [isDarkMode]);
@@ -59,82 +149,77 @@ const Dashboard: React.FC = () => {
     };
 
     updateTime();
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
+    const interval = window.setInterval(updateTime, 1000);
+    return () => window.clearInterval(interval);
   }, []);
 
-  // ⭐ LOAD DASHBOARD STATS FROM BACKEND
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const [sales, orders, customers] = await Promise.all([
-          getTotalSales(),
-          getTotalOrders(),
-          getTotalCustomers(),
-        ]);
+  // Date & greeting computed once per render
+  const now = useMemo(() => new Date(), []);
+  const dateLabel = useMemo(
+    () =>
+      now.toLocaleDateString("en-PH", {
+        weekday: "long",
+        month: "short",
+        day: "2-digit",
+        year: "numeric",
+      }),
+    [now]
+  );
 
-        setTotalSales(Number(sales) || 0);
-        setTotalOrders(Number(orders) || 0);
-        setTotalCustomers(Number(customers) || 0);
-      } catch (error) {
-        console.error("Failed to load dashboard stats:", error);
-      }
-    };
+  const greeting = useMemo(() => {
+    const hour = now.getHours();
+    if (hour < 12) return "Good morning";
+    if (hour < 18) return "Good afternoon";
+    return "Good evening";
+  }, [now]);
 
-    fetchStats();
-  }, []);
+  // Stats list memoized para di paulit-ulit ma-recreate sa bawat render
+  const stats: StatConfig[] = useMemo(
+    () => [
+      {
+        id: "totalOrders",
+        title: "Total Orders",
+        value: totalOrders,
+        gradient: "from-emerald-500 to-emerald-600",
+        iconBg: "bg-emerald-100 text-emerald-600",
+        icon: <ShoppingCart size={28} />,
+      },
+      {
+        id: "totalSales",
+        title: "Total Sales (₱)",
+        value: totalSales,
+        gradient: "from-amber-400 to-amber-500",
+        iconBg: "bg-amber-100 text-amber-500",
+        icon: <Percent size={28} />,
+      },
+      {
+        id: "totalCustomers",
+        title: "Total Customers",
+        value: totalCustomers,
+        gradient: "from-sky-500 to-sky-600",
+        iconBg: "bg-sky-100 text-sky-500",
+        icon: <Users size={28} />,
+      },
+      {
+        id: "drivers",
+        title: "Available Drivers",
+        value: 10, // 🔖 static pa rin: pwede mong palitan to gamit backend later
+        gradient: "from-indigo-500 to-indigo-600",
+        iconBg: "bg-indigo-100 text-indigo-500",
+        icon: <Truck size={28} />,
+      },
+    ],
+    [totalOrders, totalSales, totalCustomers]
+  );
 
-  const stats: StatConfig[] = [
-    {
-      id: "totalOrders",
-      title: "Total Orders",
-      value: totalOrders,
-      gradient: "from-emerald-500 to-emerald-600",
-      iconBg: "bg-emerald-100 text-emerald-600",
-      icon: <ShoppingCart size={28} />,
-    },
-    {
-      id: "totalSales",
-      title: "Total Sales (₱)",
-      value: totalSales,
-      gradient: "from-amber-400 to-amber-500",
-      iconBg: "bg-amber-100 text-amber-500",
-      icon: <Percent size={28} />,
-    },
-    {
-      id: "totalCustomers",
-      title: "Total Customers",
-      value: totalCustomers,
-      gradient: "from-sky-500 to-sky-600",
-      iconBg: "bg-sky-100 text-sky-500",
-      icon: <Users size={28} />,
-    },
-    {
-      id: "drivers",
-      title: "Available Drivers",
-      value: 10, // static for now, pwede mo na rin i-connect later
-      gradient: "from-indigo-500 to-indigo-600",
-      iconBg: "bg-indigo-100 text-indigo-500",
-      icon: <Truck size={28} />,
-    },
-  ];
-
-  const systemStatus = [
-    { label: "API Server", value: "Online", color: "bg-emerald-500" },
-    { label: "Database", value: "Healthy", color: "bg-emerald-400" },
-    { label: "SMS Gateway", value: "Active", color: "bg-emerald-500" },
-  ];
-
-  const dateLabel = new Date().toLocaleDateString("en-PH", {
-    weekday: "long",
-    month: "short",
-    day: "2-digit",
-    year: "numeric",
-  });
-
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  const systemStatus = useMemo(
+    () => [
+      { label: "API Server", value: "Online", color: "bg-emerald-500" },
+      { label: "Database", value: "Healthy", color: "bg-emerald-400" },
+      { label: "SMS Gateway", value: "Active", color: "bg-emerald-500" },
+    ],
+    []
+  );
 
   return (
     <motion.div
@@ -204,7 +289,7 @@ const Dashboard: React.FC = () => {
         <motion.button
           whileHover={{ x: 2, y: -2, scale: 1.03 }}
           whileTap={{ scale: 0.97 }}
-          onClick={() => setIsDarkMode(!isDarkMode)}
+          onClick={() => setIsDarkMode((prev) => !prev)}
           className="relative flex items-center gap-2 px-3 py-2 rounded-full border border-slate-300/70 dark:border-slate-700/80 bg-white/70 dark:bg-slate-900/70 shadow-[0_8px_30px_rgba(15,23,42,0.18)] hover:shadow-[0_12px_40px_rgba(15,23,42,0.25)] backdrop-blur-xl text-xs font-medium transition-all overflow-hidden group"
         >
           <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.25),transparent_55%)]" />
@@ -360,8 +445,9 @@ const Dashboard: React.FC = () => {
         className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5"
       >
         {stats.map((s, index) => (
-          <DashboardStatCard key={s.id} index={index} {...s} />
-        ))}
+  <DashboardStatCard key={s.id} index={index} {...s} />
+))}
+
       </motion.div>
 
       {/* INVENTORY ALERTS */}
@@ -385,17 +471,16 @@ const Dashboard: React.FC = () => {
         </div>
       </SectionWrapper>
 
-      {/* TABLE SECTION */}
-      {/* You can add future table / charts here */}
+      {/* Reserved for future charts / tables */}
     </motion.div>
   );
 };
 
 export default Dashboard;
 
-/* ============================
-   WRAPPER SECTION
-============================ */
+// ============================
+//   WRAPPER SECTION
+// ============================
 function SectionWrapper({
   title,
   children,
@@ -432,9 +517,9 @@ function SectionWrapper({
   );
 }
 
-/* ============================
-   STAT CARD
-============================ */
+// ============================
+//   STAT CARD
+// ============================
 function DashboardStatCard({
   title,
   value,
@@ -492,9 +577,9 @@ function DashboardStatCard({
   );
 }
 
-/* ============================
-   ALERT CARD
-============================ */
+// ============================
+//   ALERT CARD
+// ============================
 function AlertCard({
   label,
   value,
@@ -518,24 +603,4 @@ function AlertCard({
       <p className="text-xs mt-1 text-red-700 dark:text-red-300">{desc}</p>
     </motion.div>
   );
-}
-
-function useCountUp(target: number, duration: number = 700): number {
-  const [value, setValue] = useState(0);
-
-  useEffect(() => {
-    let frame: number;
-    const start = performance.now();
-
-    const animate = (t: number) => {
-      const progress = Math.min((t - start) / duration, 1);
-      setValue(Math.round(progress * target));
-      if (progress < 1) frame = requestAnimationFrame(animate);
-    };
-
-    frame = requestAnimationFrame(animate);
-    return () => cancelAnimationFrame(frame);
-  }, [target, duration]);
-
-  return value;
 }
