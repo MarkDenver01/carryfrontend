@@ -468,22 +468,22 @@ export async function getCustomerGrowth() {
 }
 
 export async function getTotalSalesAdmin() {
-  const res = await api.get("/admin/api/dashboard/total-sales");
+  const res = await api.get("api/dashboard/total-sales");
   return res.data?.data ?? res.data?.totalSales ?? res.data;
 }
 
 export async function getTotalOrdersAdmin() {
-  const res = await api.get("/admin/api/dashboard/total-orders");
+  const res = await api.get("api/dashboard/total-orders");
   return res.data?.data ?? res.data?.totalOrders ?? res.data;
 }
 
 export async function getTotalCustomersAdmin() {
-  const res = await api.get("/admin/api/dashboard/total-customers");
+  const res = await api.get("api/dashboard/total-customers");
   return res.data?.data ?? res.data?.totalCustomers ?? res.data;
 }
 
 export async function getAvailableRidersAdmin() {
-  const res = await api.get("/admin/api/dashboard/available-riders");
+  const res = await api.get("api/dashboard/available-riders");
   return res.data?.data ?? res.data?.availableRiders ?? res.data;
 }
 
