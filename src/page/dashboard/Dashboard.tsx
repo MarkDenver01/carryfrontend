@@ -9,11 +9,12 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-// ⭐ IMPORT DASHBOARD STATS APIs (existing mo, hindi ko ginalaw)
+// ⭐ IMPORT DASHBOARD STATS APIs
 import {
   getTotalSales,
   getTotalOrders,
   getTotalCustomers,
+  getAvailableRidersDashboard,
 } from "../../libs/ApiGatewayDatasource";
 
 // ============================
@@ -56,12 +57,13 @@ function useCountUp(target: number, duration: number = 700): number {
 
 // ============================
 //   CUSTOM HOOK: DASHBOARD STATS
-//   (hiwalay para malinis at reusable)
 // ============================
 function useDashboardStats() {
   const [totalSales, setTotalSales] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
   const [totalCustomers, setTotalCustomers] = useState(0);
+  const [availableRiders, setAvailableRiders] = useState(0);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,10 +75,11 @@ function useDashboardStats() {
         setLoading(true);
         setError(null);
 
-        const [sales, orders, customers] = await Promise.all([
+        const [sales, orders, customers, riders] = await Promise.all([
           getTotalSales(),
           getTotalOrders(),
           getTotalCustomers(),
+          getAvailableRidersDashboard(),
         ]);
 
         if (cancelled) return;
@@ -84,6 +87,7 @@ function useDashboardStats() {
         setTotalSales(Number(sales) || 0);
         setTotalOrders(Number(orders) || 0);
         setTotalCustomers(Number(customers) || 0);
+        setAvailableRiders(Number(riders) || 0);
       } catch (err) {
         console.error("Failed to load dashboard stats:", err);
         if (!cancelled) {
@@ -106,6 +110,7 @@ function useDashboardStats() {
     totalSales,
     totalOrders,
     totalCustomers,
+    availableRiders,
     loading,
     error,
   };
@@ -125,9 +130,37 @@ const Dashboard: React.FC = () => {
   });
 
   // ⭐ DASHBOARD STATS (hook)
-  const { totalSales, totalOrders, totalCustomers,} =
-    useDashboardStats();
+  const {
+    totalSales,
+    totalOrders,
+    totalCustomers,
+    availableRiders,
+    loading,
+    error,
+  } = useDashboardStats();
+// SHOW ERROR UI
+if (error) {
+  return (
+    <div className="w-full flex flex-col items-center justify-center py-20 gap-3">
+      <p className="text-red-500 font-semibold text-lg">Failed to load dashboard stats</p>
+      <p className="text-slate-500 text-sm">{error}</p>
+    </div>
+  );
+}
 
+// SHOW LOADING SKELETON
+if (loading) {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 p-6">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div
+          key={i}
+          className="h-32 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse"
+        />
+      ))}
+    </div>
+  );
+}
   // Apply dark mode to <html>
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -153,7 +186,7 @@ const Dashboard: React.FC = () => {
     return () => window.clearInterval(interval);
   }, []);
 
-  // Date & greeting computed once per render
+  // Date & greeting
   const now = useMemo(() => new Date(), []);
   const dateLabel = useMemo(
     () =>
@@ -173,7 +206,7 @@ const Dashboard: React.FC = () => {
     return "Good evening";
   }, [now]);
 
-  // Stats list memoized para di paulit-ulit ma-recreate sa bawat render
+  // Stats list
   const stats: StatConfig[] = useMemo(
     () => [
       {
@@ -203,13 +236,13 @@ const Dashboard: React.FC = () => {
       {
         id: "drivers",
         title: "Available Drivers",
-        value: 10, // 🔖 static pa rin: pwede mong palitan to gamit backend later
+        value: availableRiders, // ✅ now dynamic from backend
         gradient: "from-indigo-500 to-indigo-600",
         iconBg: "bg-indigo-100 text-indigo-500",
         icon: <Truck size={28} />,
       },
     ],
-    [totalOrders, totalSales, totalCustomers]
+    [totalOrders, totalSales, totalCustomers, availableRiders]
   );
 
   const systemStatus = useMemo(
@@ -317,7 +350,6 @@ const Dashboard: React.FC = () => {
         transition={{ duration: 0.45, ease: "easeOut" }}
         className="relative overflow-hidden rounded-2xl border border-emerald-400/35 bg-gradient-to-r from-emerald-600 via-emerald-600 to-emerald-500 text-white shadow-[0_20px_60px_-15px_rgba(4,120,87,0.75)] px-6 py-5 md:px-7 md:py-6 backdrop-blur-2xl group"
       >
-        {/* Gloss + sheen sweep */}
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.20),transparent_65%)]" />
         <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.25),transparent)] translate-x-[-200%] group-hover:translate-x-[200%]" />
 
@@ -445,9 +477,8 @@ const Dashboard: React.FC = () => {
         className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5"
       >
         {stats.map((s, index) => (
-  <DashboardStatCard key={s.id} index={index} {...s} />
-))}
-
+          <DashboardStatCard key={s.id} index={index} {...s} />
+        ))}
       </motion.div>
 
       {/* INVENTORY ALERTS */}
@@ -470,8 +501,6 @@ const Dashboard: React.FC = () => {
           />
         </div>
       </SectionWrapper>
-
-      {/* Reserved for future charts / tables */}
     </motion.div>
   );
 };
@@ -496,9 +525,7 @@ function SectionWrapper({
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="relative p-6 rounded-xl border border-slate-200/85 dark:border-slate-700/85 bg-white/80 dark:bg-slate-900/75 backdrop-blur-xl shadow-[0_18px_55px_rgba(15,23,42,0.28)] overflow-hidden group"
     >
-      {/* halo border */}
       <div className="pointer-events-none absolute inset-0 rounded-xl border border-white/10 dark:border-white/5" />
-      {/* spotlight hover */}
       <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 bg-[radial-gradient(circle_at_top_left,rgba(248,250,252,0.45),transparent_60%)]" />
 
       <div className="relative flex items-center justify-between mb-4">
@@ -544,7 +571,6 @@ function DashboardStatCard({
       }}
       className={`relative flex flex-col gap-4 p-5 rounded-2xl shadow-[0_18px_50px_rgba(15,23,42,0.28)] bg-gradient-to-br ${gradient} text-white overflow-hidden group`}
     >
-      {/* glossy & shine sweep */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.3),transparent_60%)] opacity-90 pointer-events-none" />
       <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-700 bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.4),transparent)] translate-x-[-200%] group-hover:translate-x-[200%]" />
 
