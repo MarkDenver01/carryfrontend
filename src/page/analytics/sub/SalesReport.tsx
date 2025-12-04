@@ -1,3 +1,7 @@
+/* ============================================================
+   SUPER-CLEAN & PREMIUM SALES REPORT (NO STRUCTURE CHANGES)
+============================================================ */
+
 import React, { useState } from "react";
 import {
   PieChart,
@@ -75,70 +79,73 @@ export default function SalesReportUpgraded() {
   return (
     <motion.div
       onMouseMove={handleMouseMove}
-      initial={{ opacity: 0, y: 18 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
+      transition={{ duration: 0.45 }}
       className="relative p-6 md:p-8 flex flex-col gap-10 overflow-hidden"
     >
-      {/* Background Grid */}
+      {/* ---------------- BACKGROUND GRID HUD ---------------- */}
       <div className="absolute inset-0 pointer-events-none -z-30">
-        <div className="w-full h-full opacity-40 bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:48px_48px]" />
+        <div className="w-full h-full opacity-40 bg-[linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)] bg-[size:44px_44px]" />
 
-        {/* Ambient Effects */}
+        {/* Soft glow animated blobs */}
         <motion.div
-          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/25 blur-3xl"
+          className="absolute -top-20 -left-10 h-64 w-64 bg-emerald-500/20 blur-3xl"
           animate={{
-            x: [0, 25, -18, 12, 0],
-            y: [0, -10, 18, -12, 0],
-            borderRadius: ["45%", "60%", "55%", "70%", "45%"],
+            x: [0, 25, -10, 15, 0],
+            y: [0, -10, 20, -12, 0],
+            borderRadius: ["40%", "55%", "60%", "50%", "40%"],
+          }}
+          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
+        />
+
+        <motion.div
+          className="absolute bottom-[-6rem] right-0 h-72 w-72 bg-sky-400/20 blur-3xl"
+          animate={{
+            x: [0, -20, 12, -10, 0],
+            y: [0, 20, -15, 10, 0],
+            borderRadius: ["50%", "65%", "55%", "70%", "50%"],
           }}
           transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
         />
-        <motion.div
-          className="absolute bottom-[-5rem] right-0 h-72 w-72 bg-sky-400/25 blur-3xl"
-          animate={{
-            x: [0, -20, 10, -12, 0],
-            y: [0, 18, -15, 8, 0],
-            borderRadius: ["50%", "70%", "55%", "65%", "50%"],
-          }}
-          transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
-        />
       </div>
 
-      {/* Spotlight */}
+      {/* ---------------- SPOTLIGHT FOLLOW CURSOR ---------------- */}
       <motion.div
         className="absolute inset-0 pointer-events-none -z-20"
         style={{
-          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.25), transparent 70%)`,
+          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(16,185,129,0.18), transparent 70%)`,
         }}
       />
 
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent">
+      {/* ---------------- HEADER ---------------- */}
+      <div className="relative">
+        <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-500 bg-clip-text text-transparent">
           Sales Report
         </h1>
+
         <p className="text-sm text-gray-500 mt-1">
           Enhanced analytics of category and product performance.
         </p>
+
+        <motion.div
+          initial={{ width: 0 }}
+          animate={{ width: "90px" }}
+          transition={{ duration: 0.5 }}
+          className="mt-3 h-[3px] bg-gradient-to-r from-emerald-400 to-transparent rounded-full"
+        />
       </div>
 
-      {/* HUD Container */}
+      {/* ---------------- MAIN HUD WRAPPER ---------------- */}
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={{ opacity: 0, y: 14 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative rounded-[26px] border border-emerald-500/30 bg-white/90 shadow-[0_25px_80px_rgba(15,23,42,0.45)] p-6"
+        transition={{ duration: 0.45 }}
+        className="relative rounded-[26px] border border-emerald-500/25 bg-white/90 shadow-[0_22px_60px_rgba(15,23,42,0.35)] p-6 backdrop-blur-md"
       >
-        {/* Summary Cards */}
-        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          <SummaryCard
-            icon={<Package size={44} />}
-            label="Total Product Sales"
-            value={`₱ ${totalSales.toLocaleString()}`}
-            accent="Overall revenue generated"
-            color="emerald"
-          />
-
+        {/* ---------------- SUMMARY CARDS (SWAPPED ORDER) ---------------- */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          {/* 🔄 SWAPPED: TOP CATEGORY FIRST */}
           <SummaryCard
             icon={<TagIcon size={44} />}
             label="Top Sales Category"
@@ -146,9 +153,17 @@ export default function SalesReportUpgraded() {
             accent="Most profitable department"
             color="amber"
           />
+
+          <SummaryCard
+            icon={<Package size={44} />}
+            label="Total Product Sales"
+            value={`₱ ${totalSales.toLocaleString()}`}
+            accent="Overall revenue generated"
+            color="emerald"
+          />
         </section>
 
-        {/* Charts Grid */}
+        {/* ---------------- CHARTS GRID ---------------- */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <AnalyticsCard
             title="Category Performance"
@@ -164,12 +179,20 @@ export default function SalesReportUpgraded() {
                 <XAxis type="number" />
                 <YAxis dataKey="name" type="category" width={80} />
                 <Tooltip cursor={{ fill: "#f1fdf4" }} />
-                <Bar dataKey="value" radius={[8, 8, 8, 8]}>
+
+                <Bar
+                  dataKey="value"
+                  radius={[10, 10, 10, 10]}
+                  style={{
+                    filter: "drop-shadow(0px 6px 8px rgba(0,0,0,0.12))",
+                  }}
+                >
                   <LabelList
                     dataKey="value"
                     position="right"
                     style={{ fill: "#374151", fontSize: 12 }}
                   />
+
                   {categoryData.map((c, i) => (
                     <Cell key={i} fill={c.fill} />
                   ))}
@@ -189,9 +212,12 @@ export default function SalesReportUpgraded() {
                   data={topProducts}
                   dataKey="value"
                   nameKey="name"
-                  outerRadius={85}
+                  outerRadius={90}
                   innerRadius={45}
                   label
+                  style={{
+                    filter: "drop-shadow(0px 4px 6px rgba(0,0,0,0.18))",
+                  }}
                 >
                   {topProducts.map((p, i) => (
                     <Cell key={i} fill={p.fill} />
@@ -219,7 +245,7 @@ export default function SalesReportUpgraded() {
 }
 
 /* ============================================================
-   SUMMARY CARD COMPONENT (TYPED)
+   SUMMARY CARD COMPONENT (PRETTIER)
 ============================================================ */
 
 function SummaryCard({
@@ -236,21 +262,23 @@ function SummaryCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{
         y: -6,
-        scale: 1.03,
-        boxShadow: "0 26px 65px rgba(15,23,42,0.35)",
+        scale: 1.04,
+        boxShadow: "0 28px 65px rgba(15,23,42,0.35)",
       }}
-      className={`relative p-5 rounded-2xl text-white border border-white/20 bg-gradient-to-br ${bg[color]}`}
+      transition={{ duration: 0.35 }}
+      className={`relative p-5 rounded-2xl text-white border border-white/20 bg-gradient-to-br ${bg[color]} shadow-xl`}
     >
-      <div className="flex items-center gap-3">
-        <div className="p-3 bg-white/20 rounded-xl">{icon}</div>
+      <div className="flex items-center gap-4">
+        <div className="p-3 bg-white/25 rounded-xl shadow-inner">{icon}</div>
+
         <div>
-          <p className="text-xs">{label}</p>
-          <p className="text-3xl font-extrabold">{value}</p>
-          <p className="text-[0.7rem] text-white/80">{accent}</p>
+          <p className="text-xs opacity-90">{label}</p>
+          <p className="text-3xl font-extrabold tracking-tight">{value}</p>
+          <p className="text-[0.75rem] text-white/85 mt-1">{accent}</p>
         </div>
       </div>
     </motion.div>
@@ -258,7 +286,7 @@ function SummaryCard({
 }
 
 /* ============================================================
-   ANALYTICS CARD COMPONENT (TYPED)
+   ANALYTICS CARD COMPONENT (PRETTIER)
 ============================================================ */
 
 function AnalyticsCard({
@@ -269,13 +297,13 @@ function AnalyticsCard({
 }: AnalyticsCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45 }}
-      className="relative p-6 rounded-2xl border border-gray-200 bg-white shadow-[0_20px_65px_rgba(15,23,42,0.25)]"
+      className="relative p-6 rounded-2xl border border-gray-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.25)] hover:shadow-[0_26px_70px_rgba(15,23,42,0.3)] transition-shadow duration-300"
     >
-      <div className="flex items-center gap-3 mb-2">
-        <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center gap-3 mb-3">
+        <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center shadow-inner">
           {icon}
         </div>
         <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
