@@ -18,6 +18,7 @@ import {
   getTotalCustomersAdmin,
   getAvailableRidersAdmin,
 } from "../../libs/ApiGatewayDatasource";
+import { getInventoryMetricsAdmin } from "../../libs/ApiGatewayDatasource";
 
 // ============================
 //        TYPES
@@ -62,6 +63,10 @@ function useCountUp(target: number, duration: number = 700): number {
 // ============================
 function useDashboardStats() {
   const [totalSales, setTotalSales] = useState(0);
+  const [lowStock, setLowStock] = useState(0);
+  const [outOfStock, setOutOfStock] = useState(0);
+  const [expiringSoon, setExpiringSoon] = useState(0);
+
   const [totalOrders, setTotalOrders] = useState(0);
   const [totalCustomers, setTotalCustomers] = useState(0);
   const [availableRiders, setAvailableRiders] = useState(0);
@@ -77,12 +82,22 @@ function useDashboardStats() {
         setLoading(true);
         setError(null);
 
-        const [sales, orders, customers, riders] = await Promise.all([
-          getTotalSalesAdmin(),
-          getTotalOrdersAdmin(),
-          getTotalCustomersAdmin(),
-          getAvailableRidersAdmin(),
-        ]);
+        const [
+  sales,
+  orders,
+  customers,
+  riders,
+  inventory
+] = await Promise.all([
+  getTotalSalesAdmin(),
+  getTotalOrdersAdmin(),
+  getTotalCustomersAdmin(),
+  getAvailableRidersAdmin(),
+  getInventoryMetricsAdmin(), // ⭐ NEW
+]);
+setLowStock(inventory.lowStockItems);
+setOutOfStock(inventory.outOfStockItems);
+setExpiringSoon(inventory.expiringSoonItems);
 
         if (cancelled) return;
 
@@ -110,13 +125,17 @@ function useDashboardStats() {
   }, []);
 
   return {
-    totalSales,
-    totalOrders,
-    totalCustomers,
-    availableRiders,
-    loading,
-    error,
-  };
+  totalSales,
+  totalOrders,
+  totalCustomers,
+  availableRiders,
+  lowStock,
+  outOfStock,
+  expiringSoon,
+  loading,
+  error,
+};
+
 }
 
 // ============================
@@ -134,14 +153,18 @@ const Dashboard: React.FC = () => {
   });
 
   // ⭐ DASHBOARD STATS (hook)
-  const {
-    totalSales,
-    totalOrders,
-    totalCustomers,
-    availableRiders,
-    loading,
-    error,
-  } = useDashboardStats();
+ const {
+  totalSales,
+  totalOrders,
+  totalCustomers,
+  availableRiders,
+  lowStock,
+  outOfStock,
+  expiringSoon,
+  loading,
+  error,
+} = useDashboardStats();
+
 
   // ====== EFFECTS (STILL ABOVE ANY RETURN) ======
 
@@ -485,17 +508,17 @@ const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <AlertCard
             label="Low Stock Items"
-            value="12 items"
+            value={`${lowStock} items`}
             desc="Requires restocking soon"
           />
           <AlertCard
             label="Out of Stock"
-            value="4 items"
+            value={`${outOfStock} items`}
             desc="Needs immediate ordering"
           />
           <AlertCard
             label="Expiring Soon"
-            value="7 items"
+            value={`${expiringSoon} items`}
             desc="Expires within 10 days"
           />
         </div>

@@ -496,4 +496,8 @@ export async function fetchMembershipDashboard() {
   }
 
 }
+export async function getInventoryMetricsAdmin() {
+  const response = await api.get("/api/dashboard/inventory/metrics");
+  return response.data;
+}
 
