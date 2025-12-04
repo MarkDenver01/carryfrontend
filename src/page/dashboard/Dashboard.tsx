@@ -237,7 +237,7 @@ const Dashboard: React.FC = () => {
     },
     {
       id: "drivers",
-      title: "Available Drivers",
+      title: "Total Riders",
       value: availableRiders,
       gradient: "from-indigo-500 to-indigo-600",
       iconBg: "bg-indigo-100 text-indigo-500",

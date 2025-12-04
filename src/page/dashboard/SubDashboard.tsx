@@ -337,7 +337,7 @@ export default function SubDashboard() {
               iconBg="bg-indigo-100 text-indigo-600"
               Icon={Truck}
               value={activeDrivers}
-              label="Active Drivers"
+              label="Total Riders"
               helper="Available riders today"
               loading={loadingStats}
             />
