@@ -1,5 +1,5 @@
 /* ============================================================
-   SUPER-CLEAN & PREMIUM SALES REPORT (NO STRUCTURE CHANGES)
+   SUPER-CLEAN & PREMIUM SALES REPORT (FIXED VERSION)
 ============================================================ */
 
 import React, { useState } from "react";
@@ -45,6 +45,9 @@ type AnalyticsCardProps = {
 export default function SalesReportUpgraded() {
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
+  const [selectedMonth, setSelectedMonth] = useState("January");
+  const [selectedYear, setSelectedYear] = useState("2025");
+
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setCursorPos({
@@ -53,6 +56,7 @@ export default function SalesReportUpgraded() {
     });
   };
 
+  /* ---------------- MOCK DATA ---------------- */
   const totalSales = 40732;
   const topCategorySales = 5756;
 
@@ -76,6 +80,8 @@ export default function SalesReportUpgraded() {
     { name: "Piattos Cheese", value: 1400, fill: "#03A9F4" },
   ];
 
+  const totalProductSales = topProducts.reduce((a, b) => a + b.value, 0);
+
   return (
     <motion.div
       onMouseMove={handleMouseMove}
@@ -84,33 +90,7 @@ export default function SalesReportUpgraded() {
       transition={{ duration: 0.45 }}
       className="relative p-6 md:p-8 flex flex-col gap-10 overflow-hidden"
     >
-      {/* ---------------- BACKGROUND GRID HUD ---------------- */}
-      <div className="absolute inset-0 pointer-events-none -z-30">
-        <div className="w-full h-full opacity-40 bg-[linear-gradient(to_right,rgba(148,163,184,0.12)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.12)_1px,transparent_1px)] bg-[size:44px_44px]" />
-
-        {/* Soft glow animated blobs */}
-        <motion.div
-          className="absolute -top-20 -left-10 h-64 w-64 bg-emerald-500/20 blur-3xl"
-          animate={{
-            x: [0, 25, -10, 15, 0],
-            y: [0, -10, 20, -12, 0],
-            borderRadius: ["40%", "55%", "60%", "50%", "40%"],
-          }}
-          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-        />
-
-        <motion.div
-          className="absolute bottom-[-6rem] right-0 h-72 w-72 bg-sky-400/20 blur-3xl"
-          animate={{
-            x: [0, -20, 12, -10, 0],
-            y: [0, 20, -15, 10, 0],
-            borderRadius: ["50%", "65%", "55%", "70%", "50%"],
-          }}
-          transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
-        />
-      </div>
-
-      {/* ---------------- SPOTLIGHT FOLLOW CURSOR ---------------- */}
+      {/* ---------------- SPOTLIGHT BACKGROUND (fixed, uses cursorPos) ---------------- */}
       <motion.div
         className="absolute inset-0 pointer-events-none -z-20"
         style={{
@@ -118,34 +98,59 @@ export default function SalesReportUpgraded() {
         }}
       />
 
+      {/* ---------------- FILTERS ---------------- */}
+      <div className="flex gap-4">
+        <select
+          className="px-3 py-2 border rounded-lg shadow-sm"
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value)}
+        >
+          {[
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+          ].map((m) => (
+            <option key={m}>{m}</option>
+          ))}
+        </select>
+
+        <select
+          className="px-3 py-2 border rounded-lg shadow-sm"
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(e.target.value)}
+        >
+          {["2023", "2024", "2025", "2026"].map((y) => (
+            <option key={y}>{y}</option>
+          ))}
+        </select>
+      </div>
+
       {/* ---------------- HEADER ---------------- */}
       <div className="relative">
         <h1 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-500 bg-clip-text text-transparent">
-          Sales Report
+          Sales Report – {selectedMonth} {selectedYear}
         </h1>
 
         <p className="text-sm text-gray-500 mt-1">
           Enhanced analytics of category and product performance.
         </p>
-
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: "90px" }}
-          transition={{ duration: 0.5 }}
-          className="mt-3 h-[3px] bg-gradient-to-r from-emerald-400 to-transparent rounded-full"
-        />
       </div>
 
-      {/* ---------------- MAIN HUD WRAPPER ---------------- */}
-      <motion.div
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-        className="relative rounded-[26px] border border-emerald-500/25 bg-white/90 shadow-[0_22px_60px_rgba(15,23,42,0.35)] p-6 backdrop-blur-md"
-      >
-        {/* ---------------- SUMMARY CARDS (SWAPPED ORDER) ---------------- */}
+      {/* ---------------- MAIN WRAPPER ---------------- */}
+      <div className="rounded-[26px] border border-emerald-500/25 bg-white/90 shadow-xl p-6 backdrop-blur-md">
+        {/* ============================================================
+            SUMMARY CARDS — SWAPPED
+        ============================================================ */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* 🔄 SWAPPED: TOP CATEGORY FIRST */}
           <SummaryCard
             icon={<TagIcon size={44} />}
             label="Top Sales Category"
@@ -163,8 +168,11 @@ export default function SalesReportUpgraded() {
           />
         </section>
 
-        {/* ---------------- CHARTS GRID ---------------- */}
+        {/* ============================================================
+            CHARTS
+        ============================================================ */}
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* -------------- CATEGORY BAR CHART (VALUE LABELS) -------------- */}
           <AnalyticsCard
             title="Category Performance"
             subtitle="Vertical bar analytics per category."
@@ -180,19 +188,12 @@ export default function SalesReportUpgraded() {
                 <YAxis dataKey="name" type="category" width={80} />
                 <Tooltip cursor={{ fill: "#f1fdf4" }} />
 
-                <Bar
-                  dataKey="value"
-                  radius={[10, 10, 10, 10]}
-                  style={{
-                    filter: "drop-shadow(0px 6px 8px rgba(0,0,0,0.12))",
-                  }}
-                >
+                <Bar dataKey="value" radius={[10, 10, 10, 10]}>
                   <LabelList
                     dataKey="value"
                     position="right"
-                    style={{ fill: "#374151", fontSize: 12 }}
+                    style={{ fill: "#374151", fontSize: 13 }}
                   />
-
                   {categoryData.map((c, i) => (
                     <Cell key={i} fill={c.fill} />
                   ))}
@@ -201,23 +202,24 @@ export default function SalesReportUpgraded() {
             </ResponsiveContainer>
           </AnalyticsCard>
 
+          {/* -------------- PIE CHART (PERCENTAGE LABELS) -------------- */}
           <AnalyticsCard
             title="Top Selling Products"
-            subtitle="Visual breakdown of sales distribution."
+            subtitle="Percentage distribution of top sellers."
             icon={<TagIcon className="w-5 h-5 text-indigo-600" />}
           >
             <ResponsiveContainer width="100%" height={260}>
               <PieChart>
                 <Pie
-                  data={topProducts}
+                  data={topProducts.map((p) => ({
+                    ...p,
+                    percent: ((p.value / totalProductSales) * 100).toFixed(1),
+                  }))}
                   dataKey="value"
                   nameKey="name"
                   outerRadius={90}
                   innerRadius={45}
-                  label
-                  style={{
-                    filter: "drop-shadow(0px 4px 6px rgba(0,0,0,0.18))",
-                  }}
+                  label={(entry) => `${entry.percent}%`}
                 >
                   {topProducts.map((p, i) => (
                     <Cell key={i} fill={p.fill} />
@@ -239,13 +241,13 @@ export default function SalesReportUpgraded() {
             </div>
           </AnalyticsCard>
         </section>
-      </motion.div>
+      </div>
     </motion.div>
   );
 }
 
 /* ============================================================
-   SUMMARY CARD COMPONENT (PRETTIER)
+   SUMMARY CARD
 ============================================================ */
 
 function SummaryCard({
@@ -274,7 +276,6 @@ function SummaryCard({
     >
       <div className="flex items-center gap-4">
         <div className="p-3 bg-white/25 rounded-xl shadow-inner">{icon}</div>
-
         <div>
           <p className="text-xs opacity-90">{label}</p>
           <p className="text-3xl font-extrabold tracking-tight">{value}</p>
@@ -286,7 +287,7 @@ function SummaryCard({
 }
 
 /* ============================================================
-   ANALYTICS CARD COMPONENT (PRETTIER)
+   ANALYTICS CARD
 ============================================================ */
 
 function AnalyticsCard({
@@ -300,7 +301,7 @@ function AnalyticsCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45 }}
-      className="relative p-6 rounded-2xl border border-gray-200 bg-white shadow-[0_20px_60px_rgba(15,23,42,0.25)] hover:shadow-[0_26px_70px_rgba(15,23,42,0.3)] transition-shadow duration-300"
+      className="relative p-6 rounded-2xl border border-gray-200 bg-white shadow-xl"
     >
       <div className="flex items-center gap-3 mb-3">
         <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center shadow-inner">
