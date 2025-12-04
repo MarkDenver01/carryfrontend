@@ -1,4 +1,6 @@
-import React, { useEffect, useMemo, useState } from "react";
+// src/page/dashboard/Dashboard.tsx
+
+import React, { useEffect, useState } from "react";
 import {
   ShoppingCart,
   Percent,
@@ -16,7 +18,6 @@ import {
   getTotalCustomersAdmin,
   getAvailableRidersAdmin,
 } from "../../libs/ApiGatewayDatasource";
-
 
 // ============================
 //        TYPES
@@ -102,6 +103,7 @@ function useDashboardStats() {
     };
 
     fetchStats();
+
     return () => {
       cancelled = true;
     };
@@ -121,6 +123,7 @@ function useDashboardStats() {
 //        MAIN DASHBOARD
 // ============================
 const Dashboard: React.FC = () => {
+  // ====== STATE HOOKS (ORDERED) ======
   const [secondsSinceUpdate, setSecondsSinceUpdate] = useState(0);
   const [currentTime, setCurrentTime] = useState("");
 
@@ -139,29 +142,9 @@ const Dashboard: React.FC = () => {
     loading,
     error,
   } = useDashboardStats();
-// SHOW ERROR UI
-if (error) {
-  return (
-    <div className="w-full flex flex-col items-center justify-center py-20 gap-3">
-      <p className="text-red-500 font-semibold text-lg">Failed to load dashboard stats</p>
-      <p className="text-slate-500 text-sm">{error}</p>
-    </div>
-  );
-}
 
-// SHOW LOADING SKELETON
-if (loading) {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 p-6">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div
-          key={i}
-          className="h-32 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse"
-        />
-      ))}
-    </div>
-  );
-}
+  // ====== EFFECTS (STILL ABOVE ANY RETURN) ======
+
   // Apply dark mode to <html>
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -187,73 +170,88 @@ if (loading) {
     return () => window.clearInterval(interval);
   }, []);
 
-  // Date & greeting
-  const now = useMemo(() => new Date(), []);
-  const dateLabel = useMemo(
-    () =>
-      now.toLocaleDateString("en-PH", {
-        weekday: "long",
-        month: "short",
-        day: "2-digit",
-        year: "numeric",
-      }),
-    [now]
-  );
+  // ====== AFTER ALL HOOKS → SAFE CONDITIONAL RETURNS ======
 
-  const greeting = useMemo(() => {
-    const hour = now.getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
-  }, [now]);
+  if (error) {
+    return (
+      <div className="w-full flex flex-col items-center justify-center py-20 gap-3">
+        <p className="text-red-500 font-semibold text-lg">
+          Failed to load dashboard stats
+        </p>
+        <p className="text-slate-500 text-sm">{error}</p>
+      </div>
+    );
+  }
 
-  // Stats list
-  const stats: StatConfig[] = useMemo(
-    () => [
-      {
-        id: "totalOrders",
-        title: "Total Orders",
-        value: totalOrders,
-        gradient: "from-emerald-500 to-emerald-600",
-        iconBg: "bg-emerald-100 text-emerald-600",
-        icon: <ShoppingCart size={28} />,
-      },
-      {
-        id: "totalSales",
-        title: "Total Sales (₱)",
-        value: totalSales,
-        gradient: "from-amber-400 to-amber-500",
-        iconBg: "bg-amber-100 text-amber-500",
-        icon: <Percent size={28} />,
-      },
-      {
-        id: "totalCustomers",
-        title: "Total Customers",
-        value: totalCustomers,
-        gradient: "from-sky-500 to-sky-600",
-        iconBg: "bg-sky-100 text-sky-500",
-        icon: <Users size={28} />,
-      },
-      {
-        id: "drivers",
-        title: "Available Drivers",
-        value: availableRiders, // ✅ now dynamic from backend
-        gradient: "from-indigo-500 to-indigo-600",
-        iconBg: "bg-indigo-100 text-indigo-500",
-        icon: <Truck size={28} />,
-      },
-    ],
-    [totalOrders, totalSales, totalCustomers, availableRiders]
-  );
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 p-6">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div
+            key={i}
+            className="h-32 rounded-xl bg-slate-200 dark:bg-slate-700 animate-pulse"
+          />
+        ))}
+      </div>
+    );
+  }
 
-  const systemStatus = useMemo(
-    () => [
-      { label: "API Server", value: "Online", color: "bg-emerald-500" },
-      { label: "Database", value: "Healthy", color: "bg-emerald-400" },
-      { label: "SMS Gateway", value: "Active", color: "bg-emerald-500" },
-    ],
-    []
-  );
+  // ====== PURE VALUES / NO MORE HOOKS ======
+
+  const now = new Date();
+  const dateLabel = now.toLocaleDateString("en-PH", {
+    weekday: "long",
+    month: "short",
+    day: "2-digit",
+    year: "numeric",
+  });
+
+  const hour = now.getHours();
+  const greeting =
+    hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+
+  const stats: StatConfig[] = [
+    {
+      id: "totalOrders",
+      title: "Total Orders",
+      value: totalOrders,
+      gradient: "from-emerald-500 to-emerald-600",
+      iconBg: "bg-emerald-100 text-emerald-600",
+      icon: <ShoppingCart size={28} />,
+    },
+    {
+      id: "totalSales",
+      title: "Total Sales (₱)",
+      value: totalSales,
+      gradient: "from-amber-400 to-amber-500",
+      iconBg: "bg-amber-100 text-amber-500",
+      icon: <Percent size={28} />,
+    },
+    {
+      id: "totalCustomers",
+      title: "Total Customers",
+      value: totalCustomers,
+      gradient: "from-sky-500 to-sky-600",
+      iconBg: "bg-sky-100 text-sky-500",
+      icon: <Users size={28} />,
+    },
+    {
+      id: "drivers",
+      title: "Available Drivers",
+      value: availableRiders,
+      gradient: "from-indigo-500 to-indigo-600",
+      iconBg: "bg-indigo-100 text-indigo-500",
+      icon: <Truck size={28} />,
+    },
+  ];
+
+  const systemStatus = [
+    { label: "API Server", value: "Online", color: "bg-emerald-500" },
+    { label: "Database", value: "Healthy", color: "bg-emerald-400" },
+    { label: "SMS Gateway", value: "Active", color: "bg-emerald-500" },
+  ];
+
+  // ====== UI RENDER ======
 
   return (
     <motion.div
