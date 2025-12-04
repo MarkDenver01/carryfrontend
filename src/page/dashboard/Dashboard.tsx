@@ -519,7 +519,7 @@ const Dashboard: React.FC = () => {
           <AlertCard
             label="Expiring Soon"
             value={`${expiringSoon} items`}
-            desc="Expires within 10 days"
+            desc="Expires within 60 days"
           />
         </div>
       </SectionWrapper>
@@ -620,7 +620,7 @@ function DashboardStatCard({
         </div>
       </div>
 
-      <p className="relative text-xs opacity-90 mt-1">Updated a moment ago</p>
+      <p className="relative text-xs opacity-90 mt-1">Refresh to update.</p>
     </motion.div>
   );
 }
