@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Search,
   Users,
@@ -12,40 +12,50 @@ import {
 } from "lucide-react";
 import { Dropdown, DropdownItem } from "flowbite-react";
 import { motion } from "framer-motion";
+import { fetchMembershipDashboard } from "../../libs/ApiGatewayDatasource";
+
 
 type MemberStatus = "Active" | "Expiring Soon" | "Inactive";
 
 type Member = {
   name: string;
-  start: string; // ISO date string from backend later
-  expiry: string; // ISO date string (start + 1 month sa backend later)
+  start: string; // ISO date from backend
+  expiry: string; // ISO date (1 month from start)
   points: number;
   status: MemberStatus;
 };
 
-const membersData: Member[] = [
-  {
-    name: "Nathaniel Cruz",
-    start: "2024-01-10",
-    expiry: "2025-01-09",
-    points: 2300,
-    status: "Active",
-  },
-  {
-    name: "Alyssa Gomez",
-    start: "2023-08-14",
-    expiry: "2024-08-13",
-    points: 1800,
-    status: "Expiring Soon",
-  },
-  {
-    name: "John Reyes",
-    start: "2022-09-01",
-    expiry: "2023-09-01",
-    points: 500,
-    status: "Inactive",
-  },
-];
+type BackendMember = {
+  name: string;
+  start: string;
+  expiry: string;
+  points: number;
+  status: string; // e.g. "ACTIVE", "EXPIRING SOON", "INACTIVE"
+};
+
+type TopMember = {
+  name: string;
+  points: number;
+  expiry: string;
+};
+
+type MembershipDashboard = {
+  active: number;
+  expiringSoon: number;
+  inactive: number;
+  totalMembers: number;
+  newThisMonth: number;
+  expiringThisMonth: number;
+  topMembers: TopMember[];
+  members: BackendMember[];
+};
+
+function mapBackendStatus(raw: string): MemberStatus {
+  const normalized = (raw || "").toLowerCase();
+  if (normalized.includes("expiring")) return "Expiring Soon";
+  if (normalized.includes("inactive")) return "Inactive";
+  return "Active";
+}
 
 function getStatusBadge(status: MemberStatus) {
   if (status === "Active") return "bg-emerald-100 text-emerald-700";
@@ -63,7 +73,9 @@ export default function MembershipOverviewPage() {
     y: 0,
   });
 
-  const members = membersData;
+  const [dashboard, setDashboard] = useState<MembershipDashboard | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -72,6 +84,40 @@ export default function MembershipOverviewPage() {
       y: e.clientY - rect.top,
     });
   };
+
+  useEffect(() => {
+  const loadDashboard = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const data = await fetchMembershipDashboard();
+      setDashboard(data);
+
+      } catch (err: any) {
+        console.error("Membership dashboard load error:", err);
+        setError(
+          err?.response?.data?.message ||
+            err?.message ||
+            "Failed to load membership dashboard."
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboard();
+  }, []);
+
+  const members: Member[] = useMemo(() => {
+    if (!dashboard?.members) return [];
+    return dashboard.members.map((m) => ({
+      name: m.name,
+      start: m.start,
+      expiry: m.expiry,
+      points: m.points ?? 0,
+      status: mapBackendStatus(m.status),
+    }));
+  }, [dashboard]);
 
   const filteredMembers = useMemo(() => {
     let list = members.filter((m) => {
@@ -100,30 +146,38 @@ export default function MembershipOverviewPage() {
     return list;
   }, [members, searchTerm, statusFilter, sortLabel]);
 
-  // 🏆 Top members by points
-  const leaderboard = useMemo(
-    () => [...members].sort((a, b) => b.points - a.points).slice(0, 3),
-    [members]
-  );
+  const leaderboard = useMemo(() => {
+    if (!dashboard?.topMembers) return [];
+    return dashboard.topMembers.map((m) => ({
+      name: m.name,
+      points: m.points ?? 0,
+      expiry: m.expiry,
+    }));
+  }, [dashboard]);
 
-  const activeCount = useMemo(
-    () => members.filter((m) => m.status === "Active").length,
-    [members]
-  );
-  const expiringCount = useMemo(
-    () => members.filter((m) => m.status === "Expiring Soon").length,
-    [members]
-  );
-  const inactiveCount = useMemo(
-    () => members.filter((m) => m.status === "Inactive").length,
-    [members]
-  );
+  const activeCount = dashboard?.active ?? 0;
+  const expiringCount = dashboard?.expiringSoon ?? 0;
+  const inactiveCount = dashboard?.inactive ?? 0;
+  const totalMembers = dashboard?.totalMembers ?? members.length;
 
-  const totalMembers = members.length;
+  const newMembersLast30Days = dashboard?.newThisMonth ?? 0;
+  const expiringThisMonth = dashboard?.expiringThisMonth ?? expiringCount;
 
-  // Dummy metrics for now – backend later
-  const newMembersLast30Days = 25;
-  const expiringThisMonth = expiringCount; // later: direct metric from backend
+  if (loading) {
+    return (
+      <div className="p-10 text-center text-emerald-600 font-semibold animate-pulse">
+        Loading membership dashboard...
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-10 text-center text-red-600 font-semibold">
+        Failed to load membership data: {error}
+      </div>
+    );
+  }
 
   return (
     <motion.div
@@ -383,7 +437,7 @@ export default function MembershipOverviewPage() {
                     {filteredMembers.length > 0 ? (
                       filteredMembers.map((m, i) => (
                         <tr
-                          key={i}
+                          key={`${m.name}-${i}`}
                           className="border-b last:border-0 border-gray-100 hover:bg-emerald-50/70 hover:shadow-[0_10px_30px_rgba(16,185,129,0.18)] transition cursor-pointer"
                         >
                           <td
@@ -477,28 +531,37 @@ export default function MembershipOverviewPage() {
                 </div>
 
                 <div className="relative space-y-3">
-                  {leaderboard.map((m, index) => {
-                    const badges = ["🥇", "🥈", "🥉"];
-                    return (
-                      <div
-                        key={m.name}
-                        className="flex items-center justify-between bg-white/12 rounded-xl px-3 py-2.5 backdrop-blur-sm border border-white/15"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center">
-                            <Award className="w-5 h-5 text-white" />
+                  {leaderboard.length > 0 ? (
+                    leaderboard.map((m, index) => {
+                      const badges = ["🥇", "🥈", "🥉"];
+                      return (
+                        <div
+                          key={`${m.name}-${index}`}
+                          className="flex items-center justify-between bg-white/12 rounded-xl px-3 py-2.5 backdrop-blur-sm border border-white/15"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-full bg-white/25 flex items-center justify-center">
+                              <Award className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                              <p className="text-sm font-semibold">{m.name}</p>
+                              <p className="text-[0.7rem] text-emerald-100">
+                                {m.points.toLocaleString()} pts
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-sm font-semibold">{m.name}</p>
-                            <p className="text-[0.7rem] text-emerald-100">
-                              {m.points.toLocaleString()} pts
-                            </p>
-                          </div>
+                          <span className="text-xl">
+                            {badges[index] ?? "⭐"}
+                          </span>
                         </div>
-                        <span className="text-xl">{badges[index] ?? "⭐"}</span>
-                      </div>
-                    );
-                  })}
+                      );
+                    })
+                  ) : (
+                    <p className="text-xs text-emerald-100">
+                      No top members yet. Earn points through orders in the
+                      mobile app.
+                    </p>
+                  )}
                 </div>
               </motion.div>
 
@@ -570,7 +633,7 @@ export default function MembershipOverviewPage() {
                     Member Profile
                   </h3>
 
-                  {/* Membership Card – simpler, walang tier / progress */}
+                  {/* Membership Card – no tier / progress */}
                   <div className="bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500 rounded-2xl p-4 text-white shadow-lg mb-4 border border-white/20">
                     <div className="flex justify-between items-start mb-2">
                       <div>

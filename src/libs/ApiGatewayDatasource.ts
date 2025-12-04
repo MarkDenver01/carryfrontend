@@ -486,5 +486,14 @@ export async function getAvailableRidersAdmin() {
   const res = await api.get("/api/dashboard/available-riders");
   return res.data;
 }
+export async function fetchMembershipDashboard() {
+  try {
+    const response = await api.get("/admin/api/membership/dashboard");
+    return response.data;
+  } catch (error: any) {
+    console.error("Membership Dashboard Error:", error);
+    throw error?.response?.data || { message: "Failed to load dashboard" };
+  }
 
+}
 
