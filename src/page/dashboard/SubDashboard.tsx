@@ -554,14 +554,14 @@ function ReturningVsNewSection({ newCustomers, returningCustomers }: any) {
           icon={<UserPlus size={16} />}
           label="New Customers"
           value={newCustomers}
-          badge="Exactly 1 order"
+          badge="New Orders"
         />
 
         <MiniStatCard
           icon={<Users size={16} />}
-          label="Returning Customers"
+          label="Old Orders"
           value={returningCustomers}
-          badge="2+ orders"
+          badge="2+ Orders"
         />
       </div>
     </section>
