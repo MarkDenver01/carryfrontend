@@ -12,20 +12,33 @@ import {
   LabelList,
 } from "recharts";
 
-import {
-  Package,
-  Tag as TagIcon,
-  TrendingUp,
-  Activity,
-} from "lucide-react";
-
+import { Package, Tag as TagIcon, Activity } from "lucide-react";
 import { motion } from "framer-motion";
 
 /* ============================================================
-   SALES REPORT WITH MATCHING CUSTOMER REPORT HEADER
+   TYPES
 ============================================================ */
 
-export default function SalesReport() {
+type SummaryCardProps = {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  accent: string;
+  color: "emerald" | "amber";
+};
+
+type AnalyticsCardProps = {
+  title: string;
+  subtitle: string;
+  icon: React.ReactNode;
+  children: React.ReactNode;
+};
+
+/* ============================================================
+   MAIN COMPONENT
+============================================================ */
+
+export default function SalesReportUpgraded() {
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -37,7 +50,7 @@ export default function SalesReport() {
   };
 
   const totalSales = 40732;
-  const mostSalesCategory = 5756;
+  const topCategorySales = 5756;
 
   const categoryData = [
     { name: "Beverages", value: 1200, fill: "#3B82F6" },
@@ -61,200 +74,152 @@ export default function SalesReport() {
 
   return (
     <motion.div
+      onMouseMove={handleMouseMove}
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
+      transition={{ duration: 0.5 }}
       className="relative p-6 md:p-8 flex flex-col gap-10 overflow-hidden"
-      onMouseMove={handleMouseMove}
     >
-      {/* ---------- GLOBAL HUD BACKGROUND MATCHED ---------- */}
-      <div className="pointer-events-none absolute inset-0 -z-30">
-        <div className="w-full h-full opacity-40 mix-blend-soft-light bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:40px_40px]" />
+      {/* Background Grid */}
+      <div className="absolute inset-0 pointer-events-none -z-30">
+        <div className="w-full h-full opacity-40 bg-[linear-gradient(to_right,rgba(148,163,184,0.15)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.15)_1px,transparent_1px)] bg-[size:48px_48px]" />
 
-        {/* Scanlines */}
-        <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.85)_0px,rgba(15,23,42,0.85)_1px,transparent_1px,transparent_3px)]" />
-
-        {/* Ambient blobs */}
+        {/* Ambient Effects */}
         <motion.div
-          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/28 blur-3xl"
+          className="absolute -top-20 -left-16 h-64 w-64 bg-emerald-500/25 blur-3xl"
           animate={{
-            x: [0, 20, 10, -5, 0],
-            y: [0, 10, 20, 5, 0],
-            borderRadius: ["45%", "60%", "55%", "65%", "45%"],
-          }}
-          transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-        />
-
-        <motion.div
-          className="absolute right-0 bottom-[-5rem] h-72 w-72 bg-sky-400/24 blur-3xl"
-          animate={{
-            x: [0, -15, -25, -10, 0],
-            y: [0, -10, -20, -5, 0],
-            borderRadius: ["50%", "65%", "55%", "70%", "50%"],
+            x: [0, 25, -18, 12, 0],
+            y: [0, -10, 18, -12, 0],
+            borderRadius: ["45%", "60%", "55%", "70%", "45%"],
           }}
           transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
         />
+        <motion.div
+          className="absolute bottom-[-5rem] right-0 h-72 w-72 bg-sky-400/25 blur-3xl"
+          animate={{
+            x: [0, -20, 10, -12, 0],
+            y: [0, 18, -15, 8, 0],
+            borderRadius: ["50%", "70%", "55%", "65%", "50%"],
+          }}
+          transition={{ duration: 26, repeat: Infinity, ease: "easeInOut" }}
+        />
       </div>
 
-      {/* ---------- CURSOR SPOTLIGHT MATCHED ---------- */}
+      {/* Spotlight */}
       <motion.div
-        className="pointer-events-none absolute inset-0 -z-20"
+        className="absolute inset-0 pointer-events-none -z-20"
         style={{
-          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.26), transparent 70%)`,
+          background: `radial-gradient(550px at ${cursorPos.x}px ${cursorPos.y}px, rgba(34,197,94,0.25), transparent 70%)`,
         }}
-        animate={{ opacity: [0.7, 1, 0.85] }}
-        transition={{ duration: 8, repeat: Infinity }}
       />
 
-      {/* ---------- PAGE HEADER (EXACT MATCH) ---------- */}
-      <div className="relative">
-        <motion.h1
-          initial={{ opacity: 0, x: -18 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4 }}
-          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent"
-        >
+      {/* Header */}
+      <div>
+        <h1 className="text-3xl font-extrabold bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 bg-clip-text text-transparent">
           Sales Report
-        </motion.h1>
-
-        <p className="text-gray-500 text-sm mt-1">
-          Overview of category performance and top product analytics.
+        </h1>
+        <p className="text-sm text-gray-500 mt-1">
+          Enhanced analytics of category and product performance.
         </p>
-
-        <div className="mt-3 h-[3px] w-20 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* ---------- MAIN HUD CONTAINER MATCHED ---------- */}
+      {/* HUD Container */}
       <motion.div
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-        className="relative rounded-[26px] border border-emerald-500/30 bg-white/90 shadow-[0_22px_70px_rgba(15,23,42,0.4)] overflow-hidden"
+        className="relative rounded-[26px] border border-emerald-500/30 bg-white/90 shadow-[0_25px_80px_rgba(15,23,42,0.45)] p-6"
       >
-        {/* HUD corner brackets */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
-          <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
-          <div className="absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-emerald-400/80" />
-          <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-400/80" />
-        </div>
-
-        <div className="relative flex flex-col gap-10 p-5 md:p-6">
-          {/* SCANNER LINE */}
-          <motion.div
-            className="pointer-events-none absolute top-10 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-70"
-            animate={{ x: ["-20%", "20%", "-20%"] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+        {/* Summary Cards */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+          <SummaryCard
+            icon={<Package size={44} />}
+            label="Total Product Sales"
+            value={`₱ ${totalSales.toLocaleString()}`}
+            accent="Overall revenue generated"
+            color="emerald"
           />
 
-          {/* ------- SUMMARY CARDS ------- */}
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <SummaryCard
+            icon={<TagIcon size={44} />}
+            label="Top Sales Category"
+            value={`₱ ${topCategorySales.toLocaleString()}`}
+            accent="Most profitable department"
+            color="amber"
+          />
+        </section>
 
-            <SummaryCard
-              icon={<Package size={44} />}
-              label="Total Product Sales"
-              value={totalSales.toLocaleString()}
-              accent="₱ Overall revenue"
-              color="emerald"
-            />
-
-            <SummaryCard
-              icon={<TagIcon size={44} />}
-              label="Top Sales Category"
-              value={mostSalesCategory.toLocaleString()}
-              accent="Best performing department"
-              color="amber"
-            />
-
-            <SummaryCard
-              icon={<TrendingUp size={44} />}
-              label="Growth Rate"
-              value="+12%"
-              accent="Monthly projection"
-              color="indigo"
-            />
-          </section>
-
-          {/* DIVIDER */}
-          <div className="relative h-px w-full bg-gradient-to-r from-transparent via-gray-300/90 to-transparent" />
-
-          {/* ------- CHARTS GRID ------- */}
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <AnalyticsCard
-              title="Sales by Category"
-              subtitle="Performance of each product group."
-              icon={<Activity className="w-5 h-5 text-emerald-600" />}
-            >
-              <ResponsiveContainer width="100%" height={320}>
-                <BarChart
-                  data={categoryData}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                >
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" />
-                  <Tooltip cursor={{ fill: "#f0fdf4" }} />
-                  <Bar dataKey="value" radius={[6, 6, 6, 6]}>
-                    <LabelList
-                      dataKey="value"
-                      position="right"
-                      style={{ fill: "#374151", fontSize: 12 }}
-                    />
-                    {categoryData.map((e, i) => (
-                      <Cell key={i} fill={e.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </AnalyticsCard>
-
-            <AnalyticsCard
-              title="Top Products"
-              subtitle="Highest selling items."
-              icon={<TagIcon className="w-5 h-5 text-indigo-600" />}
-            >
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={topProducts}
+        {/* Charts Grid */}
+        <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <AnalyticsCard
+            title="Category Performance"
+            subtitle="Vertical bar analytics per category."
+            icon={<Activity className="w-5 h-5 text-emerald-600" />}
+          >
+            <ResponsiveContainer width="100%" height={320}>
+              <BarChart
+                data={categoryData}
+                layout="vertical"
+                margin={{ top: 5, right: 25, left: 80, bottom: 5 }}
+              >
+                <XAxis type="number" />
+                <YAxis dataKey="name" type="category" width={80} />
+                <Tooltip cursor={{ fill: "#f1fdf4" }} />
+                <Bar dataKey="value" radius={[8, 8, 8, 8]}>
+                  <LabelList
                     dataKey="value"
-                    nameKey="name"
-                    outerRadius={85}
-                    innerRadius={45}
-                    labelLine={false}
-                    label={({ name }) => name}
-                  >
-                    {topProducts.map((entry, i) => (
-                      <Cell key={i} fill={entry.fill} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+                    position="right"
+                    style={{ fill: "#374151", fontSize: 12 }}
+                  />
+                  {categoryData.map((c, i) => (
+                    <Cell key={i} fill={c.fill} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </AnalyticsCard>
 
-              <div className="mt-4 space-y-2">
-                {topProducts.map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 text-sm text-gray-700"
-                  >
-                    <span
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: item.fill }}
-                    />
-                    {item.name}
-                  </div>
-                ))}
-              </div>
-            </AnalyticsCard>
-          </section>
-        </div>
+          <AnalyticsCard
+            title="Top Selling Products"
+            subtitle="Visual breakdown of sales distribution."
+            icon={<TagIcon className="w-5 h-5 text-indigo-600" />}
+          >
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={topProducts}
+                  dataKey="value"
+                  nameKey="name"
+                  outerRadius={85}
+                  innerRadius={45}
+                  label
+                >
+                  {topProducts.map((p, i) => (
+                    <Cell key={i} fill={p.fill} />
+                  ))}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+
+            <div className="mt-4 space-y-2">
+              {topProducts.map((p, i) => (
+                <div key={i} className="flex items-center gap-2 text-sm">
+                  <span
+                    className="w-3 h-3 rounded-full"
+                    style={{ background: p.fill }}
+                  />
+                  {p.name}
+                </div>
+              ))}
+            </div>
+          </AnalyticsCard>
+        </section>
       </motion.div>
     </motion.div>
   );
 }
 
 /* ============================================================
-   SUMMARY CARD (MATCHED VARIANT)
+   SUMMARY CARD COMPONENT (TYPED)
 ============================================================ */
 
 function SummaryCard({
@@ -262,38 +227,29 @@ function SummaryCard({
   label,
   value,
   accent,
-  color = "emerald",
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-  accent: string;
-  color: "emerald" | "amber" | "indigo";
-}) {
-  const colors = {
+  color,
+}: SummaryCardProps) {
+  const bg = {
     emerald: "from-emerald-500 to-emerald-700",
     amber: "from-amber-500 to-amber-700",
-    indigo: "from-indigo-500 to-indigo-700",
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{
         y: -6,
         scale: 1.03,
-        boxShadow: "0 22px 60px rgba(15,23,42,0.35)",
+        boxShadow: "0 26px 65px rgba(15,23,42,0.35)",
       }}
-      transition={{ duration: 0.35 }}
-      className={`relative p-5 rounded-2xl border border-white/20 text-white bg-gradient-to-br ${colors[color]} shadow-xl`}
+      className={`relative p-5 rounded-2xl text-white border border-white/20 bg-gradient-to-br ${bg[color]}`}
     >
       <div className="flex items-center gap-3">
         <div className="p-3 bg-white/20 rounded-xl">{icon}</div>
-
         <div>
           <p className="text-xs">{label}</p>
-          <p className="text-3xl font-bold">{value}</p>
+          <p className="text-3xl font-extrabold">{value}</p>
           <p className="text-[0.7rem] text-white/80">{accent}</p>
         </div>
       </div>
@@ -302,7 +258,7 @@ function SummaryCard({
 }
 
 /* ============================================================
-   ANALYTICS CARD (MATCHED VARIANT)
+   ANALYTICS CARD COMPONENT (TYPED)
 ============================================================ */
 
 function AnalyticsCard({
@@ -310,21 +266,16 @@ function AnalyticsCard({
   subtitle,
   icon,
   children,
-}: {
-  title: string;
-  subtitle: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
+}: AnalyticsCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="relative rounded-2xl border border-gray-200 bg-white shadow-[0_18px_55px_rgba(15,23,42,0.25)] p-5 md:p-6 overflow-hidden"
+      transition={{ duration: 0.45 }}
+      className="relative p-6 rounded-2xl border border-gray-200 bg-white shadow-[0_20px_65px_rgba(15,23,42,0.25)]"
     >
-      <div className="flex items-center gap-2 mb-2">
-        <div className="h-9 w-9 rounded-full bg-gray-50 flex items-center justify-center">
+      <div className="flex items-center gap-3 mb-2">
+        <div className="h-10 w-10 rounded-full bg-gray-50 flex items-center justify-center">
           {icon}
         </div>
         <h2 className="text-lg font-semibold text-gray-800">{title}</h2>
