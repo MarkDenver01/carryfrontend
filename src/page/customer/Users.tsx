@@ -17,8 +17,8 @@ type MemberStatus = "Active" | "Expiring Soon" | "Inactive";
 
 type Member = {
   name: string;
-  start: string;
-  expiry: string;
+  start: string; // ISO date string from backend later
+  expiry: string; // ISO date string (start + 1 month sa backend later)
   points: number;
   status: MemberStatus;
 };
@@ -46,27 +46,6 @@ const membersData: Member[] = [
     status: "Inactive",
   },
 ];
-
-function getTier(points: number) {
-  if (points >= 3000) return "Platinum";
-  if (points >= 1500) return "Gold";
-  if (points >= 500) return "Silver";
-  return "Bronze";
-}
-
-function getTierColors(tier: string) {
-  switch (tier) {
-    case "Platinum":
-      return "bg-slate-900 text-slate-100 border border-slate-500";
-    case "Gold":
-      return "bg-amber-100 text-amber-800 border border-amber-300";
-    case "Silver":
-      return "bg-slate-100 text-slate-700 border border-slate-300";
-    case "Bronze":
-    default:
-      return "bg-orange-100 text-orange-800 border border-orange-300";
-  }
-}
 
 function getStatusBadge(status: MemberStatus) {
   if (status === "Active") return "bg-emerald-100 text-emerald-700";
@@ -121,6 +100,7 @@ export default function MembershipOverviewPage() {
     return list;
   }, [members, searchTerm, statusFilter, sortLabel]);
 
+  // 🏆 Top members by points
   const leaderboard = useMemo(
     () => [...members].sort((a, b) => b.points - a.points).slice(0, 3),
     [members]
@@ -139,8 +119,11 @@ export default function MembershipOverviewPage() {
     [members]
   );
 
-  const newThisMonth = 25; // demo static
   const totalMembers = members.length;
+
+  // Dummy metrics for now – backend later
+  const newMembersLast30Days = 25;
+  const expiringThisMonth = expiringCount; // later: direct metric from backend
 
   return (
     <motion.div
@@ -201,14 +184,12 @@ export default function MembershipOverviewPage() {
         </motion.h1>
 
         <p className="text-gray-500 text-sm max-w-xl">
-          Loyalty Dashboard for{" "}
+          Loyalty dashboard for{" "}
           <span className="font-medium text-emerald-700">
-            corporate & rewards members
+            mobile membership holders
           </span>
-          . Monitor membership, tiers, and points activity at a glance.
+          . Monitor membership status, expiry, and earned points at a glance.
         </p>
-
-       
 
         <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
@@ -314,28 +295,28 @@ export default function MembershipOverviewPage() {
                 icon={<UserCheck size={38} />}
                 label="Active Members"
                 value={activeCount.toString()}
-                accent="Currently engaged in loyalty program"
+                accent="Currently active memberships"
                 color="emerald"
               />
               <MembershipSummaryCard
                 icon={<CalendarClock size={38} />}
                 label="Expiring Soon"
                 value={expiringCount.toString()}
-                accent="Memberships expiring within 30 days"
+                accent="Within the next 30 days"
                 color="amber"
               />
               <MembershipSummaryCard
                 icon={<UserX size={38} />}
                 label="Inactive Members"
                 value={inactiveCount.toString()}
-                accent="Require reactivation or follow-up"
+                accent="Membership already expired"
                 color="rose"
               />
               <MembershipSummaryCard
                 icon={<Users size={38} />}
                 label="Total Members"
                 value={totalMembers.toString()}
-                accent={`New this month: ${newThisMonth}`}
+                accent={`New this month: ${newMembersLast30Days}`}
                 color="indigo"
               />
             </section>
@@ -369,7 +350,7 @@ export default function MembershipOverviewPage() {
                 </div>
 
                 <span className="text-[0.7rem] uppercase tracking-wide text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">
-                  Loyalty Grid
+                  Membership Grid
                 </span>
               </div>
 
@@ -390,9 +371,6 @@ export default function MembershipOverviewPage() {
                         Points
                       </th>
                       <th className="p-3 text-left font-medium text-xs md:text-sm">
-                        Tier
-                      </th>
-                      <th className="p-3 text-left font-medium text-xs md:text-sm">
                         Status
                       </th>
                       <th className="p-3 text-left font-medium text-xs md:text-sm">
@@ -403,78 +381,66 @@ export default function MembershipOverviewPage() {
 
                   <tbody className="bg-white/80">
                     {filteredMembers.length > 0 ? (
-                      filteredMembers.map((m, i) => {
-                        const tier = getTier(m.points);
-                        return (
-                          <tr
-                            key={i}
-                            className="border-b last:border-0 border-gray-100 hover:bg-emerald-50/70 hover:shadow-[0_10px_30px_rgba(16,185,129,0.18)] transition cursor-pointer"
+                      filteredMembers.map((m, i) => (
+                        <tr
+                          key={i}
+                          className="border-b last:border-0 border-gray-100 hover:bg-emerald-50/70 hover:shadow-[0_10px_30px_rgba(16,185,129,0.18)] transition cursor-pointer"
+                        >
+                          <td
+                            className="p-3 flex items-center gap-3"
+                            onClick={() => setSelectedMember(m)}
                           >
-                            <td
-                              className="p-3 flex items-center gap-3"
-                              onClick={() => setSelectedMember(m)}
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center font-semibold shadow-sm text-xs">
+                              {m.name.charAt(0)}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="font-medium text-sm">
+                                {m.name}
+                              </span>
+                              <span className="text-[0.7rem] text-gray-500">
+                                #{i + 1} • Loyalty Member
+                              </span>
+                            </div>
+                          </td>
+                          <td className="p-3 text-xs md:text-sm text-gray-700">
+                            {m.start}
+                          </td>
+                          <td className="p-3 text-xs md:text-sm">
+                            <span className="flex items-center gap-1">
+                              <span className="text-gray-700">{m.expiry}</span>
+                              {m.status === "Expiring Soon" && (
+                                <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                  Expiring soon
+                                </span>
+                              )}
+                            </span>
+                          </td>
+                          <td className="p-3 font-semibold text-indigo-700 text-xs md:text-sm">
+                            {m.points.toLocaleString()} pts
+                          </td>
+                          <td className="p-3 text-xs md:text-sm">
+                            <span
+                              className={`px-3 py-1 text-[0.7rem] font-semibold rounded-full ${getStatusBadge(
+                                m.status
+                              )}`}
                             >
-                              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500 to-teal-500 text-white flex items-center justify-center font-semibold shadow-sm text-xs">
-                                {m.name.charAt(0)}
-                              </div>
-                              <div className="flex flex-col">
-                                <span className="font-medium text-sm">
-                                  {m.name}
-                                </span>
-                                <span className="text-[0.7rem] text-gray-500">
-                                  #{i + 1} • Loyalty ID
-                                </span>
-                              </div>
-                            </td>
-                            <td className="p-3 text-xs md:text-sm text-gray-700">
-                              {m.start}
-                            </td>
-                            <td className="p-3 text-xs md:text-sm">
-                              <span className="flex items-center gap-1">
-                                <span className="text-gray-700">{m.expiry}</span>
-                                {m.status === "Expiring Soon" && (
-                                  <span className="ml-1 text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                                    Expiring soon
-                                  </span>
-                                )}
-                              </span>
-                            </td>
-                            <td className="p-3 font-semibold text-indigo-700 text-xs md:text-sm">
-                              {m.points.toLocaleString()} pts
-                            </td>
-                            <td className="p-3 text-xs md:text-sm">
-                              <span
-                                className={`px-3 py-1 text-[0.7rem] font-semibold rounded-full border ${getTierColors(
-                                  tier
-                                )}`}
-                              >
-                                {tier}
-                              </span>
-                            </td>
-                            <td className="p-3 text-xs md:text-sm">
-                              <span
-                                className={`px-3 py-1 text-[0.7rem] font-semibold rounded-full ${getStatusBadge(
-                                  m.status
-                                )}`}
-                              >
-                                {m.status}
-                              </span>
-                            </td>
-                            <td className="p-3 text-xs md:text-sm">
-                              <button
-                                onClick={() => setSelectedMember(m)}
-                                className="px-3 py-1.5 rounded-full bg-slate-900 text-emerald-100 hover:bg-emerald-700 hover:text-white text-[0.7rem] font-semibold shadow-sm"
-                              >
-                                View Profile
-                              </button>
-                            </td>
-                          </tr>
-                        );
-                      })
+                              {m.status}
+                            </span>
+                          </td>
+                          <td className="p-3 text-xs md:text-sm">
+                            <button
+                              onClick={() => setSelectedMember(m)}
+                              className="px-3 py-1.5 rounded-full bg-slate-900 text-emerald-100 hover:bg-emerald-700 hover:text-white text-[0.7rem] font-semibold shadow-sm"
+                            >
+                              View Profile
+                            </button>
+                          </td>
+                        </tr>
+                      ))
                     ) : (
                       <tr>
                         <td
-                          colSpan={7}
+                          colSpan={6}
                           className="text-center text-gray-500 p-6 bg-gray-50 text-sm"
                         >
                           No members found. Try adjusting filters or the search
@@ -505,14 +471,13 @@ export default function MembershipOverviewPage() {
                   <div>
                     <h2 className="text-lg font-bold">Top Members</h2>
                     <p className="text-xs text-emerald-100">
-                      Highest point earners in the loyalty program.
+                      Highest point earners in the program.
                     </p>
                   </div>
                 </div>
 
                 <div className="relative space-y-3">
                   {leaderboard.map((m, index) => {
-                    const tier = getTier(m.points);
                     const badges = ["🥇", "🥈", "🥉"];
                     return (
                       <div
@@ -526,7 +491,7 @@ export default function MembershipOverviewPage() {
                           <div>
                             <p className="text-sm font-semibold">{m.name}</p>
                             <p className="text-[0.7rem] text-emerald-100">
-                              {m.points.toLocaleString()} pts • {tier} Tier
+                              {m.points.toLocaleString()} pts
                             </p>
                           </div>
                         </div>
@@ -540,47 +505,33 @@ export default function MembershipOverviewPage() {
               {/* Membership Insights */}
               <AnalyticsCard
                 title="Membership Insights"
-                subtitle="Snapshot of the current membership lifecycle."
-                icon={
-                  <TrendingUp className="w-5 h-5 text-emerald-600" />
-                }
+                subtitle="Snapshot of new sign-ups and memberships nearing expiry."
+                icon={<TrendingUp className="w-5 h-5 text-emerald-600" />}
               >
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <InsightTile
                     icon={<Users className="w-5 h-5" />}
                     label="New Members"
-                    value={523}
+                    value={newMembersLast30Days}
                     description="Joined in the last 30 days."
                     tone="indigo"
                   />
                   <InsightTile
-                    icon={<UserCheck className="w-5 h-5" />}
-                    label="Active Ratio"
-                    value={
-                      totalMembers === 0
-                        ? "0%"
-                        : `${Math.round(
-                            (activeCount / totalMembers) * 100
-                          )}%`
-                    }
-                    description="Share of currently active members."
-                    tone="emerald"
-                  />
-                  <InsightTile
-                    icon={<UserX className="w-5 h-5" />}
-                    label="Churn Risk"
-                    value={expiringCount + inactiveCount}
-                    description="Members needing follow-up."
-                    tone="rose"
-                  />
-                  <InsightTile
                     icon={<CalendarClock className="w-5 h-5" />}
                     label="Expiring This Month"
-                    value={28}
-                    description="Expiring within the current cycle."
+                    value={expiringThisMonth}
+                    description="Memberships nearing expiry."
                     tone="amber"
                   />
                 </div>
+
+                <p className="mt-4 text-xs text-gray-500">
+                  Members earn points on every purchase in the mobile app.{" "}
+                  <span className="font-semibold text-emerald-600">
+                    500–1000 points
+                  </span>{" "}
+                  can be used as discount or partial payment on future orders.
+                </p>
               </AnalyticsCard>
             </div>
           </section>
@@ -609,16 +560,6 @@ export default function MembershipOverviewPage() {
 
             {(() => {
               const m = selectedMember;
-              const tier = getTier(m.points);
-              const tierColors = getTierColors(tier);
-              const progressPercent =
-                tier === "Platinum"
-                  ? 100
-                  : tier === "Gold"
-                  ? 75
-                  : tier === "Silver"
-                  ? 40
-                  : 20;
 
               return (
                 <div className="relative z-0">
@@ -629,22 +570,17 @@ export default function MembershipOverviewPage() {
                     Member Profile
                   </h3>
 
-                  {/* Membership Card */}
+                  {/* Membership Card – simpler, walang tier / progress */}
                   <div className="bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-500 rounded-2xl p-4 text-white shadow-lg mb-4 border border-white/20">
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <p className="text-[0.65rem] uppercase tracking-[0.16em] text-emerald-100">
-                          Loyalty Membership
+                          Wrap &amp; Carry Membership
                         </p>
                         <p className="text-lg font-bold flex items-center gap-2">
                           {m.name}
                         </p>
                       </div>
-                      <span
-                        className={`px-3 py-1 text-[0.7rem] font-semibold rounded-full border bg-white/10 ${tierColors}`}
-                      >
-                        {tier} Tier
-                      </span>
                     </div>
                     <div className="flex justify-between items-end text-xs mt-4">
                       <div>
@@ -652,44 +588,21 @@ export default function MembershipOverviewPage() {
                         <p className="text-base font-bold">
                           {m.points.toLocaleString()} pts
                         </p>
+                        <p className="text-[0.7rem] text-emerald-100 mt-1">
+                          500–1000 pts can be used as discount on orders.
+                        </p>
                       </div>
                       <div className="text-right">
                         <p className="text-emerald-100">Valid Until</p>
                         <p className="font-semibold text-sm">{m.expiry}</p>
+                        <p className="text-[0.65rem] text-emerald-100 mt-1">
+                          Membership length: 1 month
+                        </p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Progress Circle + Details */}
-                  <div className="flex gap-4 items-center mb-4">
-                    <div className="relative w-20 h-20 flex items-center justify-center">
-                      <div
-                        className="w-20 h-20 rounded-full"
-                        style={{
-                          backgroundImage: `conic-gradient(#22c55e ${progressPercent}%, #1f2937 ${progressPercent}%)`,
-                        }}
-                      />
-                      <div className="absolute w-14 h-14 rounded-full bg-slate-950 flex items-center justify-center">
-                        <span className="text-xs font-semibold text-emerald-400">
-                          {progressPercent}%
-                        </span>
-                      </div>
-                    </div>
-                    <div className="text-[0.75rem] text-slate-300">
-                      <p className="font-semibold text-slate-100 mb-1">
-                        Progress to next tier
-                      </p>
-                      <p className="leading-relaxed">
-                        Keep earning points to upgrade membership and unlock{" "}
-                        <span className="text-emerald-300">
-                          higher discounts, early access
-                        </span>
-                        , and exclusive perks.
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Basic Info */}
+                  {/* Basic Info only – Status, Start, Expiry */}
                   <div className="grid grid-cols-2 gap-3 text-[0.75rem] text-slate-100 mb-4">
                     <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/80">
                       <p className="text-slate-400 text-[0.68rem]">Status</p>
@@ -703,31 +616,12 @@ export default function MembershipOverviewPage() {
                       </p>
                       <p className="font-semibold mt-1">{m.start}</p>
                     </div>
-                    <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/80">
+                    <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/80 col-span-2">
                       <p className="text-slate-400 text-[0.68rem]">
                         Expiry Date
                       </p>
                       <p className="font-semibold mt-1">{m.expiry}</p>
                     </div>
-                    <div className="bg-slate-800/60 rounded-xl p-3 border border-slate-700/80">
-                      <p className="text-slate-400 text-[0.68rem]">Tier</p>
-                      <p className="font-semibold mt-1">{tier}</p>
-                    </div>
-                  </div>
-
-                  {/* Activity Preview (Static UI) */}
-                  <div className="bg-slate-900/80 rounded-xl p-3 text-[0.75rem] text-slate-200 border border-slate-700/80">
-                    <p className="font-semibold text-slate-50 mb-2 flex items-center gap-2">
-                      <span className="h-5 w-5 rounded-full bg-emerald-500/20 flex items-center justify-center">
-                        <TrendingUp className="w-3 h-3 text-emerald-400" />
-                      </span>
-                      Recent Activity (UI only)
-                    </p>
-                    <ul className="space-y-1 text-slate-300">
-                      <li>• Earned +150 pts — Grocery purchase at Wrap & Carry.</li>
-                      <li>• Earned +80 pts — Delivery order completed.</li>
-                      <li>• Membership renewed automatically.</li>
-                    </ul>
                   </div>
                 </div>
               );
