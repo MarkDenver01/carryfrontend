@@ -1,11 +1,42 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import { Users, PhilippinePeso, ShoppingCart } from "lucide-react";
 import { motion } from "framer-motion";
+
 import SalesChartLayout from "../../../layout/analytics/SalesChartLayout";
+import { getAnalyticsSummary } from "../../../libs/ApiGatewayDatasource";
 
 export default function SalesAnalyticsReport() {
   const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
+
+  const [summary, setSummary] = useState({
+    totalSales: 0,
+    totalCustomers: 0,
+    totalOrders: 0,
+  });
+
+  const [loading, setLoading] = useState(true);
+
+  /** Fetch summary from backend */
+  useEffect(() => {
+    async function loadSummary() {
+      try {
+        const res = await getAnalyticsSummary();
+
+        setSummary({
+          totalSales: res.totalSales ?? 0,
+          totalCustomers: res.totalCustomers ?? 0,
+          totalOrders: res.totalOrders ?? 0,
+        });
+      } catch (error) {
+        console.error("❌ Failed to load summary:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadSummary();
+  }, []);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -24,41 +55,102 @@ export default function SalesAnalyticsReport() {
       onMouseMove={handleMouseMove}
     >
       {/* GLOBAL HUD BACKGROUND */}
+      <BackgroundHUD cursorPos={cursorPos} />
+
+      {/* PAGE HEADER */}
+      <HeaderSection />
+
+      {/* MAIN CONTENT WRAPPER */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, ease: "easeOut" }}
+        className="relative rounded-[26px] border border-emerald-500/30 bg-white/90 shadow-[0_22px_70px_rgba(15,23,42,0.4)] overflow-hidden"
+      >
+        {/* Corner decorations */}
+        <CornerBrackets />
+
+        <div className="relative flex flex-col gap-8 p-5 md:p-6">
+          <ScannerBar />
+
+          {/* SUMMARY CARDS */}
+          <section className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
+            <StatCard
+              colorFrom="from-emerald-500"
+              colorTo="to-green-600"
+              icon={<PhilippinePeso size={48} />}
+              value={loading ? "Loading..." : `₱${summary.totalSales.toLocaleString()}`}
+              label="Total Sales"
+              accentLabel="All-time Revenue"
+            />
+
+            <StatCard
+              colorFrom="from-rose-500"
+              colorTo="to-rose-700"
+              icon={<Users size={48} />}
+              value={loading ? "Loading..." : summary.totalCustomers.toLocaleString()}
+              label="Total Customers"
+              accentLabel="Unique Customers"
+              delay={0.05}
+            />
+
+            <StatCard
+              colorFrom="from-amber-500"
+              colorTo="to-amber-700"
+              icon={<ShoppingCart size={48} />}
+              value={loading ? "Loading..." : summary.totalOrders.toLocaleString()}
+              label="Total Orders"
+              accentLabel="Completed Transactions"
+              delay={0.1}
+            />
+          </section>
+
+          {/* Divider */}
+          <div className="relative h-px w-full bg-gradient-to-r from-transparent via-gray-300/90 to-transparent mt-2" />
+
+          {/* SALES CHART */}
+          <SalesChartSection />
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ============================================================
+   COMPONENTS — CLEAN & REUSABLE
+============================================================ */
+
+function BackgroundHUD({ cursorPos }: any) {
+  return (
+    <>
+      {/* HUD GRID */}
       <div className="pointer-events-none absolute inset-0 -z-30">
         <div className="w-full h-full opacity-40 mix-blend-soft-light 
-            bg-[linear-gradient(to_right,rgba(148,163,184,0.16)_1px,transparent_1px),
-                linear-gradient(to_bottom,rgba(148,163,184,0.16)_1px,transparent_1px)]
-            bg-[size:40px_40px]" 
-        />
-        <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light 
-            bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,
-                rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" 
+          bg-[linear-gradient(to_right,rgba(148,163,184,0.16)_1px,transparent_1px),
+              linear-gradient(to_bottom,rgba(148,163,184,0.16)_1px,transparent_1px)]
+          bg-[size:40px_40px]" 
         />
 
-        {/* Ambient blob 1 */}
+        <div className="absolute inset-0 opacity-[0.08] mix-blend-soft-light 
+          bg-[repeating-linear-gradient(to_bottom,rgba(15,23,42,0.9)_0px,
+              rgba(15,23,42,0.9)_1px,transparent_1px,transparent_3px)]" 
+        />
+
+        {/* Animated Blobs */}
         <motion.div
           className="absolute -top-24 -left-16 h-64 w-64 bg-emerald-500/28 blur-3xl"
-          animate={{
-            x: [0, 25, 10, -5, 0],
-            y: [0, 10, 20, 5, 0],
-            borderRadius: ["45%", "60%", "50%", "65%", "45%"],
-          }}
+          animate={{ x: [0, 25, 10, -5, 0], y: [0, 10, 20, 5, 0] }}
           transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
         />
 
-        {/* Ambient blob 2 */}
         <motion.div
           className="absolute bottom-[-5rem] right-0 h-72 w-72 bg-sky-400/24 blur-3xl"
-          animate={{
-            x: [0, -15, -25, -10, 0],
-            y: [0, -10, -20, -5, 0],
-            borderRadius: ["50%", "65%", "55%", "70%", "50%"],
-          }}
+          animate={{ x: [0, -15, -25, -10, 0], y: [0, -10, -20, -5, 0] }}
           transition={{ duration: 24, repeat: Infinity, ease: "easeInOut" }}
         />
       </div>
 
-      {/* CURSOR SPOTLIGHT */}
+      {/* CURSOR LIGHT SPOT */}
       <motion.div
         className="pointer-events-none absolute inset-0 -z-20"
         style={{
@@ -67,132 +159,94 @@ export default function SalesAnalyticsReport() {
         animate={{ opacity: [0.7, 1, 0.8] }}
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
+    </>
+  );
+}
 
-      {/* PAGE HEADER */}
-      <div className="relative">
-        <motion.h1
-          initial={{ opacity: 0, x: -18 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.4 }}
-          className="text-3xl font-extrabold tracking-tight 
-              bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 
-              bg-clip-text text-transparent"
-        >
-          Sales Analytics Report
-        </motion.h1>
-
-        <p className="text-gray-500 text-sm mt-1">
-          Overview of total sales performance across time periods.
-        </p>
-
-        <div className="mt-3 h-[3px] w-20 bg-gradient-to-r 
-            from-emerald-400 via-emerald-500 to-transparent rounded-full" 
-        />
-      </div>
-
-      {/* HUD MAIN CONTAINER */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-        className="relative rounded-[26px] border border-emerald-500/30 
-            bg-white/90 shadow-[0_22px_70px_rgba(15,23,42,0.4)] overflow-hidden"
+function HeaderSection() {
+  return (
+    <div className="relative">
+      <motion.h1
+        initial={{ opacity: 0, x: -18 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.4 }}
+        className="text-3xl font-extrabold tracking-tight 
+          bg-gradient-to-r from-emerald-400 via-emerald-500 to-green-600 
+          bg-clip-text text-transparent"
       >
-        {/* Corner brackets */}
-        <div className="pointer-events-none absolute inset-0">
-          <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
-          <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
-          <div className="absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-emerald-400/80" />
-          <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-400/80" />
+        Sales Analytics Report
+      </motion.h1>
+
+      <p className="text-gray-500 text-sm mt-1">
+        Overview of total sales performance across time periods.
+      </p>
+
+      <div className="mt-3 h-[3px] w-20 bg-gradient-to-r 
+        from-emerald-400 via-emerald-500 to-transparent rounded-full" 
+      />
+    </div>
+  );
+}
+
+function CornerBrackets() {
+  return (
+    <div className="pointer-events-none absolute inset-0">
+      <div className="absolute top-3 left-3 h-5 w-5 border-t-2 border-l-2 border-emerald-400/80" />
+      <div className="absolute top-3 right-3 h-5 w-5 border-t-2 border-r-2 border-emerald-400/80" />
+      <div className="absolute bottom-3 left-3 h-5 w-5 border-b-2 border-l-2 border-emerald-400/80" />
+      <div className="absolute bottom-3 right-3 h-5 w-5 border-b-2 border-r-2 border-emerald-400/80" />
+    </div>
+  );
+}
+
+function ScannerBar() {
+  return (
+    <motion.div
+      className="pointer-events-none absolute top-10 left-0 w-full h-[2px] 
+        bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-70"
+      animate={{ x: ["-20%", "20%", "-20%"] }}
+      transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+    />
+  );
+}
+
+function SalesChartSection() {
+  return (
+    <motion.section
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className="relative rounded-2xl border border-gray-200 bg-white 
+        shadow-[0_18px_55px_rgba(15,23,42,0.25)] p-5 md:p-6 overflow-hidden"
+    >
+      <div className="pointer-events-none absolute inset-0 
+        bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_60%)]" 
+      />
+
+      <div className="relative">
+        <div className="flex flex-col md:flex-row md:items-center 
+          md:justify-between gap-2 mb-4"
+        >
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900">
+              Total Sales Overview
+            </h2>
+            <p className="text-sm text-gray-500">
+              Monthly & yearly sales performance overview.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 
+              shadow-[0_0_10px_rgba(34,197,94,0.8)]"
+            />
+            <span>Live analytics overview</span>
+          </div>
         </div>
 
-        <div className="relative flex flex-col gap-8 p-5 md:p-6">
-
-          {/* Scanner bar */}
-          <motion.div
-            className="pointer-events-none absolute top-10 left-0 w-full h-[2px] 
-                bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent opacity-70"
-            animate={{ x: ["-20%", "20%", "-20%"] }}
-            transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
-          />
-
-          {/* STATS GRID */}
-          <section className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-5 md:gap-6">
-            <StatCard
-              colorFrom="from-emerald-500"
-              colorTo="to-green-600"
-              icon={<PhilippinePeso size={48} />}
-              value="₱37,241"
-              label="Total Sales"
-              accentLabel="All-time revenue"
-              delay={0}
-            />
-
-            <StatCard
-              colorFrom="from-rose-500"
-              colorTo="to-rose-700"
-              icon={<Users size={48} />}
-              value="5,523"
-              label="Total Customers"
-              accentLabel="Unique customers"
-              delay={0.05}
-            />
-
-            <StatCard
-              colorFrom="from-amber-500"
-              colorTo="to-amber-700"
-              icon={<ShoppingCart size={48} />}
-              value="1,293"
-              label="Total Orders"
-              accentLabel="Completed transactions"
-              delay={0.1}
-            />
-          </section>
-
-          {/* DIVIDER */}
-          <div className="relative h-px w-full bg-gradient-to-r 
-              from-transparent via-gray-300/90 to-transparent mt-2" 
-          />
-
-          {/* SALES CHART SECTION */}
-          <motion.section
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="relative rounded-2xl border border-gray-200 bg-white 
-                shadow-[0_18px_55px_rgba(15,23,42,0.25)] p-5 md:p-6 overflow-hidden"
-          >
-            <div className="pointer-events-none absolute inset-0 
-                bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.12),transparent_60%)]" 
-            />
-
-            <div className="relative">
-              <div className="flex flex-col md:flex-row md:items-center 
-                  md:justify-between gap-2 mb-4"
-              >
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">
-                    Total Sales Overview
-                  </h2>
-                  <p className="text-sm text-gray-500">
-                    Monthly (last 6 months) & yearly (last 3 years) sales performance.
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500 
-                      shadow-[0_0_10px_rgba(34,197,94,0.8)]"
-                  />
-                  <span>Live analytics overview</span>
-                </div>
-              </div>
-
-              <SalesChartLayout />
-            </div>
-          </motion.section>
-        </div>
-      </motion.div>
-    </motion.div>
+        <SalesChartLayout />
+      </div>
+    </motion.section>
   );
 }
 
@@ -240,15 +294,15 @@ function StatCard({
         border border-white/15
       `}
     >
-      {/* shine effect */}
+      {/* Shine overlay */}
       <div className="pointer-events-none absolute inset-0 
-          bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.35),transparent_60%)] opacity-90"
+        bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.35),transparent_60%)] opacity-90"
       />
 
       <div className="pointer-events-none absolute inset-0 opacity-0 
-          group-hover:opacity-100 transition-all duration-700 
-          bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.45),transparent)]
-          translate-x-[-200%] group-hover:translate-x-[200%]" 
+        group-hover:opacity-100 transition-all duration-700 
+        bg-[linear-gradient(120deg,transparent,rgba(255,255,255,0.45),transparent)]
+        translate-x-[-200%] group-hover:translate-x-[200%]" 
       />
 
       <div className="relative flex items-start gap-3">

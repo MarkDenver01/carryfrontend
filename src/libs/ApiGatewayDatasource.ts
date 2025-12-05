@@ -533,3 +533,24 @@ export async function getSalesAnalytics(
     throw error.response?.data || { message: "Failed to fetch sales analytics" };
   }
 }
+/** Get analytics summary (total sales, orders, customers) */
+export async function getAnalyticsSummary() {
+  try {
+    const response = await api.get("/api/analytics/summary");
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Analytics summary error:", error);
+    throw error.response?.data || { message: "Failed to load summary" };
+  }
+}
+export async function getSalesReport(range: "date" | "month" | "year") {
+  try {
+    const response = await api.get("/api/analytics/sales", {
+      params: { range },
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Sales report error:", error);
+    throw error.response?.data || { message: "Failed to load sales report" };
+  }
+}
