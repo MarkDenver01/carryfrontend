@@ -1,9 +1,8 @@
 /* ============================================================
-   SUPER-CLEAN & PREMIUM SALES REPORT (TIME-RANGE VERSION)
-   FIXED • NO MORE BLINKING • OPTIMIZED RERENDERS
+   SUPER-CLEAN & PREMIUM SALES REPORT (TIME-RANGE + BACKEND)
 ============================================================ */
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   PieChart,
   Pie,
@@ -19,6 +18,13 @@ import {
 
 import { Package, Tag as TagIcon, Activity, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+
+// ⬇️ IMPORT API TYPE & FUNCTION
+import {
+  getSalesAnalytics,
+  type TimeRangeId,
+  type SalesAnalyticsResponseDTO,
+} from "../../../libs/ApiGatewayDatasource";
 
 /* ============================================================
    TYPES
@@ -39,12 +45,22 @@ type AnalyticsCardProps = {
   children: React.ReactNode;
 };
 
-type TimeRangeId = "7d" | "6m" | "3y";
-
 type TimeRangeOption = {
   id: TimeRangeId;
   label: string;
   description: string;
+};
+
+type CategoryChartItem = {
+  name: string;
+  value: number;
+  fill: string;
+};
+
+type ProductChartItem = {
+  name: string;
+  value: number;
+  fill: string;
 };
 
 /* ============================================================
@@ -57,8 +73,31 @@ const TIME_RANGES: TimeRangeOption[] = [
   { id: "3y", label: "Last 3 Years", description: "Long-term trend grouped by year." },
 ];
 
+// Simple color palettes – umiikot lang sa categories/products
+const CATEGORY_COLORS = [
+  "#3B82F6", // blue
+  "#F59E0B", // amber
+  "#A855F7", // purple
+  "#EC4899", // pink
+  "#10B981", // emerald
+  "#6B7280", // gray
+  "#EAB308", // yellow
+  "#22C55E", // green
+  "#06B6D4", // cyan
+];
+
+const PRODUCT_COLORS = [
+  "#4CAF50",
+  "#FFEB3B",
+  "#BDBDBD",
+  "#F44336",
+  "#03A9F4",
+  "#8B5CF6",
+  "#F97316",
+];
+
 /* ============================================================
-   MAIN COMPONENT (FIXED)
+   MAIN COMPONENT (WITH BACKEND INTEGRATION)
 ============================================================ */
 
 export default function SalesReportUpgraded() {
@@ -66,69 +105,84 @@ export default function SalesReportUpgraded() {
   const [selectedRange, setSelectedRange] = useState<TimeRangeOption>(TIME_RANGES[0]);
   const [isFilterOpen, setIsFilterOpen] = useState(false);
 
-  /* ---------------- SPOTLIGHT (not causing rerender) ---------------- */
+  // 🔥 NEW: State for backend data
+  const [categoryData, setCategoryData] = useState<CategoryChartItem[]>([]);
+  const [topProducts, setTopProducts] = useState<ProductChartItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  /* ---------------- SPOTLIGHT ---------------- */
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setCursorPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
   };
 
-  /* ---------------- BASE DATA ---------------- */
-  const baseCategoryData = [
-    { name: "Beverages", value: 1200, fill: "#3B82F6" },
-    { name: "Snacks", value: 1800, fill: "#F59E0B" },
-    { name: "Wines", value: 3100, fill: "#A855F7" },
-    { name: "Sweets", value: 2700, fill: "#EC4899" },
-    { name: "Milks", value: 5400, fill: "#10B981" },
-    { name: "Cigars", value: 3900, fill: "#6B7280" },
-    { name: "Condiments", value: 4500, fill: "#EAB308" },
-    { name: "Canned Goods", value: 4600, fill: "#22C55E" },
-    { name: "Laundry", value: 3700, fill: "#06B6D4" },
-  ];
+  /* ---------------- FETCH SALES ANALYTICS FROM BACKEND ---------------- */
+  useEffect(() => {
+    let isMounted = true;
 
-  const baseTopProducts = [
-    { name: "Bear Brand", value: 3000, fill: "#4CAF50" },
-    { name: "Argentina Corned Beef", value: 2500, fill: "#FFEB3B" },
-    { name: "Tide Powder", value: 1800, fill: "#BDBDBD" },
-    { name: "Marlboro Red", value: 1600, fill: "#F44336" },
-    { name: "Piattos Cheese", value: 1400, fill: "#03A9F4" },
-  ];
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  /* ---------------- RANGE MULTIPLIER ---------------- */
-  const rangeMultiplier = (rangeId: TimeRangeId) => {
-    switch (rangeId) {
-      case "7d": return 0.35;
-      case "6m": return 1.0;
-      case "3y": return 3.2;
-      default: return 1;
-    }
-  };
+        const data: SalesAnalyticsResponseDTO = await getSalesAnalytics(selectedRange.id);
 
-  const multiplier = rangeMultiplier(selectedRange.id);
+        if (!isMounted) return;
 
-  /* ---------------- MEMOIZED DATA (fix flickering) ---------------- */
-  const categoryData = useMemo(
-    () =>
-      baseCategoryData.map((c) => ({
-        ...c,
-        value: Math.round(c.value * multiplier),
-      })),
-    [multiplier]
+        // Map categorySales → Recharts data
+        const mappedCategories: CategoryChartItem[] =
+          data.categorySales?.map((c, idx) => ({
+            name: c.categoryName,
+            value: Number(c.totalSales ?? 0),
+            fill: CATEGORY_COLORS[idx % CATEGORY_COLORS.length],
+          })) ?? [];
+
+        // Map productSales → Recharts data (top products)
+        const mappedProducts: ProductChartItem[] =
+          data.productSales?.map((p, idx) => ({
+            name: p.productName,
+            value: Number(p.totalSales ?? 0),
+            fill: PRODUCT_COLORS[idx % PRODUCT_COLORS.length],
+          })) ?? [];
+
+        setCategoryData(mappedCategories);
+        setTopProducts(mappedProducts);
+      } catch (err: any) {
+        console.error("❌ Error loading sales analytics:", err);
+        if (isMounted) {
+          setError(err?.message || "Failed to load sales analytics");
+          setCategoryData([]);
+          setTopProducts([]);
+        }
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    fetchAnalytics();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedRange.id]);
+
+  /* ---------------- DERIVED VALUES ---------------- */
+
+  const totalProductSales = useMemo(
+    () => topProducts.reduce((sum, p) => sum + (p.value || 0), 0),
+    [topProducts]
   );
 
-  const topProducts = useMemo(
-    () =>
-      baseTopProducts.map((p) => ({
-        ...p,
-        value: Math.round(p.value * multiplier),
-      })),
-    [multiplier]
+  const topCategorySales = useMemo(
+    () => categoryData.reduce((max, c) => (c.value > max ? c.value : max), 0),
+    [categoryData]
   );
 
-  const totalProductSales = topProducts.reduce((a, b) => a + b.value, 0);
-  const topCategorySales = categoryData.reduce((max, c) => (c.value > max ? c.value : max), 0);
+  const hasData = categoryData.length > 0 || topProducts.length > 0;
 
   /* ============================================================
-      FINAL RENDER (WRAPPED TO AVOID CHART FLICKERS)
+      FINAL RENDER
   ============================================================= */
 
   return (
@@ -174,6 +228,17 @@ export default function SalesReportUpgraded() {
 
         {/* ---------------- MAIN WRAPPER ---------------- */}
         <div className="rounded-[26px] border border-emerald-500/25 bg-white/90 shadow-xl p-6 backdrop-blur-md">
+          {/* LOADING / ERROR STATES */}
+          {loading && (
+            <div className="text-sm text-gray-500 mb-4">
+              Loading sales analytics...
+            </div>
+          )}
+          {error && (
+            <div className="text-sm text-red-500 mb-4">
+              {error}
+            </div>
+          )}
 
           {/* SUMMARY CARDS */}
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
@@ -195,75 +260,104 @@ export default function SalesReportUpgraded() {
           </section>
 
           {/* CHARTS */}
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* ------------ CATEGORY BAR CHART ------------ */}
-            <AnalyticsCard
-              title="Category Performance"
-              subtitle="Revenue contribution per category for the selected time range."
-              icon={<Activity className="w-5 h-5 text-emerald-600" />}
-            >
-              <ResponsiveContainer width="100%" height={320}>
-                <BarChart data={categoryData} layout="vertical" margin={{ top: 5, right: 25, left: 80 }}>
-                  <XAxis type="number" />
-                  <YAxis dataKey="name" type="category" width={80} />
-                  <Tooltip />
-
-                  <Bar dataKey="value" radius={[10, 10, 10, 10]}>
-                    <LabelList
-                      dataKey="value"
-                      position="right"
-                      formatter={(value: any) => `₱ ${Number(value).toLocaleString()}`}
-                    />
-                    {categoryData.map((c, i) => (
-                      <Cell key={i} fill={c.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </AnalyticsCard>
-
-            {/* ------------ PIE CHART ------------ */}
-            <AnalyticsCard
-              title="Top Selling Products"
-              subtitle="Percentage distribution of top-performing SKUs."
-              icon={<TagIcon className="w-5 h-5 text-indigo-600" />}
-            >
-              <ResponsiveContainer width="100%" height={260}>
-                <PieChart>
-                  <Pie
-                    data={topProducts.map((p) => ({
-                      ...p,
-                      percent: ((p.value / totalProductSales) * 100).toFixed(1),
-                    }))}
-                    dataKey="value"
-                    nameKey="name"
-                    outerRadius={90}
-                    innerRadius={45}
-                    labelLine={false}
-                    label={(entry: any) => `${entry.percent}%`}
+          {hasData ? (
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* ------------ CATEGORY BAR CHART ------------ */}
+              <AnalyticsCard
+                title="Category Performance"
+                subtitle="Revenue contribution per category for the selected time range."
+                icon={<Activity className="w-5 h-5 text-emerald-600" />}
+              >
+                <ResponsiveContainer width="100%" height={320}>
+                  <BarChart
+                    data={categoryData}
+                    layout="vertical"
+                    margin={{ top: 5, right: 25, left: 80 }}
                   >
-                    {topProducts.map((p, i) => (
-                      <Cell key={i} fill={p.fill} />
-                    ))}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
+                    <XAxis type="number" />
+                    <YAxis dataKey="name" type="category" width={80} />
+                    <Tooltip
+                      formatter={(value: any) =>
+                        `₱ ${Number(value).toLocaleString()}`
+                      }
+                    />
 
-              <div className="mt-4 space-y-2">
-                {topProducts.map((p, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <span className="w-3 h-3 rounded-full" style={{ background: p.fill }} />
-                      <span>{p.name}</span>
+                    <Bar dataKey="value" radius={[10, 10, 10, 10]}>
+                      <LabelList
+                        dataKey="value"
+                        position="right"
+                        formatter={(value: any) =>
+                          `₱ ${Number(value).toLocaleString()}`
+                        }
+                      />
+                      {categoryData.map((c, i) => (
+                        <Cell key={i} fill={c.fill} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </AnalyticsCard>
+
+              {/* ------------ PIE CHART ------------ */}
+              <AnalyticsCard
+                title="Top Selling Products"
+                subtitle="Percentage distribution of top-performing SKUs."
+                icon={<TagIcon className="w-5 h-5 text-indigo-600" />}
+              >
+                {topProducts.length > 0 && totalProductSales > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie
+                          data={topProducts.map((p) => ({
+                            ...p,
+                            percent: ((p.value / totalProductSales) * 100).toFixed(1),
+                          }))}
+                          dataKey="value"
+                          nameKey="name"
+                          outerRadius={90}
+                          innerRadius={45}
+                          labelLine={false}
+                          label={(entry: any) => `${entry.percent}%`}
+                        >
+                          {topProducts.map((p, i) => (
+                            <Cell key={i} fill={p.fill} />
+                          ))}
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+
+                    <div className="mt-4 space-y-2">
+                      {topProducts.map((p, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className="w-3 h-3 rounded-full"
+                              style={{ background: p.fill }}
+                            />
+                            <span>{p.name}</span>
+                          </div>
+                          <span className="text-xs text-gray-500">
+                            ₱ {p.value.toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                    <span className="text-xs text-gray-500">
-                      ₱ {p.value.toLocaleString()}
-                    </span>
+                  </>
+                ) : (
+                  <div className="text-sm text-gray-500">
+                    No product sales data found for this time range.
                   </div>
-                ))}
+                )}
+              </AnalyticsCard>
+            </section>
+          ) : (
+            !loading && (
+              <div className="text-center text-sm text-gray-500 py-8">
+                No sales data found for this time range.
               </div>
-            </AnalyticsCard>
-          </section>
+            )
+          )}
         </div>
       </motion.div>
     </div>
@@ -271,7 +365,7 @@ export default function SalesReportUpgraded() {
 }
 
 /* ============================================================
-   TIME RANGE DROPDOWN
+   TIME RANGE DROPDOWN (same as before)
 ============================================================ */
 
 function TimeRangeFilter({
@@ -330,7 +424,9 @@ function TimeRangeFilter({
                       <span className="font-medium">{range.label}</span>
                     </span>
 
-                    <span className="text-[11px] text-gray-500">{range.description}</span>
+                    <span className="text-[11px] text-gray-500">
+                      {range.description}
+                    </span>
                   </button>
                 );
               })}
@@ -343,7 +439,8 @@ function TimeRangeFilter({
 }
 
 /* ============================================================
-   SUMMARY CARD
+   SUMMARY CARD & ANALYTICS CARD
+   (same as sa code mo, no changes)
 ============================================================ */
 
 function SummaryCard({ icon, label, value, accent, color }: SummaryCardProps) {
@@ -376,10 +473,6 @@ function SummaryCard({ icon, label, value, accent, color }: SummaryCardProps) {
     </motion.div>
   );
 }
-
-/* ============================================================
-   ANALYTICS CARD
-============================================================ */
 
 function AnalyticsCard({ title, subtitle, icon, children }: AnalyticsCardProps) {
   return (

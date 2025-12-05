@@ -500,4 +500,36 @@ export async function getInventoryMetricsAdmin() {
   const response = await api.get("/api/dashboard/inventory/metrics");
   return response.data;
 }
+export type TimeRangeId = "7d" | "6m" | "3y";
 
+export interface CategorySalesPoint {
+  categoryName: string;
+  totalSales: number; // BigDecimal from backend, but JSON → number
+}
+
+export interface ProductSalesPoint {
+  productName: string;
+  totalSales: number;
+}
+
+export interface SalesAnalyticsResponseDTO {
+  range: string;
+  categorySales: CategorySalesPoint[];
+  productSales: ProductSalesPoint[];
+}
+
+export async function getSalesAnalytics(
+  range: TimeRangeId
+): Promise<SalesAnalyticsResponseDTO> {
+  try {
+    const response = await api.get("/admin/api/analytics/sales", {
+      params: { range },
+    });
+
+    // in case later mag-wrap ka sa { data: ... }
+    return response.data?.data ?? response.data;
+  } catch (error: any) {
+    console.error("❌ Fetch sales analytics error:", error);
+    throw error.response?.data || { message: "Failed to fetch sales analytics" };
+  }
+}
