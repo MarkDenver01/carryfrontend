@@ -1216,7 +1216,7 @@ export default function ProductReport() {
                         normalizeStatus(item.inventoryStatus) ===
                           "Out of Stock";
 
-                      const canPromo =
+                    //  const canPromo =
                         item.daysLeft !== null &&
                         item.daysLeft > 0 &&
                         item.daysLeft <= 100;
@@ -1228,13 +1228,13 @@ export default function ProductReport() {
                       }[] = [];
 
                       if (!isOutOfStock) {
-                        if (canPromo) {
-                          actions.push({
-                            label: "Promo",
-                            action: "For Promo",
-                            kind: "promo",
-                          });
-                        }
+                       // if (canPromo) {
+                       //   actions.push({
+                       //     label: "Promo",
+                       //     action: "For Promo",
+                      //     kind: "promo",
+                      //    });
+                      //  }
                         actions.push({
                           label: "Out of Stock",
                           action: "Out of Stock",
