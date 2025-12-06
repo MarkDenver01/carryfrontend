@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Modal,
   ModalHeader,
@@ -10,6 +10,8 @@ import {
   Select,
 } from "flowbite-react";
 import Swal from "sweetalert2";
+import dayjs from "dayjs";
+import { motion } from "framer-motion";
 
 import type { Product } from "../../types/types";
 import { validateProduct } from "../../types/useProducts";
@@ -17,18 +19,23 @@ import { validateProduct } from "../../types/useProducts";
 import { useProductsContext } from "../../context/ProductsContext";
 import { useCategoryContext } from "../../context/CategoryContext";
 
+import {
+  updateProductFormData,
+  addProductFormData,
+} from "../../libs/ApiGatewayDatasource";
+
 interface ProductFormModalProps {
   show: boolean;
   onClose: () => void;
   product?: Product | null;
 }
 
-export default function ProductFormModal({
+export default function ProductFormModalV4({
   show,
   onClose,
   product = null,
 }: ProductFormModalProps) {
-  const { addProduct, updateProduct, reloadProducts } = useProductsContext();
+  const { reloadProducts } = useProductsContext();
   const { categories } = useCategoryContext();
 
   const emptyProduct: Product = {
@@ -45,57 +52,116 @@ export default function ProductFormModal({
   };
 
   const [form, setForm] = useState<Product>(emptyProduct);
-  const [preview, setPreview] = useState<string | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
 
-  const isEdit = !!product?.id;
+  const isEdit = Boolean(product?.productId);
 
-  // LOAD PRODUCT INTO FORM
+  // ======================================
+  // LOAD PRODUCT ON EDIT OR ADD
+  // ======================================
   useEffect(() => {
-    if (product) {
+    if (show && product) {
       setForm({ ...product });
       setPreview(product.imageUrl ?? null);
       setImageFile(null);
+      setTouched({});
     } else if (show) {
       setForm(emptyProduct);
       setPreview(null);
       setImageFile(null);
+      setTouched({});
     }
-  }, [product, show]);
+  }, [show, product]);
 
-  const handleChange = (field: keyof Product, value: any) => {
+  // ======================================
+  // VALIDATION HANDLING
+  // ======================================
+  const validationMessage = useMemo(() => validateProduct(form), [form]);
+  const formIsValid =
+    !validationMessage &&
+    form.categoryId !== null &&
+    form.stock >= 0 &&
+    form.code &&
+    form.name;
+
+  const setField = (key: keyof Product, value: any) => {
+    setTouched((t) => ({ ...t, [key]: true }));
     setForm((prev) => ({
       ...prev,
-      [field]: field === "stock" ? Number(value) : value,
+      [key]: key === "stock" ? Number(value) : value,
     }));
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ======================================
+  // IMAGE UPLOADER (DRAG, DROP & CLICK)
+  // ======================================
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const file = e.dataTransfer.files?.[0];
+    if (!file) return;
+
+    setImageFile(file);
+    setPreview(URL.createObjectURL(file));
+  };
+
+  const handleBrowseFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] ?? null;
     setImageFile(file);
     setPreview(file ? URL.createObjectURL(file) : form.imageUrl ?? null);
   };
 
-  const handleSubmit = async () => {
-    const productToSubmit: Product = {
-      ...form,
-      imageFile: imageFile ?? form.imageFile,
-    };
+  // ======================================
+  // EXPIRY STATUS INDICATOR
+  // ======================================
+  const expiryStatus = useMemo(() => {
+    if (!form.expiryDate) return null;
+    const daysLeft = dayjs(form.expiryDate).diff(dayjs(), "day");
 
-    const validationError = validateProduct(productToSubmit);
-    if (validationError) {
-      Swal.fire("Validation Error", validationError, "warning");
+    if (daysLeft < 0) return "Expired";
+    if (daysLeft <= 7) return "Near Expiry";
+    return null;
+  }, [form.expiryDate]);
+
+  // ======================================
+  // SUBMIT HANDLER
+  // ======================================
+  const handleSubmit = async () => {
+    if (!formIsValid) {
+      Swal.fire("Invalid Form", validationMessage || "Please complete fields.", "warning");
       return;
     }
 
+    const expiry = form.expiryDate ? `${form.expiryDate}T00:00:00` : null;
+    const inDate = form.inDate ? `${form.inDate}T00:00:00` : null;
+
+    const payload = {
+      productCode: form.code,
+      productName: form.name,
+      productDescription: form.productDescription,
+      productSize: form.size,
+      stocks: form.stock,
+      productStatus: form.status,
+      expiryDate: expiry,
+      productInDate: inDate,
+      categoryId: form.categoryId,
+      productImgUrl: form.imageUrl,
+    };
+
+    const formData = new FormData();
+    formData.append("product", JSON.stringify(payload));
+    if (imageFile) formData.append("file", imageFile);
+
     setLoading(true);
+
     try {
       if (isEdit) {
-        await updateProduct(productToSubmit);
+        await updateProductFormData(form.productId!, formData);
         Swal.fire("Success", "Product updated successfully!", "success");
       } else {
-        await addProduct(productToSubmit);
+        await addProductFormData(formData);
         Swal.fire("Success", "Product added successfully!", "success");
       }
 
@@ -113,150 +179,137 @@ export default function ProductFormModal({
       <ModalHeader />
 
       <ModalBody>
-        <h3 className="text-xl font-extrabold mb-4 bg-gradient-to-r from-emerald-500 via-cyan-500 to-emerald-400 bg-clip-text text-transparent">
+        <motion.h3
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-xl font-extrabold mb-4 bg-gradient-to-r from-emerald-500 via-cyan-500 to-emerald-400 bg-clip-text text-transparent"
+        >
           {isEdit ? "Edit Product" : "Add New Product"}
-        </h3>
+        </motion.h3>
 
-        <div className="p-4 rounded-2xl bg-white/70 border border-emerald-200 shadow-xl backdrop-blur-xl space-y-5">
-          {/* IMAGE UPLOAD */}
-          <div className="space-y-1">
-            <Label htmlFor="image" className="font-semibold text-slate-700">
-              Product Image
-            </Label>
+        <div className="p-4 rounded-2xl bg-white/70 border border-emerald-200 shadow-xl backdrop-blur-xl space-y-6">
 
-            <div className="bg-white/80 border border-emerald-200 rounded-xl p-3 shadow-sm">
-              <input
-                id="image"
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="block w-full text-sm cursor-pointer bg-white/60 border border-gray-300 rounded-md"
+          {/* DRAG + DROP + CLICK IMAGE UPLOADER */}
+          <div
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={handleDrop}
+            onClick={() => document.getElementById("image-upload")?.click()}
+            className="border-2 border-dashed border-emerald-300 rounded-xl p-4 text-center cursor-pointer bg-white/70"
+          >
+            <Label className="font-semibold text-slate-700">Product Image</Label>
+
+            {preview ? (
+              <img
+                src={preview}
+                className="w-24 h-24 mx-auto mt-3 object-cover rounded-lg border shadow"
               />
+            ) : (
+              <p className="text-sm text-gray-500 mt-2">
+                Drag & Drop or Click to Upload
+              </p>
+            )}
 
-              {preview && (
-                <img
-                  src={preview}
-                  alt="Preview"
-                  className="w-24 h-24 mt-3 object-cover rounded-lg border border-emerald-200 shadow-md"
-                />
-              )}
-            </div>
+            <input
+              id="image-upload"
+              type="file"
+              accept="image/*"
+              onChange={handleBrowseFile}
+              className="hidden"
+            />
           </div>
 
-          {/* TEXT INPUTS */}
+          {/* EXPIRY INDICATOR */}
+          {expiryStatus && (
+            <p
+              className={
+                expiryStatus === "Expired"
+                  ? "text-red-600 font-semibold"
+                  : "text-amber-500 font-semibold"
+              }
+            >
+              ⚠ {expiryStatus}
+            </p>
+          )}
+
+          {/* INPUT FIELDS */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* CODE */}
-            <div>
-              <Label className="font-semibold text-slate-700">Code</Label>
-              <TextInput
-                className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500 focus:border-emerald-500"
-                value={form.code}
-                onChange={(e) => handleChange("code", e.target.value)}
-              />
-            </div>
+            <Field label="Code" value={form.code} onChange={(v) => setField("code", v)}
+              touched={touched.code} error={!form.code && touched.code ? "Required" : ""} />
 
-            {/* NAME */}
-            <div>
-              <Label className="font-semibold text-slate-700">Name</Label>
-              <TextInput
-                className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500 focus:border-emerald-500"
-                value={form.name}
-                onChange={(e) => handleChange("name", e.target.value)}
-              />
-            </div>
+            <Field label="Name" value={form.name} onChange={(v) => setField("name", v)}
+              touched={touched.name} error={!form.name && touched.name ? "Required" : ""} />
 
-            {/* DESCRIPTION */}
-            <div>
-              <Label className="font-semibold text-slate-700">
-                Description
-              </Label>
-              <TextInput
-                className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
-                value={form.productDescription}
-                onChange={(e) =>
-                  handleChange("productDescription", e.target.value)
-                }
-              />
-            </div>
+            <Field label="Description" value={form.productDescription}
+              onChange={(v) => setField("productDescription", v)} />
 
-            {/* SIZE */}
-            <div>
-              <Label className="font-semibold text-slate-700">Size</Label>
-              <TextInput
-                className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
-                value={form.size}
-                onChange={(e) => handleChange("size", e.target.value)}
-              />
-            </div>
+            <Field label="Size" value={form.size}
+              onChange={(v) => setField("size", v)} />
           </div>
 
           {/* CATEGORY */}
           <div>
-            <Label className="font-semibold text-slate-700">
-              Category
-            </Label>
+            <Label className="font-semibold text-slate-700">Category</Label>
             <Select
-              className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
               value={form.categoryId ?? ""}
-              onChange={(e) => handleChange("categoryId", Number(e.target.value))}
+              onChange={(e) =>
+                setField("categoryId", e.target.value ? Number(e.target.value) : null)
+              }
+              className={
+                touched.categoryId && form.categoryId === null ? "border-red-500" : ""
+              }
             >
               <option value="">Select Category</option>
-              {categories.map((cat) => (
-                <option key={cat.categoryId} value={cat.categoryId}>
-                  {cat.categoryName}
+              {categories.map((c) => (
+                <option key={c.categoryId} value={c.categoryId}>
+                  {c.categoryName}
                 </option>
               ))}
             </Select>
+
+            {touched.categoryId && form.categoryId === null && (
+              <p className="text-red-600 text-xs mt-1">Category is required</p>
+            )}
           </div>
 
           {/* STOCK + STATUS */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="font-semibold text-slate-700">Stocks</Label>
-              <TextInput
-                type="number"
-                className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
-                value={form.stock}
-                onChange={(e) => handleChange("stock", e.target.value)}
-              />
-            </div>
+            <Field
+              label="Stock"
+              type="number"
+              value={form.stock}
+              onChange={(v) => setField("stock", v)}
+              touched={touched.stock}
+              error={form.stock < 0 && touched.stock ? "Invalid stock" : ""}
+            />
 
             <div>
               <Label className="font-semibold text-slate-700">Status</Label>
               <Select
-                className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
                 value={form.status}
-                onChange={(e) => handleChange("status", e.target.value)}
+                onChange={(e) => setField("status", e.target.value)}
               >
                 <option value="Available">Available</option>
                 <option value="Not Available">Not Available</option>
+                <option value="Out of Stock">Out of Stock</option>
               </Select>
             </div>
           </div>
 
           {/* DATE FIELDS */}
           <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label className="font-semibold text-slate-700">
-                Expiry Date
-              </Label>
-              <TextInput
-                type="date"
-                className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
-                value={form.expiryDate ?? ""}
-                onChange={(e) => handleChange("expiryDate", e.target.value)}
-              />
-            </div>
+            <Field
+              label="Expiry Date"
+              type="date"
+              value={form.expiryDate ?? ""}
+              onChange={(v) => setField("expiryDate", v)}
+            />
 
-            <div>
-              <Label className="font-semibold text-slate-700">In Date</Label>
-              <TextInput
-                type="date"
-                className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
-                value={form.inDate ?? ""}
-                onChange={(e) => handleChange("inDate", e.target.value)}
-              />
-            </div>
+            <Field
+              label="In Date"
+              type="date"
+              value={form.inDate ?? ""}
+              onChange={(v) => setField("inDate", v)}
+            />
           </div>
         </div>
       </ModalBody>
@@ -265,8 +318,8 @@ export default function ProductFormModal({
         <Button
           color="success"
           onClick={handleSubmit}
-          disabled={loading}
-          className="rounded-full px-5 shadow-lg"
+          disabled={!formIsValid || loading}
+          className="rounded-full px-5 shadow-lg disabled:opacity-50"
         >
           {loading
             ? isEdit
@@ -277,10 +330,47 @@ export default function ProductFormModal({
             : "Add Product"}
         </Button>
 
-        <Button color="gray" onClick={onClose} className="rounded-full">
+        <Button color="gray" className="rounded-full" onClick={onClose}>
           Cancel
         </Button>
       </ModalFooter>
     </Modal>
+  );
+}
+
+/* ==========================================================
+   REUSABLE FIELD COMPONENT
+========================================================== */
+function Field({
+  label,
+  value,
+  type = "text",
+  onChange,
+  error,
+  touched,
+}: {
+  label: string;
+  value: any;
+  type?: string;
+  onChange: (val: any) => void;
+  error?: string;
+  touched?: boolean;
+}) {
+  const hasError = Boolean(error && touched);
+
+  return (
+    <div>
+      <Label className="font-semibold text-slate-700">{label}</Label>
+
+      <TextInput
+        type={type}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        color={hasError ? "failure" : undefined}
+        className={hasError ? "border-red-500" : ""}
+      />
+
+      {hasError && <p className="text-red-600 text-xs mt-1">{error}</p>}
+    </div>
   );
 }

@@ -1,21 +1,23 @@
 import { type RecommendationRuleDTO } from "../libs/models/product/RecommendedRule";
 
 export interface Product {
-  id?: number;
-  imageFile?: File;    // for uploading new image
-  imageUrl?: string;   // for display from backend
+  productId?: number;         // ✔ actual backend ID
+  imageFile?: File | null;    // ✔ for uploads
+  imageUrl?: string | null;   // ✔ backend display URL
+
   code: string;
   name: string;
   productDescription: string;
   size: string;
   stock: number;
+
   expiryDate?: string | null;
   inDate?: string | null;
-  status: "Available" | "Not Available";
+
+  status: "Available" | "Not Available" | "Out of Stock"; // add if needed
 
   categoryId?: number | null;
   categoryName?: string | null;
 
-    // 👇 replace old "ProductRecommended[]" with the new structured rules
   recommendations?: RecommendationRuleDTO[];
 }
