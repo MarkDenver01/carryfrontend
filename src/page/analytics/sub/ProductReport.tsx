@@ -104,6 +104,15 @@ const normalizeStatus = (raw: string | null | undefined): string => {
  * 101+        → New Stocks
  * null        → Good (no expiry date, refined later by stock rules)
  */
+/**
+ * ✔ MATCH EXACT ANDROID LOGIC (OrderScreen)
+ *
+ * Android Rule:
+ *  - daysLeft <= 0 → Expired
+ *  - 1–60         → Near Expiry
+ *  - 61–100       → Good
+ *  - 101+         → New Stocks
+ */
 const classifyByDaysLeft = (
   daysLeft: number | null
 ): {
@@ -112,6 +121,8 @@ const classifyByDaysLeft = (
   colorClass: string;
   softClass: string;
 } => {
+
+  // No expiry = treat as "Good"
   if (daysLeft === null) {
     return {
       status: "Good",
@@ -121,7 +132,8 @@ const classifyByDaysLeft = (
     };
   }
 
-  if (daysLeft === 0) {
+  // EXACT ANDROID RULES:
+  if (daysLeft <= 0) {
     return {
       status: "Expired",
       priority: 0,
@@ -263,6 +275,7 @@ export default function ProductReport() {
   ========================== */
 
   const enrichedData: EnrichedProduct[] = useMemo(() => {
+    
     const today = dayjs().startOf("day");
 
     return products.map((p: any, index) => {
@@ -278,6 +291,7 @@ export default function ProductReport() {
         (p.productInDate && String(p.productInDate)) ||
         (p.stockInDate && String(p.stockInDate)) ||
         null;
+        
 
       let rawInventoryStatus: string = normalizeStatus(p.productStatus);
 
@@ -288,6 +302,8 @@ export default function ProductReport() {
 
       let expiry: dayjs.Dayjs | null = null;
       let stockIn: dayjs.Dayjs | null = null;
+
+      const isPromo = daysLeft !== null && daysLeft <= 60;
 
       // Parse expiry
       if (expiryDateStr) {
@@ -486,6 +502,7 @@ export default function ProductReport() {
         isNearExpiryWindow,
         combinedLabel,
         hasInvalidExpiry,
+        isPromo
       };
     });
   }, [products]);
