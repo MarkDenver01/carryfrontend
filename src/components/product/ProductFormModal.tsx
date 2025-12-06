@@ -39,7 +39,7 @@ export default function ProductFormModal({
     size: "",
     stock: 0,
     expiryDate: "",
-    inDate: "",
+    productInDate: "",
     status: "Available",
     categoryId: null,
   };
@@ -253,8 +253,9 @@ export default function ProductFormModal({
               <TextInput
                 type="date"
                 className="mt-1 rounded-xl border-emerald-200 focus:ring-emerald-500"
-                value={form.inDate ?? ""}
-                onChange={(e) => handleChange("inDate", e.target.value)}
+                value={form.productInDate ?? ""}
+                onChange={(e) => handleChange("productInDate", e.target.value)}
+
               />
             </div>
           </div>

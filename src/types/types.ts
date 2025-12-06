@@ -10,7 +10,7 @@ export interface Product {
   size: string;
   stock: number;
   expiryDate?: string | null;
-  inDate?: string | null;
+  productInDate?: string | null;
   status: "Available" | "Not Available";
 
   categoryId?: number | null;

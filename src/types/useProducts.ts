@@ -117,7 +117,7 @@ export const validateProduct = (p: Product): string | null => {
   if (!p.status?.trim()) return "Product status is required";
 
   if (!p.expiryDate?.trim()) return "Expiry date is required";
-  if (!p.inDate?.trim()) return "In date is required";
+  if (!p.productInDate?.trim()) return "In date is required";
 
   if (!p.imageFile && !p.imageUrl?.trim()) return "Product image is required";
 
