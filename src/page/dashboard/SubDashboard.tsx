@@ -522,7 +522,7 @@ function CustomerAnalyticsSection(props: any) {
 
         <MiniStatCard
           icon={<Users size={16} />}
-          label="Total Unique Customers"
+          label="Over All Total Customers"
           value={props.loadingStats ? "…" : props.totalUniqueCustomers}
           badge="All-time"
         />
