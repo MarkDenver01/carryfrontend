@@ -246,7 +246,7 @@ export default function SalesReportUpgraded() {
               icon={<TagIcon size={44} />}
               label="Top Sales Category"
               value={`₱ ${topCategorySales.toLocaleString()}`}
-              accent="Most profitable department for selected period"
+              accent="Most Top Sales Product Category"
               color="amber"
             />
 
@@ -254,7 +254,7 @@ export default function SalesReportUpgraded() {
               icon={<Package size={44} />}
               label="Total Product Sales"
               value={`₱ ${totalProductSales.toLocaleString()}`}
-              accent="Overall revenue generated in this time range"
+              accent="Overall Top Selling Products"
               color="emerald"
             />
           </section>
