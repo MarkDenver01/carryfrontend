@@ -1,9 +1,9 @@
 import { type RecommendationRuleDTO } from "../libs/models/product/RecommendedRule";
-
 export interface Product {
-  productId?: number;         // ✔ actual backend ID
-  imageFile?: File | null;    // ✔ for uploads
-  imageUrl?: string | null;   // ✔ backend display URL
+  productId?: number;   // backend ID
+  id?: number;          // frontend compatibility
+  imageFile?: File | null;
+  imageUrl?: string | null;
 
   code: string;
   name: string;
@@ -14,7 +14,7 @@ export interface Product {
   expiryDate?: string | null;
   inDate?: string | null;
 
-  status: "Available" | "Not Available" | "Out of Stock"; // add if needed
+  status: "Available" | "Not Available" | "Out of Stock";
 
   categoryId?: number | null;
   categoryName?: string | null;
