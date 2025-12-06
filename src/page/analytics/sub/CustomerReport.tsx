@@ -81,7 +81,7 @@ export default function SalesAnalyticsReport() {
               icon={<PhilippinePeso size={48} />}
               value={loading ? "Loading..." : `₱${summary.totalSales.toLocaleString()}`}
               label="Total Sales"
-              accentLabel="All-time Revenue"
+              accentLabel="Over All Total Sales"
             />
 
             <StatCard
@@ -90,7 +90,7 @@ export default function SalesAnalyticsReport() {
               icon={<Users size={48} />}
               value={loading ? "Loading..." : summary.totalCustomers.toLocaleString()}
               label="Total Customers"
-              accentLabel="Unique Customers"
+              accentLabel="Over All Total Customers"
               delay={0.05}
             />
 
@@ -100,7 +100,7 @@ export default function SalesAnalyticsReport() {
               icon={<ShoppingCart size={48} />}
               value={loading ? "Loading..." : summary.totalOrders.toLocaleString()}
               label="Total Orders"
-              accentLabel="Completed Transactions"
+              accentLabel="Over All Total Orders"
               delay={0.1}
             />
           </section>
