@@ -1,14 +1,25 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Pagination } from "flowbite-react";
 import Swal from "sweetalert2";
-import { Search, Sparkles, Trash2, Plus, Link2, Image as ImageIcon } from "lucide-react";
+import {
+  Search,
+  Sparkles,
+  Trash2,
+  Plus,
+  Link2,
+  Image as ImageIcon,
+} from "lucide-react";
 import { motion } from "framer-motion";
 
-type ProductBanner = {
-  bannerId: number;
-  bannerUrl: string;      // CLOUDINARY URL
-  bannerUrlLink: string;  // REDIRECT URL
-};
+// === API FUNCTIONS ===
+import {
+  getAllBanners,
+  createBanner,
+  deleteBanner,
+} from "../../../libs/ApiGatewayDatasource";
+
+// === TYPE ===
+import type { ProductBanner } from "../../../libs/models/product/ProductBanner";
 
 export default function ProductBannerPage() {
   const [banners, setBanners] = useState<ProductBanner[]>([]);
@@ -22,60 +33,87 @@ export default function ProductBannerPage() {
     bannerUrlLink: "",
   });
 
-  /** SAVE BANNER — URL ONLY */
-  const handleSave = () => {
+  // LOAD BANNERS
+  useEffect(() => {
+    loadBanners();
+  }, []);
+
+  async function loadBanners() {
+    try {
+      const list = await getAllBanners();
+      setBanners(list);
+    } catch (err) {
+      console.error("Failed loading banners:", err);
+      Swal.fire("Error", "Failed to load banners.", "error");
+    }
+  }
+
+  // SAVE BANNER
+  const handleSave = async () => {
     if (!form.bannerUrl.trim()) {
-      Swal.fire("Missing Banner URL", "Please paste the Cloudinary image URL.", "warning");
+      Swal.fire("Missing Banner URL", "Please paste the Cloudinary URL.", "warning");
       return;
     }
-
     if (!form.bannerUrlLink.trim()) {
       Swal.fire("Missing Redirect URL", "Please enter a redirect link.", "warning");
       return;
     }
 
-    const newBanner: ProductBanner = {
-      bannerId: Date.now(),
-      bannerUrl: form.bannerUrl,
-      bannerUrlLink: form.bannerUrlLink,
-    };
+    try {
+      const saved = await createBanner({
+        bannerUrl: form.bannerUrl,
+        bannerUrlLink: form.bannerUrlLink,
+      });
 
-    setBanners((prev) => [...prev, newBanner]);
+      setBanners((prev) => [saved, ...prev]);
+      Swal.fire("Success", "Banner added!", "success");
 
-    Swal.fire("Success", "Banner added using URL only!", "success");
-
-    setIsModalOpen(false);
-    setForm({ bannerUrl: "", bannerUrlLink: "" });
+      setIsModalOpen(false);
+      setForm({ bannerUrl: "", bannerUrlLink: "" });
+    } catch (err) {
+      console.error("Create failed:", err);
+      Swal.fire("Error", "Failed to save banner.", "error");
+    }
   };
 
-  /** DELETE */
+  // DELETE BANNER
   const handleDelete = (id: number) => {
     Swal.fire({
       title: "Delete Banner?",
-      text: "This will permanently remove the banner from UI list.",
+      text: "This action cannot be undone.",
       icon: "warning",
       showCancelButton: true,
       confirmButtonText: "Delete",
       confirmButtonColor: "#d33",
-    }).then((res) => {
+    }).then(async (res) => {
       if (res.isConfirmed) {
-        setBanners((prev) => prev.filter((b) => b.bannerId !== id));
-        Swal.fire("Deleted!", "Banner removed.", "success");
+        try {
+          await deleteBanner(id);
+          setBanners((prev) => prev.filter((b) => b.bannerId !== id));
+          Swal.fire("Deleted", "Banner removed.", "success");
+        } catch (err) {
+          console.error("Delete failed:", err);
+          Swal.fire("Error", "Failed to delete banner.", "error");
+        }
       }
     });
   };
 
-  /** SEARCH */
+  // SEARCH + PAGINATION
   const filtered = useMemo(() => {
     const t = search.toLowerCase();
-    return banners.filter((b) =>
-      b.bannerUrl.toLowerCase().includes(t) ||
-      b.bannerUrlLink.toLowerCase().includes(t)
+    return banners.filter(
+      (b) =>
+        b.bannerUrl.toLowerCase().includes(t) ||
+        b.bannerUrlLink.toLowerCase().includes(t)
     );
   }, [banners, search]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
-  const paginated = filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const paginated = filtered.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   return (
     <motion.div
@@ -101,12 +139,10 @@ export default function ProductBannerPage() {
           Manage promotional banners using Cloudinary URLs.
         </div>
 
-        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r 
-          from-emerald-400 via-emerald-500 to-transparent rounded-full"
-        />
+        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
       </div>
 
-      {/* CONTENT CARD */}
+      {/* MAIN CARD */}
       <div className="rounded-2xl border border-emerald-200 bg-white/90 p-6 shadow-xl">
         {/* ADD BUTTON */}
         <div className="flex justify-between items-center mb-6">
@@ -115,7 +151,7 @@ export default function ProductBannerPage() {
             onClick={() => setIsModalOpen(true)}
             className="px-5 py-2 rounded-full bg-gradient-to-r 
               from-emerald-600 via-emerald-500 to-cyan-400 text-white 
-              font-semibold shadow-lg"
+              font-semibold shadow-lg flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             Add Banner (URL)
@@ -151,7 +187,10 @@ export default function ProductBannerPage() {
             <tbody>
               {paginated.length > 0 ? (
                 paginated.map((item) => (
-                  <tr key={item.bannerId} className="border-b hover:bg-emerald-50/50">
+                  <tr
+                    key={item.bannerId}
+                    className="border-b hover:bg-emerald-50/50"
+                  >
                     <td className="p-4">
                       <img
                         src={item.bannerUrl}
@@ -190,14 +229,21 @@ export default function ProductBannerPage() {
         {totalPages > 1 && (
           <div className="flex justify-between items-center mt-6 text-sm">
             <span>
-              Showing { (currentPage - 1) * pageSize + 1 } – { Math.min(currentPage * pageSize, filtered.length) } of { filtered.length }
+              Showing {(currentPage - 1) * pageSize + 1} –{" "}
+              {Math.min(currentPage * pageSize, filtered.length)} of{" "}
+              {filtered.length}
             </span>
-            <Pagination currentPage={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} showIcons />
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              showIcons
+            />
           </div>
         )}
       </div>
 
-      {/* MODAL – URL ONLY */}
+      {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
           <div className="bg-white w-[420px] p-6 rounded-xl shadow-xl border">
@@ -208,25 +254,33 @@ export default function ProductBannerPage() {
 
             {/* BANNER URL */}
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Banner Image URL (Cloudinary)</label>
+              <label className="block text-sm font-medium mb-1">
+                Banner Image URL (Cloudinary)
+              </label>
               <input
                 type="text"
                 placeholder="https://res.cloudinary.com/.../banner.png"
                 className="w-full border px-3 py-2 rounded text-sm"
                 value={form.bannerUrl}
-                onChange={(e) => setForm({ ...form, bannerUrl: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, bannerUrl: e.target.value })
+                }
               />
             </div>
 
             {/* REDIRECT URL */}
             <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">Redirect URL (click action)</label>
+              <label className="block text-sm font-medium mb-1">
+                Redirect URL (click action)
+              </label>
               <input
                 type="text"
                 placeholder="https://your-store.com/promo"
                 className="w-full border px-3 py-2 rounded text-sm"
                 value={form.bannerUrlLink}
-                onChange={(e) => setForm({ ...form, bannerUrlLink: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, bannerUrlLink: e.target.value })
+                }
               />
             </div>
 

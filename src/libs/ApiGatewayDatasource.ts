@@ -10,7 +10,7 @@ import type {
 } from "./models/product/RecommendedRule";
 
 import type { ProductPriceDTO, ProductPrice } from "../types/pricingTypes";
-
+import type { ProductBanner } from "./models/product/ProductBanner";
 // ===============================
 //        AUTH APIs
 // ===============================
@@ -552,5 +552,36 @@ export async function getSalesReport(range: "date" | "month" | "year") {
   } catch (error: any) {
     console.error("❌ Sales report error:", error);
     throw error.response?.data || { message: "Failed to load sales report" };
+  }
+}
+export async function getAllBanners(): Promise<ProductBanner[]> {
+  try {
+    const response = await api.get("/api/product-banners");
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Error fetching banners:", error);
+    throw error.response?.data || { message: "Failed to load banners" };
+  }
+}
+
+export async function createBanner(payload: {
+  bannerUrl: string;
+  bannerUrlLink: string;
+}): Promise<ProductBanner> {
+  try {
+    const response = await api.post("/api/product-banners", payload);
+    return response.data;
+  } catch (error: any) {
+    console.error("❌ Error creating banner:", error);
+    throw error.response?.data || { message: "Failed to create banner" };
+  }
+}
+
+export async function deleteBanner(bannerId: number): Promise<void> {
+  try {
+    await api.delete(`/api/product-banners/${bannerId}`);
+  } catch (error: any) {
+    console.error("❌ Delete banner error:", error);
+    throw error.response?.data || { message: "Failed to delete banner" };
   }
 }
