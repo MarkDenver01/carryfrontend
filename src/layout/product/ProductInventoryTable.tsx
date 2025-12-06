@@ -24,7 +24,7 @@ type ProductSortField =
   | "size"
   | "stock"
   | "expiryDate"
-  | "inDate"
+  | "productInDate"
   | "status";
 
 export default function ProductInventoryTable() {

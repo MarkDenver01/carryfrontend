@@ -38,7 +38,7 @@ export const mapProductDTO = (p: ProductDTO): Product => ({
   size: p.productSize ?? "",
   stock: p.stocks ?? 0,
   expiryDate: p.expiryDate ? formatDate(p.expiryDate) : "",
-  inDate: p.productInDate ? formatDate(p.productInDate) : "",
+  productInDate: p.productInDate ? formatDate(p.productInDate) : "",
   status:
     (p.productStatus ?? "").toLowerCase() === "available"
       ? "Available"
@@ -73,7 +73,7 @@ export const toProductRequest = (p: Product): ProductRequest => ({
   productSize: clean(p.size),
   productStatus: clean(p.status),
   expiryDate: formatDateForBackend(p.expiryDate),
-  productInDate: formatDateForBackend(p.inDate),
+  productInDate: formatDateForBackend(p.productInDate),
   categoryId: p.categoryId ?? null,
 });
 
@@ -94,7 +94,7 @@ export const toProductFormData = (p: Product, imageFile?: File): FormData => {
     productStatus: clean(p.status),
     productImgUrl: finalImageUrl,
     expiryDate: p.expiryDate ? formatDateForBackend(p.expiryDate) : null,
-    productInDate: p.inDate ? formatDateForBackend(p.inDate) : null,
+    productInDate: p.productInDate ? formatDateForBackend(p.productInDate) : null,
     categoryId: p.categoryId ?? null,
   };
 
