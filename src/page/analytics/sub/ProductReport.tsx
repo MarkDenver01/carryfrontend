@@ -27,6 +27,7 @@ import {
   updateProductStatus,
 } from "../../../libs/ApiGatewayDatasource";
 import type { ProductDTO } from "../../../libs/models/product/Product";
+import { resolveStock } from "../../../types/Resolvestock";
 
 /* =========================
    TYPES & CONSTANTS
@@ -281,7 +282,9 @@ export default function ProductReport() {
     return products.map((p: any, index) => {
       const name: string = p.productName;
       const category: string = p.categoryName ?? "Uncategorized";
-      const stock: number = Number(p.stocks ?? p.stock ?? 0);
+      const stock: number = resolveStock(p);
+
+
 
       const expiryDateStr: string | null = p.expiryDate
         ? String(p.expiryDate)
