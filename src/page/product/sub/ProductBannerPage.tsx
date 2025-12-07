@@ -1235,8 +1235,7 @@ export default function ProductBannerPage() {
                   Promo Setup
                 </p>
                 <p className="text-sm text-slate-700">
-                  Create homepage banner and Snowball promo with dedicated promo
-                  prices.
+                  Homepage Product Banner and SnowBall promos with dedicated promo prices.
                 </p>
               </div>
               <button
