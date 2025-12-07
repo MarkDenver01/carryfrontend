@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { ChevronDown } from "lucide-react";
 import {
   BarChart,
@@ -22,7 +22,6 @@ export default function SalesChartLayout() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  /** Load data from backend whenever filter changes */
   useEffect(() => {
     async function fetchData() {
       setLoading(true);
@@ -31,7 +30,6 @@ export default function SalesChartLayout() {
       try {
         const res = await getSalesReport(filter);
 
-        // Ensure correct structure
         const formatted = res.map((item: any) => ({
           label: item.label,
           totalSales: Number(item.totalSales || 0),
@@ -49,6 +47,14 @@ export default function SalesChartLayout() {
     fetchData();
   }, [filter]);
 
+  // ✅ AUTO WIDTH BASED ON DATA COUNT
+  const dynamicWidth = useMemo(() => {
+    if (data.length <= 6) return "100%";
+    if (data.length <= 20) return data.length * 90;
+    if (data.length <= 100) return data.length * 60;
+    return data.length * 40; // ✅ FOR 1000+ ITEMS
+  }, [data.length]);
+
   return (
     <div className="p-6 rounded-2xl bg-white/70 backdrop-blur shadow-md">
       {/* Header */}
@@ -57,7 +63,6 @@ export default function SalesChartLayout() {
           Total Sales Chart
         </span>
 
-        {/* Filter Dropdown */}
         <Dropdown
           dismissOnClick={true}
           renderTrigger={() => (
@@ -79,52 +84,51 @@ export default function SalesChartLayout() {
           {filterLabel(filter)}
         </h3>
 
-        {/* LOADING STATE */}
         {loading && (
           <div className="text-center py-10 text-gray-500">Loading chart...</div>
         )}
 
-        {/* ERROR STATE */}
         {!loading && error && (
           <div className="text-center py-10 text-red-500">{error}</div>
         )}
 
-        {/* RENDER CHART */}
+        {/* ✅ AUTO SCROLL + AUTO EXPAND */}
         {!loading && !error && data.length > 0 && (
-          <ResponsiveContainer width="100%" height={330}>
-            {filter === "year" ? (
-              // LINE CHART FOR YEARLY
-              <LineChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
-                <XAxis dataKey="label" />
-                <YAxis />
-                <Tooltip formatter={(val) => `₱${val.toLocaleString()}`} />
-                <Line
-                  type="monotone"
-                  dataKey="totalSales"
-                  stroke="#10b981"
-                  strokeWidth={3}
-                  dot={{ r: 4 }}
-                />
-              </LineChart>
-            ) : (
-              // BAR CHART FOR DAILY & MONTHLY
-              <BarChart data={data}>
-                <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
-                <XAxis dataKey="label" />
-                <YAxis />
-                <Tooltip formatter={(val) => `₱${val.toLocaleString()}`} />
-                <Bar
-                  dataKey="totalSales"
-                  fill="#10b981"
-                  radius={[8, 8, 0, 0]}
-                />
-              </BarChart>
-            )}
-          </ResponsiveContainer>
+          <div className="overflow-x-auto">
+            <div style={{ minWidth: dynamicWidth }}>
+              <ResponsiveContainer width="100%" height={330}>
+                {filter === "year" ? (
+                  <LineChart data={data}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
+                    <XAxis dataKey="label" />
+                    <YAxis />
+                    <Tooltip formatter={(val) => `₱${val.toLocaleString()}`} />
+                    <Line
+                      type="monotone"
+                      dataKey="totalSales"
+                      stroke="#10b981"
+                      strokeWidth={3}
+                      dot={{ r: 4 }}
+                    />
+                  </LineChart>
+                ) : (
+                  <BarChart data={data}>
+                    <CartesianGrid strokeDasharray="3 3" opacity={0.4} />
+                    <XAxis dataKey="label" />
+                    <YAxis />
+                    <Tooltip formatter={(val) => `₱${val.toLocaleString()}`} />
+                    <Bar
+                      dataKey="totalSales"
+                      fill="#10b981"
+                      radius={[8, 8, 0, 0]}
+                    />
+                  </BarChart>
+                )}
+              </ResponsiveContainer>
+            </div>
+          </div>
         )}
 
-        {/* IF NO DATA */}
         {!loading && !error && data.length === 0 && (
           <div className="text-center py-10 text-gray-400">
             No sales data available.
