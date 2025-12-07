@@ -1,5 +1,4 @@
 import { useState, useMemo, useEffect } from "react";
-import { Pagination } from "flowbite-react";
 import Swal from "sweetalert2";
 import {
   Search,
@@ -7,33 +6,82 @@ import {
   Trash2,
   Plus,
   Link2,
-  Image as ImageIcon,
+  Gift,
 } from "lucide-react";
 import { motion } from "framer-motion";
 
-// === API FUNCTIONS ===
+// === API FUNCTIONS (UNCHANGED - SAFE) ===
 import {
   getAllBanners,
   createBanner,
   deleteBanner,
 } from "../../../libs/ApiGatewayDatasource";
 
-// === TYPE ===
 import type { ProductBanner } from "../../../libs/models/product/ProductBanner";
 
+/* =============================
+   ✅ MOCK PRODUCTS (FROM PRODUCT MONITORING - FRONTEND ONLY)
+============================= */
+type PromoProduct = {
+  productId: number;
+  name: string;
+  category: string;
+};
+
+const MOCK_PRODUCTS: PromoProduct[] = [
+  { productId: 1, name: "Sardines", category: "Canned Goods" },
+  { productId: 2, name: "Corned Beef", category: "Canned Goods" },
+  { productId: 3, name: "Tuna", category: "Canned Goods" },
+  { productId: 4, name: "Soft Drinks", category: "Beverages" },
+  { productId: 5, name: "Instant Noodles", category: "Dry Goods" },
+];
+
+/* =============================
+   ✅ SNOWBALL TYPE
+============================= */
+type SnowballOffer = {
+  id: number;
+  title: string;
+  reward: string;
+  requiredQty: number;
+  hasExpiry: boolean;
+  expiry?: string;
+  terms: string;
+  products: PromoProduct[];
+};
+
 export default function ProductBannerPage() {
+  /* ===== PRODUCT BANNERS (BACKEND) ===== */
   const [banners, setBanners] = useState<ProductBanner[]>([]);
   const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 7;
 
+  /* ===== SNOWBALL (FRONTEND ONLY) ===== */
+  const [snowballs, setSnowballs] = useState<SnowballOffer[]>([]);
+
+  /* ===== MODAL ===== */
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [form, setForm] = useState({
+
+  /* ===== PRODUCT BANNER FORM ===== */
+  const [bannerForm, setBannerForm] = useState({
     bannerUrl: "",
     bannerUrlLink: "",
   });
 
-  // LOAD BANNERS
+  /* ===== SNOWBALL FORM ===== */
+  const [snowballForm, setSnowballForm] = useState({
+    title: "",
+    reward: "",
+    requiredQty: 1,
+    hasExpiry: false,
+    expiry: "",
+    terms: "",
+  });
+
+  const [selectedProducts, setSelectedProducts] = useState<PromoProduct[]>([]);
+
+  /* =============================
+     LOAD PRODUCT BANNERS
+  ============================= */
   useEffect(() => {
     loadBanners();
   }, []);
@@ -42,267 +90,302 @@ export default function ProductBannerPage() {
     try {
       const list = await getAllBanners();
       setBanners(list);
-    } catch (err) {
-      console.error("Failed loading banners:", err);
+    } catch {
       Swal.fire("Error", "Failed to load banners.", "error");
     }
   }
 
-  // SAVE BANNER
-  const handleSave = async () => {
-    if (!form.bannerUrl.trim()) {
-      Swal.fire("Missing Banner URL", "Please paste the Cloudinary URL.", "warning");
+  /* =============================
+     SAVE PRODUCT BANNER (BACKEND)
+  ============================= */
+  const handleSaveBanner = async () => {
+    if (!bannerForm.bannerUrl || !bannerForm.bannerUrlLink) {
+      Swal.fire("Missing Fields", "Fill banner fields.", "warning");
       return;
     }
-    if (!form.bannerUrlLink.trim()) {
-      Swal.fire("Missing Redirect URL", "Please enter a redirect link.", "warning");
-      return;
-    }
 
-    try {
-      const saved = await createBanner({
-        bannerUrl: form.bannerUrl,
-        bannerUrlLink: form.bannerUrlLink,
-      });
-
-      setBanners((prev) => [saved, ...prev]);
-      Swal.fire("Success", "Banner added!", "success");
-
-      setIsModalOpen(false);
-      setForm({ bannerUrl: "", bannerUrlLink: "" });
-    } catch (err) {
-      console.error("Create failed:", err);
-      Swal.fire("Error", "Failed to save banner.", "error");
-    }
+    const saved = await createBanner(bannerForm);
+    setBanners((prev) => [saved, ...prev]);
+    setBannerForm({ bannerUrl: "", bannerUrlLink: "" });
+    Swal.fire("Success", "Banner created!", "success");
   };
 
-  // DELETE BANNER
+  /* =============================
+     SAVE SNOWBALL (FRONTEND)
+  ============================= */
+  const handleSaveSnowball = () => {
+    if (!snowballForm.title || !snowballForm.reward) {
+      Swal.fire("Missing Fields", "Fill snowball fields.", "warning");
+      return;
+    }
+
+    if (selectedProducts.length === 0) {
+      Swal.fire("No Products", "Select at least 1 product.", "warning");
+      return;
+    }
+
+    setSnowballs((prev) => [
+      {
+        id: Date.now(),
+        ...snowballForm,
+        expiry: snowballForm.hasExpiry ? snowballForm.expiry : undefined,
+        products: selectedProducts,
+      },
+      ...prev,
+    ]);
+
+    setSnowballForm({
+      title: "",
+      reward: "",
+      requiredQty: 1,
+      hasExpiry: false,
+      expiry: "",
+      terms: "",
+    });
+
+    setSelectedProducts([]);
+    Swal.fire("Success", "Snowball Promo Added!", "success");
+  };
+
+  /* =============================
+     DELETE PRODUCT BANNER
+  ============================= */
   const handleDelete = (id: number) => {
     Swal.fire({
       title: "Delete Banner?",
-      text: "This action cannot be undone.",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "Delete",
-      confirmButtonColor: "#d33",
     }).then(async (res) => {
       if (res.isConfirmed) {
-        try {
-          await deleteBanner(id);
-          setBanners((prev) => prev.filter((b) => b.bannerId !== id));
-          Swal.fire("Deleted", "Banner removed.", "success");
-        } catch (err) {
-          console.error("Delete failed:", err);
-          Swal.fire("Error", "Failed to delete banner.", "error");
-        }
+        await deleteBanner(id);
+        setBanners((prev) => prev.filter((b) => b.bannerId !== id));
+        Swal.fire("Deleted", "Banner removed.", "success");
       }
     });
   };
 
-  // SEARCH + PAGINATION
+  /* =============================
+     SEARCH FILTER
+  ============================= */
   const filtered = useMemo(() => {
-    const t = search.toLowerCase();
     return banners.filter(
       (b) =>
-        b.bannerUrl.toLowerCase().includes(t) ||
-        b.bannerUrlLink.toLowerCase().includes(t)
+        b.bannerUrl.toLowerCase().includes(search.toLowerCase()) ||
+        b.bannerUrlLink.toLowerCase().includes(search.toLowerCase())
     );
   }, [banners, search]);
 
-  const totalPages = Math.ceil(filtered.length / pageSize);
-  const paginated = filtered.slice(
-    (currentPage - 1) * pageSize,
-    currentPage * pageSize
-  );
+  /* =============================
+     TOGGLE PRODUCT SELECT
+  ============================= */
+  const toggleProduct = (product: PromoProduct) => {
+    setSelectedProducts((prev) => {
+      const exists = prev.find((p) => p.productId === product.productId);
+      return exists
+        ? prev.filter((p) => p.productId !== product.productId)
+        : [...prev, product];
+    });
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 18 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: "easeOut" }}
-      className="relative p-6 md:p-8 overflow-hidden"
-    >
-      {/* HEADER */}
-      <div className="mb-8">
-        <motion.h1
-          initial={{ opacity: 0, x: -15 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.45 }}
-          className="text-3xl font-extrabold tracking-tight bg-gradient-to-r 
-            from-emerald-500 via-emerald-400 to-cyan-400 bg-clip-text text-transparent"
-        >
-          Product Banners
-        </motion.h1>
+    <motion.div className="p-8 space-y-8">
 
-        <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-          <Sparkles className="w-4 h-4 text-emerald-400" />
-          Manage promotional banners using Cloudinary URLs.
-        </div>
+      <h1 className="text-3xl font-bold text-emerald-600 flex items-center gap-2">
+        <Sparkles /> Product Banner & Snowball Promos
+      </h1>
 
-        <div className="mt-3 h-[3px] w-24 bg-gradient-to-r from-emerald-400 via-emerald-500 to-transparent rounded-full" />
+      <button
+        onClick={() => setIsModalOpen(true)}
+        className="px-5 py-2 bg-emerald-600 text-white rounded flex items-center gap-2"
+      >
+        <Plus /> Add Banner / Snowball
+      </button>
+
+      {/* SEARCH */}
+      <div className="relative max-w-sm">
+        <input
+          type="text"
+          placeholder="Search banner..."
+          className="w-full px-4 py-2 pl-11 rounded-full border text-sm"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
       </div>
 
-      {/* MAIN CARD */}
-      <div className="rounded-2xl border border-emerald-200 bg-white/90 p-6 shadow-xl">
-        {/* ADD BUTTON */}
-        <div className="flex justify-between items-center mb-6">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            onClick={() => setIsModalOpen(true)}
-            className="px-5 py-2 rounded-full bg-gradient-to-r 
-              from-emerald-600 via-emerald-500 to-cyan-400 text-white 
-              font-semibold shadow-lg flex items-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Add Banner (URL)
-          </motion.button>
-        </div>
+      {/* PRODUCT BANNERS TABLE */}
+      <table className="w-full border text-sm">
+        <thead className="bg-emerald-600 text-white">
+          <tr>
+            <th className="p-3">Banner</th>
+            <th className="p-3">Redirect</th>
+            <th className="p-3">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map((b) => (
+            <tr key={b.bannerId} className="border-b">
+              <td className="p-3">
+                <img src={b.bannerUrl} className="h-14 rounded" />
+              </td>
+              <td className="p-3 text-blue-600 flex items-center gap-1">
+                <Link2 size={14} /> {b.bannerUrlLink}
+              </td>
+              <td className="p-3">
+                <button
+                  onClick={() => handleDelete(b.bannerId)}
+                  className="bg-red-600 text-white px-3 py-1 rounded"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
 
-        {/* SEARCH */}
-        <div className="relative w-full max-w-sm mb-6">
-          <input
-            type="text"
-            placeholder="Search banner URL or redirect URL…"
-            className="w-full px-4 py-2 pl-11 rounded-full border border-emerald-200 text-sm"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-            }}
-          />
-          <Search className="absolute left-3 top-2.5 text-emerald-500 w-5 h-5" />
-        </div>
+      {/* SNOWBALL OUTPUT */}
+      <div className="border p-4 rounded bg-orange-50">
+        <h3 className="font-semibold mb-2 flex items-center gap-2">
+          <Gift /> Snowball Promos
+        </h3>
 
-        {/* TABLE */}
-        <div className="overflow-x-auto rounded-xl border border-emerald-200">
-          <table className="min-w-[900px] w-full text-sm text-gray-700">
-            <thead className="bg-emerald-600 text-white">
-              <tr>
-                <th className="p-4 text-left">Banner</th>
-                <th className="p-4 text-left">Redirect URL</th>
-                <th className="p-4 text-center">Actions</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {paginated.length > 0 ? (
-                paginated.map((item) => (
-                  <tr
-                    key={item.bannerId}
-                    className="border-b hover:bg-emerald-50/50"
-                  >
-                    <td className="p-4">
-                      <img
-                        src={item.bannerUrl}
-                        alt="Banner"
-                        className="h-16 w-40 object-cover rounded border"
-                      />
-                    </td>
-
-                    <td className="p-4 text-blue-600 underline flex items-center gap-1">
-                      <Link2 className="w-4 h-4" />
-                      {item.bannerUrlLink}
-                    </td>
-
-                    <td className="p-4 text-center">
-                      <button
-                        onClick={() => handleDelete(item.bannerId)}
-                        className="p-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={3} className="text-center p-6 text-gray-500">
-                    No banners found.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* PAGINATION */}
-        {totalPages > 1 && (
-          <div className="flex justify-between items-center mt-6 text-sm">
-            <span>
-              Showing {(currentPage - 1) * pageSize + 1} –{" "}
-              {Math.min(currentPage * pageSize, filtered.length)} of{" "}
-              {filtered.length}
-            </span>
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={setCurrentPage}
-              showIcons
-            />
+        {snowballs.map((s) => (
+          <div key={s.id} className="border p-3 mb-3 bg-white rounded">
+            <h4 className="font-bold">{s.title}</h4>
+            <p>🎁 Reward: {s.reward}</p>
+            <p>📦 Products:</p>
+            <ul className="ml-5 list-disc text-sm">
+              {s.products.map((p) => (
+                <li key={p.productId}>{p.name}</li>
+              ))}
+            </ul>
           </div>
-        )}
+        ))}
       </div>
 
       {/* MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/40 flex justify-center items-center z-50">
-          <div className="bg-white w-[420px] p-6 rounded-xl shadow-xl border">
-            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-emerald-600">
-              <ImageIcon className="w-5 h-5" />
-              Add Banner via URL
-            </h2>
+          <div className="bg-white p-6 rounded-xl w-[560px] space-y-6">
 
-            {/* BANNER URL */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                Banner Image URL (Cloudinary)
-              </label>
+            {/* PRODUCT BANNER FORM */}
+            <div className="border p-4 rounded">
+              <h3 className="font-semibold mb-2">Product Banner</h3>
               <input
-                type="text"
-                placeholder="https://res.cloudinary.com/.../banner.png"
-                className="w-full border px-3 py-2 rounded text-sm"
-                value={form.bannerUrl}
+                placeholder="Banner URL"
+                className="border p-2 w-full mb-2"
+                value={bannerForm.bannerUrl}
                 onChange={(e) =>
-                  setForm({ ...form, bannerUrl: e.target.value })
+                  setBannerForm({ ...bannerForm, bannerUrl: e.target.value })
                 }
               />
-            </div>
-
-            {/* REDIRECT URL */}
-            <div className="mb-4">
-              <label className="block text-sm font-medium mb-1">
-                Redirect URL (click action)
-              </label>
               <input
-                type="text"
-                placeholder="https://your-store.com/promo"
-                className="w-full border px-3 py-2 rounded text-sm"
-                value={form.bannerUrlLink}
+                placeholder="Redirect URL"
+                className="border p-2 w-full mb-2"
+                value={bannerForm.bannerUrlLink}
                 onChange={(e) =>
-                  setForm({ ...form, bannerUrlLink: e.target.value })
+                  setBannerForm({ ...bannerForm, bannerUrlLink: e.target.value })
                 }
               />
-            </div>
-
-            {/* BUTTONS */}
-            <div className="flex justify-end gap-2 mt-6">
               <button
-                onClick={() => {
-                  setIsModalOpen(false);
-                  setForm({ bannerUrl: "", bannerUrlLink: "" });
-                }}
-                className="px-4 py-2 border rounded text-sm"
-              >
-                Cancel
-              </button>
-
-              <button
-                onClick={handleSave}
-                className="px-4 py-2 bg-emerald-600 text-white rounded text-sm"
+                onClick={handleSaveBanner}
+                className="bg-emerald-600 text-white px-4 py-2 rounded"
               >
                 Save Banner
               </button>
             </div>
+
+            {/* SNOWBALL FORM */}
+            <div className="border p-4 rounded bg-orange-50 space-y-2">
+              <h3 className="font-semibold flex items-center gap-1">
+                <Gift size={16} /> Snowball Offer
+              </h3>
+
+              <input
+                placeholder="Promo Title"
+                className="border p-2 w-full"
+                value={snowballForm.title}
+                onChange={(e) =>
+                  setSnowballForm({ ...snowballForm, title: e.target.value })
+                }
+              />
+
+              <input
+                placeholder="Reward"
+                className="border p-2 w-full"
+                value={snowballForm.reward}
+                onChange={(e) =>
+                  setSnowballForm({ ...snowballForm, reward: e.target.value })
+                }
+              />
+
+              <label className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={snowballForm.hasExpiry}
+                  onChange={(e) =>
+                    setSnowballForm({
+                      ...snowballForm,
+                      hasExpiry: e.target.checked,
+                    })
+                  }
+                />
+                Has Expiration
+              </label>
+
+              {snowballForm.hasExpiry && (
+                <input
+                  type="date"
+                  className="border p-2 w-full"
+                  value={snowballForm.expiry}
+                  onChange={(e) =>
+                    setSnowballForm({
+                      ...snowballForm,
+                      expiry: e.target.value,
+                    })
+                  }
+                />
+              )}
+
+              {/* PRODUCT SELECTOR */}
+              <div className="border p-2 rounded bg-white">
+                <p className="text-sm font-semibold mb-1">
+                  Select Products (From Product Monitoring)
+                </p>
+
+                {MOCK_PRODUCTS.map((p) => (
+                  <label
+                    key={p.productId}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={!!selectedProducts.find(
+                        (sp) => sp.productId === p.productId
+                      )}
+                      onChange={() => toggleProduct(p)}
+                    />
+                    {p.name} ({p.category})
+                  </label>
+                ))}
+              </div>
+
+              <button
+                onClick={handleSaveSnowball}
+                className="bg-orange-500 text-white px-4 py-2 rounded"
+              >
+                Save Snowball
+              </button>
+            </div>
+
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="border px-4 py-2 rounded"
+            >
+              Close
+            </button>
+
           </div>
         </div>
       )}
