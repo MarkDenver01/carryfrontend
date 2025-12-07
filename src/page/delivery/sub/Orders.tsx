@@ -37,6 +37,8 @@ import api from "../../../libs/api";
 /* ============================================================
    TYPES
 ============================================================ */
+import { applyAssignOrderStats, applyDeliveredStats } 
+from "../../../types/ridersStatshelper";
 
 type OrderStatus =
   | "Pending"
@@ -126,7 +128,7 @@ export default function Orders() {
   const [toast, setToast] = useState<ToastState>(null);
 
   // ✅ RIDER CONTEXT (we only need riders + resetRiders here)
-  const { riders, resetRiders } = useDrivers();
+  const { riders, resetRiders, updateRider } = useDrivers();
   const availableRiders = riders.filter((r) => r.status === "Available");
 
   /* ============================================================
@@ -362,7 +364,13 @@ const assignRiderToOrder = async (rider: Rider) => {
         : prev
     );
 
+    // ✅ APPLY FRONTEND STATS
+    const updatedStats = applyAssignOrderStats(rider);
+    updateRider(rider.id, updatedStats,);
+
+    // ✅ OPTIONAL: sync visual freshness
     await resetRiders();
+
 
     setToast({
       type: "success",
@@ -425,7 +433,19 @@ const assignRiderToOrder = async (rider: Rider) => {
       await markDelivered(orderId, payload, currentOrder?.riderId ?? undefined);
 
       // 🔥 Refresh riders (para mag-reflect AVAILABLE na yung rider)
+      // ✅ FRONTEND COMPLETED STATS FIX
+      if (currentOrder?.riderId) {
+        const rider = riders.find(r => r.id === currentOrder.riderId);
+
+        if (rider) {
+          const updatedStats = applyDeliveredStats(rider);
+          updateRider(rider.id, updatedStats);
+        }
+      }
+
+      // ✅ refresh para mag-sync
       await resetRiders();
+
 
       // 🧠 Update allOrders: mark as Delivered + note
       setAllOrders((prev) =>
