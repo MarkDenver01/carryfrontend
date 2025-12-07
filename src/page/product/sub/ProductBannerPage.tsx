@@ -25,32 +25,10 @@ import {
   getAllBanners,
   createBanner,
   deleteBanner,
+  getAllSnowballOffers,
+  createSnowballOffer,
+  deleteSnowballOffer,
 } from "../../../libs/ApiGatewayDatasource";
-
-const getAllSnowballOffers = async () => {
-  // TODO: replace with real backend call
-  return [];
-};
-
-const createSnowballOffer = async (payload: any) => {
-  // TODO: replace with real backend call
-  return {
-    id: Date.now(),
-    ...payload,
-    products: payload.productIds.map((id: number) => ({
-      id,
-      name: "Sample Product",
-      categoryName: "Sample Category",
-      imageUrl: "/placeholder.png",
-      promoPrice: payload.promoPrices?.[id] ?? null,
-    })),
-  };
-};
-
-const deleteSnowballOffer = async (_id: number) => {
-  // TODO: replace with real backend call
-  return true;
-};
 
 import type { ProductBanner } from "../../../libs/models/product/ProductBanner";
 import { useProductsContext } from "../../../context/ProductsContext";
@@ -170,14 +148,27 @@ export default function ProductBannerPage() {
   }
 
   async function loadSnowballs() {
-    try {
-      const list = await getAllSnowballOffers();
-      setSnowballs(list || []);
-    } catch (err) {
-      console.error(err);
-      Swal.fire("Error", "Failed to load snowball promos.", "error");
-    }
+  try {
+    const list = await getAllSnowballOffers();
+
+    const mapped = list.map((s: any) => ({
+      ...s,
+      products: (s.products || []).map((p: any) => ({
+        id: p.productId,
+        name: p.name,
+        categoryName: p.categoryName,
+        imageUrl: p.imageUrl,
+        promoPrice: s.promoPrices?.[p.productId] ?? null,
+      })),
+    }));
+
+    setSnowballs(mapped);
+  } catch (err) {
+    console.error(err);
+    Swal.fire("Error", "Failed to load snowball promos.", "error");
   }
+}
+
 
   /* =============================
      HANDLERS: SAVE BANNER

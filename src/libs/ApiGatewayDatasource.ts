@@ -585,3 +585,44 @@ export async function deleteBanner(bannerId: number): Promise<void> {
     throw error.response?.data || { message: "Failed to delete banner" };
   }
 }
+// ===============================
+// ✅ SNOWBALL PROMO APIs
+// ===============================
+
+export async function getAllSnowballOffers() {
+  try {
+    const res = await api.get("/api/snowball");
+    return res.data;
+  } catch (error: any) {
+    console.error("❌ Fetch snowball promos error:", error);
+    throw error.response?.data || { message: "Failed to load snowball promos" };
+  }
+}
+
+export async function createSnowballOffer(payload: {
+  title: string;
+  reward: string;
+  requiredQty: number;
+  hasExpiry: boolean;
+  expiry?: string | null;
+  terms: string;
+  productIds: number[];
+  promoPrices: Record<number, number>;
+}) {
+  try {
+    const res = await api.post("/api/snowball", payload);
+    return res.data;
+  } catch (error: any) {
+    console.error("❌ Create snowball promo error:", error);
+    throw error.response?.data || { message: "Failed to create snowball promo" };
+  }
+}
+
+export async function deleteSnowballOffer(id: number) {
+  try {
+    await api.delete(`/api/snowball/${id}`);
+  } catch (error: any) {
+    console.error("❌ Delete snowball promo error:", error);
+    throw error.response?.data || { message: "Failed to delete snowball promo" };
+  }
+}
