@@ -1,7 +1,7 @@
 import { Dropdown, DropdownHeader, DropdownItem } from "flowbite-react";
 import { Bell, Eye, XCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useNotifications } from "../../hooks/use_notification";
+import { useNotifications } from "../../context/NotificationContext";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function NotificationDropdown() {
