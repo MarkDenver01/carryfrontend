@@ -34,7 +34,6 @@ import { PricesProvider } from "../../context/PricesContext";
 import CategoryProvider from "../../context/CategoryContext";
 import { RecommendationRuleProvider } from "../../context/RecommendationRulesContext";
 import { DriverProvider } from "../../context/DriverContext";
-import { NotificationProvider } from '../../context/NotificationContext';
 
 export default function DashboardLayout() {
   const { user } = useAuth();
@@ -55,7 +54,6 @@ export default function DashboardLayout() {
 
   return (
   <DriverProvider>
-    <NotificationProvider>
       <div className="flex h-screen bg-gray-200">
         <AppSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
@@ -236,7 +234,6 @@ export default function DashboardLayout() {
           </main>
         </div>
       </div>
-    </NotificationProvider>
   </DriverProvider>
   );
 }
