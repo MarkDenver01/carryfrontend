@@ -11,6 +11,8 @@ export type NotificationItem = {
   color: string;
   createdAt: Date;
   read: boolean;
+  type?: string;
+  orderId?: string;
 };
 
 let globalId = 1;
@@ -28,23 +30,27 @@ export function useNotifications() {
   ]);
 
   // 🔥 ADD NOTIFICATION (pang test & real usage)
-  const addNotification = (payload: {
-    message: string;
-    icon: NotificationIcon;
-    color: string;
-  }) => {
-    setNotifications((prev) => [
-      {
-        id: globalId++,
-        message: payload.message,
-        icon: payload.icon,
-        color: payload.color,
-        createdAt: new Date(),
-        read: false,
-      },
-      ...prev, // newest first
-    ]);
-  };
+const addNotification = (payload: {
+  message: string;
+  icon: NotificationIcon;
+  color: string;
+  type?: string;
+  orderId?: string;
+}) => {
+  setNotifications((prev) => [
+    {
+      id: globalId++,
+      message: payload.message,
+      icon: payload.icon,
+      color: payload.color,
+      createdAt: new Date(),
+      read: false,
+      type: payload.type,
+      orderId: payload.orderId,
+    },
+    ...prev,
+  ]);
+};
 
   // UNREAD COUNT
   const unreadCount = notifications.filter((n) => !n.read).length;

@@ -11,18 +11,18 @@ import SystemSettings from "./page/Settings/SystemSettings";
 import type { JSX } from "react";
 import {
   requestNotificationPermission,
-  listenToForegroundMessages,
+  useFcmForegroundListener ,
 } from "./notification/fcm";
 
 function App(): JSX.Element {
   const location = useLocation();
   const isLoginPage = location.pathname === "/";
 
-    // ✅ FIREBASE NOTIFICATION INIT (ONCE)
   useEffect(() => {
     requestNotificationPermission();
-    listenToForegroundMessages();
   }, []);
+
+  useFcmForegroundListener();
 
   return (
     <div
