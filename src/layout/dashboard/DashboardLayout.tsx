@@ -34,6 +34,7 @@ import { PricesProvider } from "../../context/PricesContext";
 import CategoryProvider from "../../context/CategoryContext";
 import { RecommendationRuleProvider } from "../../context/RecommendationRulesContext";
 import { DriverProvider } from "../../context/DriverContext";
+import { NotificationProvider } from '../../context/NotificationContext';
 
 export default function DashboardLayout() {
   const { user } = useAuth();
@@ -65,6 +66,7 @@ export default function DashboardLayout() {
           <Topbar pageTitle={pageTitle} />
 
           <main className="p-4 overflow-y-auto flex-1">
+          <NotificationProvider>
             <CategoryProvider>
               <ProductsProvider>
                 <PricesProvider>
@@ -228,6 +230,7 @@ export default function DashboardLayout() {
                 </PricesProvider>
               </ProductsProvider>
             </CategoryProvider>
+          </NotificationProvider>
           </main>
         </div>
       </div>

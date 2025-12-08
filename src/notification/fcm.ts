@@ -40,20 +40,13 @@ export function useFcmForegroundListener() {
   const { addNotification } = useNotifications();
 
   onMessage(messaging, (payload) => {
-    console.log("📩 Foreground message received:", payload);
+    console.log("📩 Foreground:", payload);
 
     const { title, body } = payload.notification ?? {};
     const type = payload.data?.type;
     const orderId = payload.data?.orderId;
 
     if (title && body) {
-      // ✅ Browser popup
-      new Notification(title, {
-        body,
-        icon: "/vite.svg",
-      });
-
-      // ✅ DROPDOWN + HISTORY
       addNotification({
         message: body,
         icon: resolveIcon(type),
