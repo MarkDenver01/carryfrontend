@@ -54,7 +54,8 @@ export default function DashboardLayout() {
   }, [location.pathname]);
 
   return (
-    <DriverProvider>
+  <DriverProvider>
+    <NotificationProvider>
       <div className="flex h-screen bg-gray-200">
         <AppSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
 
@@ -63,10 +64,11 @@ export default function DashboardLayout() {
             collapsed ? "ml-20" : "ml-64"
           }`}
         >
+
           <Topbar pageTitle={pageTitle} />
 
           <main className="p-4 overflow-y-auto flex-1">
-          <NotificationProvider>
+   
             <CategoryProvider>
               <ProductsProvider>
                 <PricesProvider>
@@ -230,10 +232,11 @@ export default function DashboardLayout() {
                 </PricesProvider>
               </ProductsProvider>
             </CategoryProvider>
-          </NotificationProvider>
+         
           </main>
         </div>
       </div>
-    </DriverProvider>
+    </NotificationProvider>
+  </DriverProvider>
   );
 }

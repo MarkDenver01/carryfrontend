@@ -2,7 +2,8 @@ import { getToken, onMessage } from "firebase/messaging";
 import { messaging } from "../firebase";
 import axios from "axios";
 import { Bell, ShoppingCart, CheckCircle, XCircle } from "lucide-react";
-import { useNotifications } from "../hooks/use_notification";
+import { useEffect } from "react";
+import { useNotifications } from "../context/NotificationContext"; // ✅ TAMA NA ITO
 
 export async function requestNotificationPermission() {
   const permission = await Notification.requestPermission();
@@ -35,27 +36,31 @@ async function generateAndSaveToken() {
   }
 }
 
-/** ✅ REALTIME LISTENER → DROPDOWN + HISTORY */
+/** ✅ REALTIME LISTENER → UI DROPDOWN + HISTORY */
 export function useFcmForegroundListener() {
-  const { addNotification } = useNotifications();
+  const { addNotification } = useNotifications(); 
 
-  onMessage(messaging, (payload) => {
-    console.log("📩 Foreground:", payload);
+  useEffect(() => {
+    const unsubscribe = onMessage(messaging, (payload) => {
+      console.log("📩 REAL FIREBASE PUSH:", payload);
 
-    const { title, body } = payload.notification ?? {};
-    const type = payload.data?.type;
-    const orderId = payload.data?.orderId;
+      const { title, body } = payload.notification ?? {};
+      const type = payload.data?.type;
+      const orderId = payload.data?.orderId;
 
-    if (title && body) {
-      addNotification({
-        message: body,
-        icon: resolveIcon(type),
-        color: resolveColor(type),
-        type,
-        orderId,
-      });
-    }
-  });
+      if (title && body) {
+        addNotification({
+          message: body,
+          icon: resolveIcon(type),
+          color: resolveColor(type),
+          type,
+          orderId,
+        });
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 }
 
 function resolveIcon(type?: string) {
