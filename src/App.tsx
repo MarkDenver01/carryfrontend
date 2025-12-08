@@ -3,16 +3,26 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import bg from "./assets/bg.svg";
 import cary_admin_logo from "./assets/cary_admin_logo.svg";
 import "./App.css";
-
+import { useEffect } from "react"; 
 import Login from "./page/login/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import DashboardLayout from "./layout/dashboard/DashboardLayout";
 import SystemSettings from "./page/Settings/SystemSettings";
 import type { JSX } from "react";
+import {
+  requestNotificationPermission,
+  listenToForegroundMessages,
+} from "./notification/fcm";
 
 function App(): JSX.Element {
   const location = useLocation();
   const isLoginPage = location.pathname === "/";
+
+    // ✅ FIREBASE NOTIFICATION INIT (ONCE)
+  useEffect(() => {
+    requestNotificationPermission();
+    listenToForegroundMessages();
+  }, []);
 
   return (
     <div
