@@ -34,7 +34,7 @@ import {
 } from "../../libs/ApiGatewayDatasource";
 
 // 🔔 IMPORT NOTIFICATION HOOK
-import { useNotifications } from "../../hooks/use_notification";
+import { useNotifications } from "../../context/NotificationContext";
 
 /* =========================
    TYPES FROM BACKEND DTOs
